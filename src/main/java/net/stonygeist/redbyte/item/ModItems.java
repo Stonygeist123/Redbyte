@@ -9,8 +9,7 @@ import net.stonygeist.redbyte.Redbyte;
 
 public class ModItems {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, Redbyte.MOD_ID);
-
-    public static final RegistryObject<Item> ROBO = ITEMS.register("robo", () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> ROBO_ITEM = ITEMS.register("robo", () -> new RoboItem(new Item.Properties()));
 
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);
