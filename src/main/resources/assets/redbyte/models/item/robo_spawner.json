@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "redbyte:item/robo"
+    "layer0": "redbyte:item/robo_spawner"
   }
 }

@@ -1,8 +1,8 @@
 package net.stonygeist.redbyte;
 
 import com.mojang.logging.LogUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.client.renderer.entity.EntityRenderers;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
@@ -13,15 +13,16 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.stonygeist.redbyte.item.ModItems;
+import net.stonygeist.redbyte.entity.robo.RoboEntityRenderer;
+import net.stonygeist.redbyte.index.RedbyteCreativeTabs;
+import net.stonygeist.redbyte.index.RedbyteEntities;
+import net.stonygeist.redbyte.index.RedbyteItems;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(Redbyte.MOD_ID)
 public class Redbyte {
-    // Define mod id in a common place for everything to reference
     public static final String MOD_ID = "redbyte";
-    // Directly reference a slf4j logger
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public Redbyte() {
@@ -30,7 +31,9 @@ public class Redbyte {
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
 
-        ModItems.register(modEventBus);
+        RedbyteCreativeTabs.register(modEventBus);
+        RedbyteItems.register(modEventBus);
+        RedbyteEntities.register(modEventBus);
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
@@ -41,8 +44,8 @@ public class Redbyte {
 
     // Add the example block item to the building blocks tab
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.INGREDIENTS)
-            event.accept(ModItems.ROBO);
+        if (event.getTab() == RedbyteCreativeTabs.REDBYTE_TAB.get())
+            event.accept(RedbyteItems.ROBO_SPAWNER);
     }
 
     // You can use SubscribeEvent and let the Event Bus discover methods to call
@@ -57,9 +60,11 @@ public class Redbyte {
     public static class ClientModEvents {
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
-            // Some client setup code
-            LOGGER.info("HELLO FROM CLIENT SETUP");
-            LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+            EntityRenderers.register(RedbyteEntities.ROBO.get(), RoboEntityRenderer::new);
         }
+    }
+
+    public static ResourceLocation asResource(String path) {
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
 }
