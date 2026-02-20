@@ -6,7 +6,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.font.TextFieldHelper;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.contents.PlainTextContents;
 import org.jetbrains.annotations.NotNull;
 
 public class RoboTerminal extends Screen {
@@ -55,8 +54,6 @@ public class RoboTerminal extends Screen {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (textFieldHelper == null) return false;
-        InputConstants.Key key = InputConstants.getKey(keyCode, scanCode);
-        String keyString = key.getDisplayName().getContents() instanceof PlainTextContents p ? p.text() : null;
         if (keyCode == InputConstants.KEY_UP) {
             if (curLine == 0)
                 textFieldHelper.setCursorPos(0);
