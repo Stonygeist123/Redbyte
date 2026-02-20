@@ -31,12 +31,12 @@ public class RoboTerminal extends Screen {
     @Override
     protected void init() {
         super.init();
+        addRenderableWidget(new StartButton(width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2, 100, 20, Component.translatable("screen.redbyte.robo_terminal.start"), terminalText::toString));
     }
 
     @Override
     public void tick() {
         ++tickCounter;
-
         if (textFieldHelper == null) {
             Minecraft mc = getMinecraft();
             if (mc != null && mc.level != null && mc.player != null) {
@@ -48,6 +48,37 @@ public class RoboTerminal extends Screen {
                         text -> mc.font.width(text) <= MAX_TEXT_LINE_WIDTH);
             }
         }
+    }
+
+    @Override
+    protected void renderBlurredBackground(float pPartialTick) {
+    }
+
+    @Override
+    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        if (textFieldHelper == null) return;
+        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+
+        int x = (width - TERMINAL_WIDTH) / 2;
+        int y = (height - TERMINAL_HEIGHT) / 2;
+
+        guiGraphics.fill(x - 4, y - 4, x + TERMINAL_WIDTH + 4, y + TERMINAL_HEIGHT + 4, BORDER_COLOR);
+        guiGraphics.fill(x, y, x + TERMINAL_WIDTH, y + TERMINAL_HEIGHT, SCREEN_COLOR);
+
+        guiGraphics.drawString(font, getTitle(), x + 6, y + 6, 0x00ff00);
+        int textY = y + 20;
+        String[] lines = terminalText.getLines();
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            boolean isCurLine = i == curLine;
+            boolean showCursor = (tickCounter / 10) % 2 == 0;
+            guiGraphics.drawString(font, line, x + 6, textY, 0xffffff);
+            if (isCurLine && showCursor)
+                guiGraphics.vLine(x + 5 + font.width(line.substring(0, textFieldHelper.getCursorPos())), textY - 1, textY - 1 + font.lineHeight, 0xFFFF00FF);
+            textY += isCurLine ? 14 : 10;
+        }
+
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     //    TODO: Fix selection, ctrl + A ...
@@ -99,16 +130,7 @@ public class RoboTerminal extends Screen {
             curLine = curLine + 1;
             textFieldHelper.setCursorPos(0);
             return true;
-        } else if (textFieldHelper.keyPressed(keyCode) || super.keyPressed(keyCode, scanCode, modifiers))
-            return true;
-        else if (keyCode == InputConstants.KEY_SPACE) {
-            terminalText.addText(" ", curLine, textFieldHelper.getCursorPos());
-            textFieldHelper.setCursorPos(textFieldHelper.getCursorPos() + 1);
-            textFieldHelper.setSelectionPos(textFieldHelper.getCursorPos());
-            return true;
-        }
-
-        return false;
+        } else return textFieldHelper.keyPressed(keyCode) || super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -122,36 +144,6 @@ public class RoboTerminal extends Screen {
         textFieldHelper.setCursorPos(textFieldHelper.getCursorPos() + 1);
         textFieldHelper.setSelectionPos(textFieldHelper.getCursorPos());
         return true;
-    }
-
-    @Override
-    protected void renderBlurredBackground(float pPartialTick) {
-    }
-
-    @Override
-    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        if (textFieldHelper == null) return;
-        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
-
-        int x = (width - TERMINAL_WIDTH) / 2;
-        int y = (height - TERMINAL_HEIGHT) / 2;
-
-        guiGraphics.fill(x - 4, y - 4, x + TERMINAL_WIDTH + 4, y + TERMINAL_HEIGHT + 4, BORDER_COLOR);
-        guiGraphics.fill(x, y, x + TERMINAL_WIDTH, y + TERMINAL_HEIGHT, SCREEN_COLOR);
-
-        int textY = y + 6;
-        String[] lines = terminalText.getLines();
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
-            boolean isCurLine = i == curLine;
-            boolean showCursor = (tickCounter / 10) % 2 == 0;
-            guiGraphics.drawString(font, line, x + 6, textY, 0xffffff);
-            if (isCurLine && showCursor)
-                guiGraphics.vLine(x + 5 + font.width(line.substring(0, textFieldHelper.getCursorPos())), textY - 1, textY - 1 + font.lineHeight, 0xFFFF00FF);
-            textY += isCurLine ? 14 : 10;
-        }
-
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     @Override

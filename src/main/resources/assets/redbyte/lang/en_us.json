@@ -1,5 +1,6 @@
 {
   "item.redbyte.robo_spawner": "Robo Spawner",
   "entity.redbyte.robo": "Robo",
-  "screen.redbyte.robo_terminal.edit": "Edit Code"
+  "screen.redbyte.robo_terminal.edit": "Edit Code",
+  "screen.redbyte.robo_terminal.start": "Start"
 }
