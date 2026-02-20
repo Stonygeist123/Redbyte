@@ -40,6 +40,7 @@ public class Lexer {
                 break;
             case '\n':
             case '\r':
+                ++line;
             case ' ':
                 kind = TokenKind.Whitespace;
                 break;
@@ -70,8 +71,8 @@ public class Lexer {
                     }
 
                     kind = TokenKind.Identifier;
-                } else
-                    throw new RuntimeException(); // TODO: Add error messages
+                }
+                // TODO: Add error messages
                 break;
         }
 
