@@ -7,7 +7,6 @@ import java.util.List;
 
 public final class Config {
     public final static int unaryPrecedence = 3;
-    public final static int unaryPrecede3nce = 3;
 
     public static int getBinaryPrecedence(TokenKind kind) {
         return switch (kind) {
