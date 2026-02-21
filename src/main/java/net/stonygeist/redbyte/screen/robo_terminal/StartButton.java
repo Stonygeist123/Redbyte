@@ -3,7 +3,9 @@ package net.stonygeist.redbyte.screen.robo_terminal;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.MutableComponent;
 import net.stonygeist.interpreter.analysis.Lexer;
-import net.stonygeist.interpreter.analysis.Token;
+import net.stonygeist.interpreter.analysis.Parser;
+import net.stonygeist.interpreter.analysis.nodes.Expr;
+import net.stonygeist.interpreter.analysis.nodes.Token;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -22,6 +24,13 @@ public class StartButton extends Button {
         super.onPress();
         Lexer lexer = new Lexer(getText.get());
         List<Token> tokens = lexer.lex();
-        System.out.println(tokens.toArray().length);
+        Parser parser = new Parser(tokens.toArray(new Token[0]));
+
+        try {
+            Expr[] exprs = parser.parse();
+            System.out.println(exprs.length);
+        } catch (RuntimeException e) {
+            System.out.println("Error");
+        }
     }
 }

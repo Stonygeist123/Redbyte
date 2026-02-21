@@ -1,12 +1,16 @@
 package net.stonygeist.interpreter.analysis;
 
+import net.stonygeist.interpreter.analysis.nodes.Token;
+import net.stonygeist.interpreter.analysis.nodes.TokenKind;
+import net.stonygeist.interpreter.miscellaneous.TextSpan;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class Lexer {
     private final String text;
     private final List<Token> tokens = new ArrayList<>();
-    private int start, current, line;
+    private int start, current;
 
     public Lexer(String text) {
         this.text = text;
@@ -38,10 +42,19 @@ public class Lexer {
             case '/':
                 kind = TokenKind.Slash;
                 break;
-            case '\n':
-            case '\r':
-                ++line;
-            case ' ':
+            case '(':
+                kind = TokenKind.LParen;
+                break;
+            case ')':
+                kind = TokenKind.RParen;
+                break;
+            case ',':
+                kind = TokenKind.Comma;
+                break;
+            case '=':
+                kind = TokenKind.Equals;
+                break;
+            case '\n', '\r', ' ':
                 kind = TokenKind.Whitespace;
                 break;
             case '\0':
@@ -76,7 +89,7 @@ public class Lexer {
                 break;
         }
 
-        tokens.add(new Token(lexeme.toString(), kind, new TextSpan(start, current, line)));
+        tokens.add(new Token(lexeme.toString(), kind, new TextSpan(start, current)));
     }
 
     private boolean isAtEnd() {
