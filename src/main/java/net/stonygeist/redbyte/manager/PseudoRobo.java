@@ -6,7 +6,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
-import net.stonygeist.redbyte.index.RedbyteConfigs;
 import net.stonygeist.redbyte.index.RedbyteEntities;
 
 import java.lang.ref.WeakReference;
@@ -18,16 +17,13 @@ public class PseudoRobo {
     private Vec3 pos;
     private String code;
     private ServerLevel serverLevel;
-    private Vec3 targetVelocity = Vec3.ZERO;
-    private float speed;
-    private boolean jumping;
+    private Vec3 moveTarget;
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos pos, String code) {
         this.redbyteID = redbyteID;
         this.serverLevel = serverLevel;
         this.pos = pos.getCenter().subtract(0, 0.5, 0);
         this.code = code;
-        speed = RedbyteConfigs.ROBO_DEFAULT_SPEED;
     }
 
     public static PseudoRobo deserializeNBT(ServerLevel level, CompoundTag tag) {
@@ -51,9 +47,7 @@ public class PseudoRobo {
 
     private void updateEntity() {
         RoboEntity roboEntity = resolveEntity(serverLevel);
-        if (roboEntity != null)
-            roboEntity.syncFromVirtual(this);
-        else
+        if (roboEntity == null)
             entityRef.clear();
     }
 
@@ -68,7 +62,6 @@ public class PseudoRobo {
     public void tick(ServerLevel serverLevel) {
         this.serverLevel = serverLevel;
         updateEntity();
-        move(targetVelocity);
 
         // Spawn / despawn RoboEntity if needed
         BlockPos pos = BlockPos.containing(this.pos);
@@ -77,6 +70,33 @@ public class PseudoRobo {
                 spawnAndRememberEntity();
         } else if (getEntity() != null)
             despawnEntity();
+
+
+        if (moveTarget != null) {
+            RoboEntity roboEntity = resolveEntity(serverLevel);
+            double dist = roboEntity.distanceToSqr(
+                    moveTarget.x + 0.5,
+                    moveTarget.y,
+                    moveTarget.z + 0.5
+            );
+
+            if (dist < 1.5f) {
+                moveTarget = null;
+                roboEntity.getNavigation().stop();
+                return;
+            }
+
+            if (!roboEntity.getNavigation().isInProgress()) {
+                roboEntity.getNavigation().moveTo(
+                        moveTarget.x,
+                        moveTarget.y,
+                        moveTarget.z,
+                        1
+                );
+            } else {
+                this.pos = roboEntity.position();
+            }
+        }
     }
 
     private void despawnEntity() {
@@ -94,18 +114,6 @@ public class PseudoRobo {
         setEntity(robo);
     }
 
-    private void move(Vec3 targetVelocity) {
-        pos = pos.add(targetVelocity);
-    }
-
-    public void jump() {
-        jumping = true;
-    }
-
-    public void jumpDone() {
-        jumping = false;
-    }
-
     public static Vec3 readVec3FromTag(CompoundTag tag, String key) {
         double x = tag.getDouble(key + "X");
         double y = tag.getDouble(key + "Y");
@@ -119,8 +127,12 @@ public class PseudoRobo {
         tag.putDouble(key + "Z", vec.z);
     }
 
-    public Vec3 getPos() {
-        return pos;
+    public Vec3 getMoveTarget() {
+        return moveTarget;
+    }
+
+    public void setMoveTarget(Vec3 moveTarget) {
+        this.moveTarget = moveTarget;
     }
 
     public UUID getRedbyteID() {
@@ -137,17 +149,5 @@ public class PseudoRobo {
 
     public void setCode(String code) {
         this.code = code;
-    }
-
-    public boolean getJumping() {
-        return jumping;
-    }
-
-    public void setTargetVelocity(Vec3 targetVelocity) {
-        this.targetVelocity = targetVelocity;
-    }
-
-    public void setTargetVelocity(BlockPos blockPos) {
-        targetVelocity = blockPos.getCenter().subtract(0, .5f, 0).normalize().scale(speed);
     }
 }

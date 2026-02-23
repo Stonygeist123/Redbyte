@@ -18,7 +18,6 @@ import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.stonygeist.redbyte.index.RedbyteConfigs;
-import net.stonygeist.redbyte.manager.PseudoRobo;
 import net.stonygeist.redbyte.manager.RoboRegistry;
 import net.stonygeist.redbyte.screen.robo_terminal.RoboTerminalScreen;
 import org.jetbrains.annotations.NotNull;
@@ -56,11 +55,15 @@ public class RoboEntity extends PathfinderMob {
 
     @Override
     protected @NotNull InteractionResult mobInteract(@NotNull Player player, @NotNull InteractionHand hand) {
-        RoboTerminalScreen screen = new RoboTerminalScreen();
-        screen.setId(getRedbyteID());
-        screen.setCode(getCode());
-        Minecraft.getInstance().setScreen(screen);
-        return InteractionResult.SUCCESS;
+        if (level().isClientSide()) {
+            RoboTerminalScreen screen = new RoboTerminalScreen();
+            screen.setId(getRedbyteID());
+            screen.setCode(getCode());
+            Minecraft.getInstance().setScreen(screen);
+            return InteractionResult.SUCCESS;
+        }
+
+        return InteractionResult.PASS;
     }
 
     @Override
@@ -75,14 +78,6 @@ public class RoboEntity extends PathfinderMob {
         super.remove(reason);
         if (reason.shouldDestroy() && level() instanceof ServerLevel serverLevel)
             RoboRegistry.get(serverLevel).remove(getRedbyteID());
-    }
-
-    public void syncFromVirtual(PseudoRobo pseudoRobo) {
-        setPos(pseudoRobo.getPos());
-        if (pseudoRobo.getJumping()) {
-            jumpFromGround();
-            pseudoRobo.jumpDone();
-        }
     }
 
     public String getCode() {

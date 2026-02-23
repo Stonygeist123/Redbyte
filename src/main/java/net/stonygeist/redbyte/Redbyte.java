@@ -18,6 +18,7 @@ import net.stonygeist.redbyte.entity.robo.RoboEntityRenderer;
 import net.stonygeist.redbyte.index.RedbyteCreativeTabs;
 import net.stonygeist.redbyte.index.RedbyteEntities;
 import net.stonygeist.redbyte.index.RedbyteItems;
+import net.stonygeist.redbyte.server.C2SFunctionsPaket;
 import net.stonygeist.redbyte.server.C2SRoboCodePacket;
 import org.slf4j.Logger;
 
@@ -47,6 +48,21 @@ public class Redbyte {
                 .encoder(C2SRoboCodePacket::encode)
                 .decoder(C2SRoboCodePacket::decode)
                 .consumerMainThread(C2SRoboCodePacket::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SFunctionsPaket.WalkFunction.class, networkID++)
+                .encoder(C2SFunctionsPaket.WalkFunction::encode)
+                .decoder(C2SFunctionsPaket.WalkFunction::decode)
+                .consumerMainThread(C2SFunctionsPaket.WalkFunction::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SFunctionsPaket.WalkToFunction.class, networkID++)
+                .encoder(C2SFunctionsPaket.WalkToFunction::encode)
+                .decoder(C2SFunctionsPaket.WalkToFunction::decode)
+                .consumerMainThread(C2SFunctionsPaket.WalkToFunction::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SFunctionsPaket.JumpFunction.class, networkID++)
+                .encoder(C2SFunctionsPaket.JumpFunction::encode)
+                .decoder(C2SFunctionsPaket.JumpFunction::decode)
+                .consumerMainThread(C2SFunctionsPaket.JumpFunction::handle)
                 .add();
     }
 

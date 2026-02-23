@@ -1,7 +1,11 @@
 package net.stonygeist.interpreter;
 
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.network.PacketDistributor;
 import net.stonygeist.interpreter.analysis.nodes.*;
 import net.stonygeist.interpreter.miscellaneous.Config;
+import net.stonygeist.redbyte.Redbyte;
+import net.stonygeist.redbyte.server.C2SFunctionsPaket;
 
 import java.util.Arrays;
 import java.util.Dictionary;
@@ -61,10 +65,17 @@ public final class Evaluator {
                 Integer parameterCount = Config.functions.get(callExpr.name.lexeme.toLowerCase());
                 if (parameterCount == null || parameterCount != args.length)
                     throw new RuntimeException();
-                yield switch (callExpr.name.lexeme.toLowerCase()) {
-                    case "walk", "walkto", "jump" -> 0f;
+                switch (callExpr.name.lexeme.toLowerCase()) {
+                    case "walk" ->
+                            Redbyte.CHANNEL.send(new C2SFunctionsPaket.WalkFunction(redbyteID, args[0]), PacketDistributor.SERVER.noArg());
+                    case "walkto" ->
+                            Redbyte.CHANNEL.send(new C2SFunctionsPaket.WalkToFunction(redbyteID, new Vec3(args[0], args[1], args[2])), PacketDistributor.SERVER.noArg());
+                    case "jump" ->
+                            Redbyte.CHANNEL.send(new C2SFunctionsPaket.JumpFunction(redbyteID), PacketDistributor.SERVER.noArg());
                     default -> throw new RuntimeException();
-                };
+                }
+
+                yield 0f;
             }
             default -> throw new RuntimeException();
         };
