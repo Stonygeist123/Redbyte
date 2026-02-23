@@ -1,9 +1,7 @@
 package net.stonygeist.interpreter.miscellaneous;
 
+import com.google.common.collect.ImmutableMap;
 import net.stonygeist.interpreter.analysis.nodes.TokenKind;
-
-import java.util.Arrays;
-import java.util.List;
 
 public final class Config {
     public final static int unaryPrecedence = 3;
@@ -16,5 +14,9 @@ public final class Config {
         };
     }
 
-    public static final List<String> functions = Arrays.asList("walk", "return");
+    public static final ImmutableMap<String, Integer> functions = new ImmutableMap.Builder<String, Integer>()
+            .put("walk", 1)
+            .put("walkto", 3)
+            .put("jump", 0)
+            .build();
 }

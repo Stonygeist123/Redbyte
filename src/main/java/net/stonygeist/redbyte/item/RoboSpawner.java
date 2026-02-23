@@ -1,12 +1,12 @@
 package net.stonygeist.redbyte.item;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.stonygeist.redbyte.entity.robo.RoboEntity;
-import net.stonygeist.redbyte.index.RedbyteEntities;
+import net.stonygeist.redbyte.manager.RoboRegistry;
 import org.jetbrains.annotations.NotNull;
 
 public class RoboSpawner extends Item {
@@ -22,12 +22,11 @@ public class RoboSpawner extends Item {
     @Override
     public @NotNull InteractionResult useOn(@NotNull UseOnContext context) {
         Level level = context.getLevel();
-        if (level.isClientSide) return InteractionResult.SUCCESS;
+        if (level.isClientSide()) return InteractionResult.SUCCESS;
 
         BlockPos pos = context.getClickedPos().relative(context.getClickedFace());
-        RoboEntity robo = new RoboEntity(RedbyteEntities.ROBO.get(), level);
-        level.addFreshEntity(robo);
-        robo.setPos(pos.getCenter());
+        RoboRegistry registry = RoboRegistry.get((ServerLevel) level);
+        registry.newRobo((ServerLevel) level, pos);
         context.getItemInHand().shrink(1);
         return InteractionResult.SUCCESS;
     }

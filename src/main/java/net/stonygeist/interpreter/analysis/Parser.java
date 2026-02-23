@@ -60,7 +60,7 @@ public class Parser {
             if (token.kind == TokenKind.Equals)
                 return new AssignExpr(name.name, token, parseExpr(0));
             else if (token.kind == TokenKind.LParen) {
-                if (!Config.functions.contains(name.name.lexeme.toLowerCase())) throw new RuntimeException();
+                if (!Config.functions.containsKey(name.name.lexeme.toLowerCase())) throw new RuntimeException();
                 Token lParen = match(TokenKind.LParen);
                 List<Expr> args = new ArrayList<>();
                 while (!isAtEnd() && getCurrent() != null && getCurrent().kind != TokenKind.RParen) {
