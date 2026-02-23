@@ -10,6 +10,10 @@ public class TerminalText {
         lines.add("");
     }
 
+    public TerminalText(String text) {
+        lines.addAll(List.of(text.split("\\r\\n")));
+    }
+
     @Override
     public String toString() {
         return String.join("\n", lines);
