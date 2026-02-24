@@ -11,7 +11,7 @@ public class TerminalText {
     }
 
     public TerminalText(String text) {
-        lines.addAll(List.of(text.split("\\r\\n")));
+        lines.addAll(List.of(text.split("\\n", -1)));
     }
 
     @Override

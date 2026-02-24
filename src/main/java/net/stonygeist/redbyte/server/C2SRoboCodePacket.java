@@ -26,6 +26,7 @@ public class C2SRoboCodePacket {
                 PseudoRobo robo = registry.get(msg.redbyteID);
                 if (robo != null) {
                     robo.setCode(msg.code);
+                    registry.setDirty();
                     RoboEntity roboEntity = robo.resolveEntity(sender.serverLevel());
                     if (roboEntity != null)
                         roboEntity.setCode(msg.code);

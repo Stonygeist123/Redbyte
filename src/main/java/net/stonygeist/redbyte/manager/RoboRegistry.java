@@ -73,6 +73,9 @@ public final class RoboRegistry extends SavedData {
 
     public void ensureExists(UUID redbyteID, RoboEntity entity) {
         PseudoRobo robo = robos.computeIfAbsent(redbyteID, (id) -> new PseudoRobo((ServerLevel) entity.level(), id, entity.blockPosition(), entity.getCode()));
+        RoboEntity trackedEntity = robo.getEntity();
+        if (trackedEntity != null && trackedEntity != entity && !trackedEntity.isRemoved())
+            trackedEntity.discard();
         robo.setEntity(entity);
     }
 }

@@ -42,20 +42,6 @@ public class RoboTerminalScreen extends Screen {
                 Component.translatable("screen.redbyte.robo_terminal.start"), terminalText::toString, redbyteID));
     }
 
-    public void setId(UUID redbyteID) {
-        this.redbyteID = redbyteID;
-        Redbyte.CHANNEL.send(new C2SRoboCodePacket(redbyteID, getCode()), PacketDistributor.SERVER.noArg());
-    }
-
-    public String getCode() {
-        return terminalText.toString();
-    }
-
-    public void setCode(String code) {
-        terminalText = new TerminalText(code);
-        initialised = true;
-    }
-
     @Override
     public void tick() {
         if (initialised) {
@@ -63,12 +49,13 @@ public class RoboTerminalScreen extends Screen {
             if (textFieldHelper == null) {
                 Minecraft mc = getMinecraft();
                 if (mc != null && mc.level != null && mc.player != null) {
+                    var x = TextFieldHelper.createClipboardGetter(mc);
+                    var y = TextFieldHelper.createClipboardSetter(mc);
                     textFieldHelper = new TextFieldHelper(
-                            this::getCode,
-                            text -> terminalText.setText(text, curLine),
-                            TextFieldHelper.createClipboardGetter(mc),
-                            TextFieldHelper.createClipboardSetter(mc),
+                            () -> terminalText.getLines()[curLine],
+                            text -> terminalText.setText(text, curLine), x, y,
                             text -> mc.font.width(text) <= MAX_TEXT_LINE_WIDTH);
+                    clampEditorState();
                 }
             }
         }
@@ -93,6 +80,8 @@ public class RoboTerminalScreen extends Screen {
         if (!initialised || textFieldHelper == null) {
             guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.loading"), width / 2, height / 2, 0xffffffff);
         } else {
+            clampEditorState();
+
             int textY = y + 20;
             String[] lines = terminalText.getLines();
             for (int i = 0; i < lines.length; i++) {
@@ -113,6 +102,7 @@ public class RoboTerminalScreen extends Screen {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (textFieldHelper == null) return super.keyPressed(keyCode, scanCode, modifiers);
+        clampEditorState();
         if (keyCode == InputConstants.KEY_UP) {
             if (curLine == 0)
                 textFieldHelper.setCursorPos(0);
@@ -155,16 +145,18 @@ public class RoboTerminalScreen extends Screen {
             return true;
         } else if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER) {
             terminalText.newLine();
-            curLine = curLine + 1;
-            textFieldHelper.setCursorPos(0);
+            ++curLine;
+            clampEditorState();
             return true;
-        } else return textFieldHelper.keyPressed(keyCode) || super.keyPressed(keyCode, scanCode, modifiers);
+        } else
+            return textFieldHelper.keyPressed(keyCode) || super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
         if (textFieldHelper == null) return false;
         if (Character.isISOControl(codePoint)) return false;
+        clampEditorState();
 
         String text = String.valueOf(codePoint);
         terminalText.addText(text, curLine, textFieldHelper.getCursorPos());
@@ -178,6 +170,37 @@ public class RoboTerminalScreen extends Screen {
     @Override
     public void onClose() {
         super.onClose();
-        Redbyte.CHANNEL.send(new C2SRoboCodePacket(redbyteID, getCode()), PacketDistributor.SERVER.noArg());
+        Redbyte.CHANNEL.send(new C2SRoboCodePacket(redbyteID, terminalText.toString()), PacketDistributor.SERVER.noArg());
+    }
+
+    public void setId(UUID redbyteID) {
+        this.redbyteID = redbyteID;
+    }
+
+    public void setCode(String code) {
+        terminalText = new TerminalText(code == null ? "" : code);
+        curLine = 0;
+        tickCounter = 0;
+        textFieldHelper = null;
+        initialised = true;
+    }
+
+    private void clampEditorState() {
+        String[] lines = terminalText.getLines();
+        if (lines.length == 0) {
+            terminalText.newLine();
+            lines = terminalText.getLines();
+        }
+
+        if (curLine < 0) curLine = 0;
+        if (curLine >= lines.length) curLine = lines.length - 1;
+
+        if (textFieldHelper != null) {
+            int safeCursor = Math.min(textFieldHelper.getCursorPos(), lines[curLine].length());
+            if (safeCursor != textFieldHelper.getCursorPos()) {
+                textFieldHelper.setCursorPos(safeCursor);
+                textFieldHelper.setSelectionPos(safeCursor);
+            }
+        }
     }
 }

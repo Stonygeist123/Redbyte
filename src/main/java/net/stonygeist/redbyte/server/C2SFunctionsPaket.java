@@ -4,9 +4,10 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.network.CustomPayloadEvent;
-import net.stonygeist.redbyte.entity.robo.RoboEntity;
+import net.stonygeist.redbyte.entity.robo.BehaviourController;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 import net.stonygeist.redbyte.manager.RoboRegistry;
+import org.joml.Vector3f;
 
 import java.util.UUID;
 
@@ -26,15 +27,8 @@ public final class C2SFunctionsPaket {
                 if (sender != null) {
                     RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
                     PseudoRobo robo = registry.get(msg.redbyteID);
-                    if (robo != null) {
-                        RoboEntity roboEntity = robo.resolveEntity(sender.serverLevel());
-                        if (roboEntity != null) {
-                            Vec3 lookDirection = roboEntity.getViewVector(1).normalize();
-                            Vec3 pos = new Vec3(roboEntity.getX(), roboEntity.getEyeY(), roboEntity.getZ())
-                                    .add(lookDirection.multiply(msg.blocks, msg.blocks, msg.blocks));
-                            robo.setMoveTarget(pos);
-                        }
-                    }
+                    if (robo != null)
+                        robo.behaviourController.setState(BehaviourController.State.Walk, new float[]{msg.blocks});
                 }
             });
 
@@ -66,8 +60,10 @@ public final class C2SFunctionsPaket {
                 if (sender != null) {
                     RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
                     PseudoRobo robo = registry.get(msg.redbyteID);
-                    if (robo != null)
-                        robo.setMoveTarget(msg.pos);
+                    if (robo != null) {
+                        Vector3f pos = msg.pos.toVector3f();
+                        robo.behaviourController.setState(BehaviourController.State.WalkTo, new float[]{pos.x, pos.y, pos.z});
+                    }
                 }
             });
 
@@ -97,11 +93,8 @@ public final class C2SFunctionsPaket {
                 if (sender != null) {
                     RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
                     PseudoRobo robo = registry.get(msg.redbyteID);
-                    if (robo != null) {
-                        RoboEntity roboEntity = robo.resolveEntity(sender.serverLevel());
-                        if (roboEntity != null)
-                            roboEntity.jumpFromGround();
-                    }
+                    if (robo != null)
+                        robo.behaviourController.setState(BehaviourController.State.Jump);
                 }
             });
 

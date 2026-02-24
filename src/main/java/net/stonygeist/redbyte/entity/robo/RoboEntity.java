@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -17,7 +18,9 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.stonygeist.redbyte.index.RedbyteConfigs;
+import net.stonygeist.redbyte.manager.PseudoRobo;
 import net.stonygeist.redbyte.manager.RoboRegistry;
 import net.stonygeist.redbyte.screen.robo_terminal.RoboTerminalScreen;
 import org.jetbrains.annotations.NotNull;
@@ -32,6 +35,8 @@ public class RoboEntity extends PathfinderMob {
 
     public RoboEntity(EntityType<? extends RoboEntity> type, Level level) {
         super(type, level);
+        noPhysics = false;
+        noCulling = false;
     }
 
     @Override
@@ -45,12 +50,18 @@ public class RoboEntity extends PathfinderMob {
         return createLivingAttributes()
                 .add(Attributes.MAX_HEALTH, RedbyteConfigs.ROBO_DEFAULT_HEALTH)
                 .add(Attributes.MOVEMENT_SPEED, RedbyteConfigs.ROBO_DEFAULT_SPEED)
+                .add(Attributes.JUMP_STRENGTH, .1f)
                 .add(Attributes.ATTACK_DAMAGE, 5f)
                 .add(Attributes.FOLLOW_RANGE, 10f)
                 .add(Attributes.KNOCKBACK_RESISTANCE, .6f)
                 .add(Attributes.ARMOR, 12f)
                 .add(Attributes.ARMOR_TOUGHNESS, 6f)
                 .add(Attributes.SCALE, 2.25f);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
     }
 
     @Override
@@ -116,6 +127,21 @@ public class RoboEntity extends PathfinderMob {
         super.readAdditionalSaveData(tag);
         if (tag.hasUUID("redbyteID")) setRedbyteID(tag.getUUID("redbyteID"));
         if (tag.contains("code")) setCode(tag.getString("code"));
+    }
+
+    public void syncFromVirtual(PseudoRobo robo) {
+        Vec3 targetVelocity = robo.getTargetVelocity();
+        Vec3 currentVelocity = getDeltaMovement();
+
+
+        // Keep jump/gravity vertical velocity while airborne; control only horizontal via virtual state.
+        double verticalVelocity = onGround() ? targetVelocity.y : currentVelocity.y;
+        Vec3 appliedVelocity = new Vec3(targetVelocity.x, verticalVelocity, targetVelocity.z);
+
+        setDeltaMovement(appliedVelocity);
+        if (appliedVelocity.lengthSqr() > 0.0) {
+            move(MoverType.SELF, appliedVelocity);
+        }
     }
 
     @Override
