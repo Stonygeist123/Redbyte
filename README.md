@@ -1,9 +1,11 @@
-🔴 <span style="color:#E03E2D;">Redbyte</span>
+**<h1 style="color:#E03E2D;">Redbyte</h1>**
 
 **Programmable robots inside Minecraft**
 
-Redbyte introduces Robo, a programmable robotic entity that can be controlled using a simple custom language.
-Design automation, experiment with AI logic, and create your own robotic helpers directly inside your world.
+Redbyte introduces robots, a programmable robotic entity that can be controlled using a simple custom language.
+Design automation and create your own robotic helpers directly inside your world.
+
+<span style="color:#E03E2D;">This mod is still in its very beginning phase.</span>
 
 **✨ Features**
 
