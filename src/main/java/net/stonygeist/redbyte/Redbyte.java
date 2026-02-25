@@ -11,12 +11,15 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.network.ChannelBuilder;
+import net.minecraftforge.network.SimpleChannel;
 import net.stonygeist.redbyte.entity.robo.RoboEntityRenderer;
 import net.stonygeist.redbyte.index.RedbyteCreativeTabs;
 import net.stonygeist.redbyte.index.RedbyteEntities;
 import net.stonygeist.redbyte.index.RedbyteItems;
+import net.stonygeist.redbyte.server.C2SFunctionsPaket;
+import net.stonygeist.redbyte.server.C2SRoboCodePacket;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -25,9 +28,12 @@ public class Redbyte {
     public static final String MOD_ID = "redbyte";
     private static final Logger LOGGER = LogUtils.getLogger();
 
+    private static final String PROTOCOL_VERSION = "1";
+    public static final SimpleChannel CHANNEL = ChannelBuilder.named(
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "main")).simpleChannel();
+
     public Redbyte() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-        modEventBus.addListener(this::commonSetup);
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
 
@@ -35,11 +41,29 @@ public class Redbyte {
         RedbyteItems.register(modEventBus);
         RedbyteEntities.register(modEventBus);
 
-        // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
-    }
 
-    private void commonSetup(final FMLCommonSetupEvent event) {
+        int networkID = 0;
+        CHANNEL.messageBuilder(C2SRoboCodePacket.class, networkID++)
+                .encoder(C2SRoboCodePacket::encode)
+                .decoder(C2SRoboCodePacket::decode)
+                .consumerMainThread(C2SRoboCodePacket::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SFunctionsPaket.WalkFunction.class, networkID++)
+                .encoder(C2SFunctionsPaket.WalkFunction::encode)
+                .decoder(C2SFunctionsPaket.WalkFunction::decode)
+                .consumerMainThread(C2SFunctionsPaket.WalkFunction::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SFunctionsPaket.WalkToFunction.class, networkID++)
+                .encoder(C2SFunctionsPaket.WalkToFunction::encode)
+                .decoder(C2SFunctionsPaket.WalkToFunction::decode)
+                .consumerMainThread(C2SFunctionsPaket.WalkToFunction::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SFunctionsPaket.JumpFunction.class, networkID++)
+                .encoder(C2SFunctionsPaket.JumpFunction::encode)
+                .decoder(C2SFunctionsPaket.JumpFunction::decode)
+                .consumerMainThread(C2SFunctionsPaket.JumpFunction::handle)
+                .add();
     }
 
     // Add the example block item to the building blocks tab

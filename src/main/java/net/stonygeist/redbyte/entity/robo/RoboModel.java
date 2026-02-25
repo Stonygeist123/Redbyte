@@ -15,7 +15,7 @@ public class RoboModel<T extends RoboEntity> extends EntityModel<T> {
     private final ModelPart robo;
 
     public RoboModel(ModelPart root) {
-        this.robo = root.getChild("robo");
+        robo = root.getChild("robo");
     }
 
     public static LayerDefinition createBodyLayer() {
