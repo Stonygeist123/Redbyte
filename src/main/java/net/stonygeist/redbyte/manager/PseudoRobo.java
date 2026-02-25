@@ -19,8 +19,8 @@ public class PseudoRobo {
     private WeakReference<RoboEntity> entityRef = new WeakReference<>(null);
     private Vec3 currentPos;
     private String code;
-    private ServerLevel serverLevel;
-    private Vec3 targetVelocity = Vec3.ZERO;
+    public ServerLevel serverLevel;
+    private Vec3 targetVelocity;
     private float speed;
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code) {
@@ -28,8 +28,9 @@ public class PseudoRobo {
         this.serverLevel = serverLevel;
         this.currentPos = currentPos.getCenter().subtract(0, 0.5, 0);
         this.code = code;
+        targetVelocity = Vec3.ZERO;
         speed = RedbyteConfigs.ROBO_DEFAULT_SPEED;
-        behaviourController = new BehaviourController(serverLevel);
+        behaviourController = new BehaviourController(this);
     }
 
     public static PseudoRobo deserializeNBT(ServerLevel level, CompoundTag tag) {
@@ -69,9 +70,6 @@ public class PseudoRobo {
 
     public void tick(ServerLevel serverLevel) {
         this.serverLevel = serverLevel;
-        updateEntity();
-        if (behaviourController != null) behaviourController.tick(this);
-        move(getTargetVelocity());
 
         // Spawn / despawn RoboEntity if needed
         BlockPos pos = BlockPos.containing(currentPos);
@@ -80,6 +78,10 @@ public class PseudoRobo {
                 spawnAndRememberEntity();
         } else if (getEntity() != null)
             despawnEntity();
+
+        updateEntity();
+        if (behaviourController != null) behaviourController.tick(this);
+        move(getTargetVelocity());
     }
 
     private void despawnEntity() {

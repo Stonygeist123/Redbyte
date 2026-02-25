@@ -28,7 +28,7 @@ public final class C2SFunctionsPaket {
                     RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
                     PseudoRobo robo = registry.get(msg.redbyteID);
                     if (robo != null)
-                        robo.behaviourController.setState(BehaviourController.State.Walk, new float[]{msg.blocks});
+                        robo.behaviourController.addState(BehaviourController.State.Walk, new float[]{msg.blocks});
                 }
             });
 
@@ -62,7 +62,7 @@ public final class C2SFunctionsPaket {
                     PseudoRobo robo = registry.get(msg.redbyteID);
                     if (robo != null) {
                         Vector3f pos = msg.pos.toVector3f();
-                        robo.behaviourController.setState(BehaviourController.State.WalkTo, new float[]{pos.x, pos.y, pos.z});
+                        robo.behaviourController.addState(BehaviourController.State.WalkTo, new float[]{pos.x, pos.y, pos.z});
                     }
                 }
             });
@@ -94,7 +94,7 @@ public final class C2SFunctionsPaket {
                     RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
                     PseudoRobo robo = registry.get(msg.redbyteID);
                     if (robo != null)
-                        robo.behaviourController.setState(BehaviourController.State.Jump);
+                        robo.behaviourController.addState(BehaviourController.State.Jump);
                 }
             });
 

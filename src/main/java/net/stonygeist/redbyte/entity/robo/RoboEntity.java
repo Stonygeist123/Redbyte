@@ -50,7 +50,6 @@ public class RoboEntity extends PathfinderMob {
         return createLivingAttributes()
                 .add(Attributes.MAX_HEALTH, RedbyteConfigs.ROBO_DEFAULT_HEALTH)
                 .add(Attributes.MOVEMENT_SPEED, RedbyteConfigs.ROBO_DEFAULT_SPEED)
-                .add(Attributes.JUMP_STRENGTH, .1f)
                 .add(Attributes.ATTACK_DAMAGE, 5f)
                 .add(Attributes.FOLLOW_RANGE, 10f)
                 .add(Attributes.KNOCKBACK_RESISTANCE, .6f)
@@ -133,13 +132,12 @@ public class RoboEntity extends PathfinderMob {
         Vec3 targetVelocity = robo.getTargetVelocity();
         Vec3 currentVelocity = getDeltaMovement();
 
-
         // Keep jump/gravity vertical velocity while airborne; control only horizontal via virtual state.
         double verticalVelocity = onGround() ? targetVelocity.y : currentVelocity.y;
         Vec3 appliedVelocity = new Vec3(targetVelocity.x, verticalVelocity, targetVelocity.z);
 
         setDeltaMovement(appliedVelocity);
-        if (appliedVelocity.lengthSqr() > 0.0) {
+        if (appliedVelocity.x > 0 || appliedVelocity.z > 0) {
             move(MoverType.SELF, appliedVelocity);
         }
     }

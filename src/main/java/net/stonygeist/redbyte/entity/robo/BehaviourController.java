@@ -7,30 +7,32 @@ import net.minecraft.world.phys.Vec3;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 
 import java.lang.ref.WeakReference;
+import java.util.AbstractMap;
+import java.util.LinkedList;
+import java.util.Map;
 
 public class BehaviourController {
     public enum State {
-        Idle,
         Walk,
         WalkTo,
         Jump
     }
 
-    public State state = State.Idle;
+    public State state;
     public float[] args;
-    private WeakReference<RoboEntity> roboRef;
+    private WeakReference<RoboEntity> roboRef = new WeakReference<>(null);
     private final ServerLevel serverLevel;
     private int count;
     private Vec3 startPos;
+    private final LinkedList<Map.Entry<State, float[]>> stateQueue = new LinkedList<>();
 
-    public BehaviourController(ServerLevel serverLevel) {
-        this.serverLevel = serverLevel;
+    public BehaviourController(PseudoRobo robo) {
+        serverLevel = robo.serverLevel;
+        startPos = robo.getPos();
     }
 
     public void tick(PseudoRobo robo) {
         switch (state) {
-            case Idle:
-                break;
             case Walk:
                 handleWalk(robo);
                 break;
@@ -38,7 +40,12 @@ public class BehaviourController {
                 handleWalkTo(robo);
                 break;
             case Jump:
-                handleJump();
+                handleJump(robo);
+                break;
+            case null:
+                robo.setTargetVelocity(Vec3.ZERO);
+                if (!stateQueue.isEmpty())
+                    done();
                 break;
             default:
                 throw new RuntimeException();
@@ -73,8 +80,10 @@ public class BehaviourController {
                 done();
             } else {
                 if (collisionDetected) {
-                    roboEntity.jumpFromGround();
-                    robo.setTargetVelocity(new Vec3(flatDir.x * speed, .4f, flatDir.z * speed));
+                    if (roboEntity.onGround()) {
+                        roboEntity.jumpFromGround();
+                        robo.setTargetVelocity(new Vec3(flatDir.x * speed, .4f, flatDir.z * speed));
+                    }
                 } else
                     robo.setTargetVelocity(new Vec3(flatDir.x * speed, 0, flatDir.z * speed));
                 roboEntity.lookAt(EntityAnchorArgument.Anchor.EYES, targetPos);
@@ -124,40 +133,56 @@ public class BehaviourController {
 
                 Vec3 flatDir = Vec3.directionFromRotation(0f, roboEntity.getYRot()).normalize();
                 if (collisionDetected) {
-                    roboEntity.jumpFromGround();
-                    robo.setTargetVelocity(new Vec3(flatDir.x * usedSpeed, .4f, flatDir.z * usedSpeed));
+                    if (roboEntity.onGround()) {
+                        roboEntity.jumpFromGround();
+                        robo.setTargetVelocity(new Vec3(flatDir.x * usedSpeed, .4f, flatDir.z * usedSpeed));
+                    }
                 } else
                     robo.setTargetVelocity(new Vec3(flatDir.x * usedSpeed, 0, flatDir.z * usedSpeed));
             }
         }
     }
 
-    private void handleJump() {
+    private void handleJump(PseudoRobo robo) {
         RoboEntity roboEntity = roboRef.get();
-        if (roboEntity != null) {
-            roboEntity.jumpFromGround();
-            done();
+        if (roboEntity == null) return;
+
+        if (roboEntity.onGround()) {
+            if (count <= 0) {
+                roboEntity.jumpFromGround();
+                ++count;
+            } else
+                done();
         }
     }
 
-    public void done() {
-        setState(State.Idle);
-    }
+    private void done() {
+        Map.Entry<State, float[]> entry = stateQueue.peek();
+        stateQueue.poll();
+        if (entry == null) {
+            state = null;
+            args = new float[]{};
+        } else {
+            state = entry.getKey();
+            args = entry.getValue();
+        }
 
-    public void setRoboRef(WeakReference<RoboEntity> roboRef) {
-        this.roboRef = roboRef;
-    }
-
-    public void setState(State state, float[] args) {
-        this.state = state;
-        this.args = args;
         count = 0;
         RoboEntity roboEntity = roboRef.get();
         if (roboEntity != null)
             startPos = roboEntity.position();
     }
 
-    public void setState(State state) {
-        setState(state, new float[]{});
+    public void setRoboRef(WeakReference<RoboEntity> roboRef) {
+        this.roboRef = roboRef;
+    }
+
+    public void addState(State state, float[] args) {
+        stateQueue.add(new AbstractMap.SimpleEntry<>(state, args));
+    }
+
+    public void addState(State state) {
+        stateQueue.add(new AbstractMap.SimpleEntry<>(state, new float[]{}));
     }
 }
+
