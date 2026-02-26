@@ -1,11 +1,15 @@
 package net.stonygeist.interpreter.analysis;
 
-import net.stonygeist.interpreter.analysis.nodes.*;
+import net.stonygeist.interpreter.analysis.nodes.Token;
+import net.stonygeist.interpreter.analysis.nodes.TokenKind;
+import net.stonygeist.interpreter.analysis.nodes.expr.*;
+import net.stonygeist.interpreter.analysis.nodes.stmt.*;
 import net.stonygeist.interpreter.miscellaneous.Config;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class Parser {
     private final Token[] tokens;
@@ -15,11 +19,59 @@ public class Parser {
         this.tokens = Arrays.stream(tokens).filter(t -> t.kind != TokenKind.Whitespace).toArray(Token[]::new);
     }
 
-    public Expr[] parse() {
-        List<Expr> exprs = new ArrayList<>();
+    public Stmt[] parse() {
+        List<Stmt> stmts = new ArrayList<>();
         while (!isAtEnd())
-            exprs.add(parseExpr(0));
-        return exprs.toArray(new Expr[0]);
+            stmts.add(parseStmt());
+        return stmts.toArray(new Stmt[0]);
+    }
+
+    private Stmt parseStmt() {
+        Token token = getCurrent();
+        if (token == null) throw new RuntimeException();
+        return switch (token.kind) {
+            case LBrace -> parseBlockStmt(token);
+            case If -> parseIfStmt(token);
+            case Loop -> parseLoopStmt(token);
+            default -> new ExprStmt(parseExpr(0));
+        };
+    }
+
+    private Stmt parseBlockStmt(Token lBrace) {
+        ++current;
+        List<Stmt> stmts = new ArrayList<>();
+        Token rBrace = getCurrent();
+        while (!isAtEnd() && rBrace != null) {
+            if (rBrace.kind == TokenKind.RBrace) break;
+            stmts.add(parseStmt());
+            rBrace = getCurrent();
+        }
+
+        if (rBrace == null || rBrace.kind != TokenKind.RBrace) throw new RuntimeException();
+        ++current;
+        return new BlockStmt(lBrace, stmts.toArray(new Stmt[0]), rBrace);
+    }
+
+    private Stmt parseIfStmt(Token keyword) {
+        ++current;
+        Expr condition = parseExpr(0);
+        Stmt stmt = parseStmt();
+        Token elseToken = getCurrent();
+        Stmt elseStmt = null;
+        if (elseToken != null && elseToken.kind == TokenKind.Else) {
+            ++current;
+            elseStmt = parseStmt();
+        } else
+            elseToken = null;
+
+        return new IfStmt(keyword, condition, stmt, elseToken, elseStmt);
+    }
+
+    private Stmt parseLoopStmt(Token keyword) {
+        ++current;
+        Expr count = parseExpr(0);
+        Stmt stmt = parseStmt();
+        return new LoopStmt(keyword, count, stmt);
     }
 
     private Expr parseExpr(int parentPrecedence) {
@@ -56,11 +108,12 @@ public class Parser {
                     precedence = Config.getBinaryPrecedence(token.kind);
                 }
             }
-        } else if (expr instanceof NameExpr name) {
+        } else if (expr instanceof NameExpr nameExpr) {
             if (token.kind == TokenKind.Equals)
-                return new AssignExpr(name.name, token, parseExpr(0));
+                return new AssignExpr(nameExpr.name, token, parseExpr(0));
             else if (token.kind == TokenKind.LParen) {
-                if (!Config.functions.containsKey(name.name.lexeme.toLowerCase())) throw new RuntimeException();
+                if (Config.functions.stream().noneMatch(f -> Objects.equals(f.name(), nameExpr.name.lexeme.toLowerCase())))
+                    throw new RuntimeException();
                 Token lParen = match(TokenKind.LParen);
                 List<Expr> args = new ArrayList<>();
                 while (!isAtEnd() && getCurrent() != null && getCurrent().kind != TokenKind.RParen) {
@@ -70,7 +123,7 @@ public class Parser {
                 }
 
                 Token rParen = match(TokenKind.RParen);
-                return new CallExpr(name.name, lParen, args.toArray(new Expr[0]), rParen);
+                return new CallExpr(nameExpr.name, lParen, args.toArray(new Expr[0]), rParen);
             }
         }
 

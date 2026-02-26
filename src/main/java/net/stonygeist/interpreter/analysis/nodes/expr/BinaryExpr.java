@@ -1,4 +1,6 @@
-package net.stonygeist.interpreter.analysis.nodes;
+package net.stonygeist.interpreter.analysis.nodes.expr;
+
+import net.stonygeist.interpreter.analysis.nodes.Token;
 
 public final class BinaryExpr extends Expr {
     public final Expr left, right;

@@ -25,7 +25,7 @@ public abstract class Node {
                 }
             } else if (f.getType().isArray() && f.getType().arrayType().isAssignableFrom(Node.class)) {
                 try {
-                    List<Node> children = (List<Node>) f.get(this);
+                    Node[] children = (Node[]) f.get(this);
                     if (children != null)
                         for (Node child : children)
                             if (child != null)

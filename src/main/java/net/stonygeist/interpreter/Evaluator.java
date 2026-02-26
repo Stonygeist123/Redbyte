@@ -2,7 +2,9 @@ package net.stonygeist.interpreter;
 
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.PacketDistributor;
-import net.stonygeist.interpreter.analysis.nodes.*;
+import net.stonygeist.interpreter.analysis.nodes.TokenKind;
+import net.stonygeist.interpreter.analysis.nodes.expr.*;
+import net.stonygeist.interpreter.analysis.nodes.stmt.*;
 import net.stonygeist.interpreter.miscellaneous.Config;
 import net.stonygeist.redbyte.Redbyte;
 import net.stonygeist.redbyte.server.C2SFunctionsPaket;
@@ -13,28 +15,64 @@ import java.util.Hashtable;
 import java.util.UUID;
 
 public final class Evaluator {
-    private final Expr[] exprs;
+    private final Stmt[] stmts;
     private final UUID redbyteID;
     private final Dictionary<String, Float> variables = new Hashtable<>();
 
-    public Evaluator(Expr[] exprs, UUID redbyteID) {
-        this.exprs = exprs;
+    public Evaluator(Stmt[] stmts, UUID redbyteID) {
+        this.stmts = stmts;
         this.redbyteID = redbyteID;
     }
 
     public void run() {
-        for (Expr expr : exprs) {
-            evaluate(expr);
+        for (Stmt stmt : stmts) {
+            evaluateStmt(stmt);
         }
     }
 
-    private Float evaluate(Expr expr) {
+    private void evaluateStmt(Stmt stmt) {
+        switch (stmt) {
+            case ExprStmt exprStmt:
+                evaluateExpr(exprStmt.expr);
+                break;
+            case BlockStmt blockStmt:
+                Arrays.stream(blockStmt.stmts).forEach(this::evaluateStmt);
+                break;
+            case IfStmt ifStmt:
+                Boolean condition = evaluateExpr(ifStmt.condition, Boolean.class);
+                if (condition)
+                    evaluateStmt(ifStmt.thenStmt);
+                else if (ifStmt.elseStmt != null)
+                    evaluateStmt(ifStmt.elseStmt);
+                break;
+            case LoopStmt loopStmt:
+                Float count = evaluateExpr(loopStmt.count, Float.class);
+                for (int i = 0; i < count; ++i)
+                    evaluateStmt(loopStmt.stmt);
+                break;
+            default:
+                throw new RuntimeException();
+        }
+    }
+
+    private <T> T evaluateExpr(Expr expr, Class<T> classType) {
+        Object value = evaluateExpr(expr);
+        if (classType.isInstance(value))
+            return classType.cast(value);
+        throw new RuntimeException();
+    }
+
+    private Object evaluateExpr(Expr expr) {
         return switch (expr) {
-            case LiteralExpr literalExpr -> Float.valueOf(literalExpr.token.lexeme);
-            case UnaryExpr unaryExpr -> -evaluate(unaryExpr.operand);
+            case LiteralExpr literalExpr -> {
+                if (literalExpr.token.kind == TokenKind.Number)
+                    yield Float.valueOf(literalExpr.token.lexeme);
+                throw new RuntimeException();
+            }
+            case UnaryExpr unaryExpr -> -evaluateExpr(unaryExpr.operand, Float.class);
             case BinaryExpr binaryExpr -> {
-                Float left = evaluate(binaryExpr.left);
-                Float right = evaluate(binaryExpr.right);
+                Float left = evaluateExpr(binaryExpr.left, Float.class);
+                Float right = evaluateExpr(binaryExpr.right, Float.class);
                 switch (binaryExpr.op.kind) {
                     case Plus:
                         yield left + right;
@@ -48,7 +86,7 @@ public final class Evaluator {
                         throw new RuntimeException();
                 }
             }
-            case GroupExpr groupExpr -> evaluate(groupExpr.expr);
+            case GroupExpr groupExpr -> evaluateExpr(groupExpr.expr);
             case NameExpr nameExpr -> {
                 Float value = variables.get(nameExpr.name.lexeme.toLowerCase());
                 if (value == null)
@@ -56,20 +94,25 @@ public final class Evaluator {
                 yield value;
             }
             case AssignExpr assignExpr -> {
-                Float value = evaluate(assignExpr.value);
+                Float value = evaluateExpr(assignExpr.value, Float.class);
                 variables.put(assignExpr.name.lexeme.toLowerCase(), value);
                 yield value;
             }
             case CallExpr callExpr -> {
-                Float[] args = Arrays.stream(callExpr.args).map(this::evaluate).toArray(Float[]::new);
-                Integer parameterCount = Config.functions.get(callExpr.name.lexeme.toLowerCase());
-                if (parameterCount == null || parameterCount != args.length)
+                Object[] args = Arrays.stream(callExpr.args).map(this::evaluateExpr).toArray(Object[]::new);
+                Config.Function function = Config.getFunction(callExpr.name.lexeme.toLowerCase());
+                if (function == null || function.parameterCount() != args.length)
                     throw new RuntimeException();
+
+                for (int i = 0; i < args.length; ++i)
+                    if (!function.parameterTypes()[i].isInstance(args[i]))
+                        throw new RuntimeException();
+
                 switch (callExpr.name.lexeme.toLowerCase()) {
                     case "walk" ->
-                            Redbyte.CHANNEL.send(new C2SFunctionsPaket.WalkFunction(redbyteID, args[0]), PacketDistributor.SERVER.noArg());
+                            Redbyte.CHANNEL.send(new C2SFunctionsPaket.WalkFunction(redbyteID, (Float) args[0]), PacketDistributor.SERVER.noArg());
                     case "walkto" ->
-                            Redbyte.CHANNEL.send(new C2SFunctionsPaket.WalkToFunction(redbyteID, new Vec3(args[0], args[1], args[2])), PacketDistributor.SERVER.noArg());
+                            Redbyte.CHANNEL.send(new C2SFunctionsPaket.WalkToFunction(redbyteID, new Vec3((Float) args[0], (Float) args[1], (Float) args[2])), PacketDistributor.SERVER.noArg());
                     case "jump" ->
                             Redbyte.CHANNEL.send(new C2SFunctionsPaket.JumpFunction(redbyteID), PacketDistributor.SERVER.noArg());
                     default -> throw new RuntimeException();

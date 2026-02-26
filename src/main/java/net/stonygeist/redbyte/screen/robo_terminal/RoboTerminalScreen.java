@@ -30,6 +30,8 @@ public class RoboTerminalScreen extends Screen {
     private UUID redbyteID;
     private boolean initialised;
 
+    // TODO: Add documentations in-game
+
     public RoboTerminalScreen() {
         super(Component.translatable("screen.redbyte.robo_terminal.edit"));
         terminalText = new TerminalText();
@@ -107,7 +109,6 @@ public class RoboTerminalScreen extends Screen {
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
-    //    TODO: Fix selection, ctrl + A ...
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (textFieldHelper == null) return super.keyPressed(keyCode, scanCode, modifiers);

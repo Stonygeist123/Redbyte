@@ -6,8 +6,8 @@ import net.minecraftforge.network.PacketDistributor;
 import net.stonygeist.interpreter.Evaluator;
 import net.stonygeist.interpreter.analysis.Lexer;
 import net.stonygeist.interpreter.analysis.Parser;
-import net.stonygeist.interpreter.analysis.nodes.Expr;
 import net.stonygeist.interpreter.analysis.nodes.Token;
+import net.stonygeist.interpreter.analysis.nodes.stmt.Stmt;
 import net.stonygeist.redbyte.Redbyte;
 import net.stonygeist.redbyte.server.C2SRoboCodePacket;
 
@@ -34,10 +34,9 @@ public class StartButton extends Button {
             Lexer lexer = new Lexer(getText.get());
             List<Token> tokens = lexer.lex();
             Parser parser = new Parser(tokens.toArray(new Token[0]));
-            Expr[] exprs = parser.parse();
-            Evaluator evaluator = new Evaluator(exprs, redbyteID);
+            Stmt[] stmts = parser.parse();
+            Evaluator evaluator = new Evaluator(stmts, redbyteID);
             evaluator.run();
-            System.out.println(exprs.length);
         } catch (RuntimeException e) {
             System.out.println("Error");
         }

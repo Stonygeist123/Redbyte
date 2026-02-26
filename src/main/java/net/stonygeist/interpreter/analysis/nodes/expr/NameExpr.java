@@ -1,4 +1,6 @@
-package net.stonygeist.interpreter.analysis.nodes;
+package net.stonygeist.interpreter.analysis.nodes.expr;
+
+import net.stonygeist.interpreter.analysis.nodes.Token;
 
 public final class NameExpr extends Expr {
     public final Token name;

@@ -2,6 +2,7 @@ package net.stonygeist.interpreter.analysis;
 
 import net.stonygeist.interpreter.analysis.nodes.Token;
 import net.stonygeist.interpreter.analysis.nodes.TokenKind;
+import net.stonygeist.interpreter.miscellaneous.Config;
 import net.stonygeist.interpreter.miscellaneous.TextSpan;
 
 import java.util.ArrayList;
@@ -51,6 +52,12 @@ public class Lexer {
             case ',':
                 kind = TokenKind.Comma;
                 break;
+            case '{':
+                kind = TokenKind.LBrace;
+                break;
+            case '}':
+                kind = TokenKind.RBrace;
+                break;
             case '=':
                 kind = TokenKind.Equals;
                 break;
@@ -83,7 +90,7 @@ public class Lexer {
                         ++current;
                     }
 
-                    kind = TokenKind.Identifier;
+                    kind = Config.keywords.getOrDefault(lexeme.toString(), TokenKind.Identifier);
                 }
                 // TODO: Add error messages
                 break;
