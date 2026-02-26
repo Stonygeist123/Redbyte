@@ -59,11 +59,6 @@ public class RoboEntity extends PathfinderMob {
     }
 
     @Override
-    public void tick() {
-        super.tick();
-    }
-
-    @Override
     protected @NotNull InteractionResult mobInteract(@NotNull Player player, @NotNull InteractionHand hand) {
         if (level().isClientSide()) {
             RoboTerminalScreen screen = new RoboTerminalScreen();

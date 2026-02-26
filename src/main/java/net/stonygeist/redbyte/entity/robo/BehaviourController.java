@@ -143,7 +143,7 @@ public class BehaviourController {
         }
     }
 
-    private void handleJump(PseudoRobo robo) {
+    private void handleJump(PseudoRobo ignored) {
         RoboEntity roboEntity = roboRef.get();
         if (roboEntity == null) return;
 
