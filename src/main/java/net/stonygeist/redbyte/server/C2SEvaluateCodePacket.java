@@ -3,22 +3,21 @@ package net.stonygeist.redbyte.server;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.network.CustomPayloadEvent;
-import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 import net.stonygeist.redbyte.manager.RoboRegistry;
 
 import java.util.UUID;
 
-public class C2SRoboCodePacket {
+public class C2SEvaluateCodePacket {
     private final UUID redbyteID;
     private final String code;
 
-    public C2SRoboCodePacket(UUID redbyteID, String code) {
+    public C2SEvaluateCodePacket(UUID redbyteID, String code) {
         this.redbyteID = redbyteID;
         this.code = code;
     }
 
-    public static void handle(C2SRoboCodePacket msg, CustomPayloadEvent.Context ctx) {
+    public static void handle(C2SEvaluateCodePacket msg, CustomPayloadEvent.Context ctx) {
         ctx.enqueueWork(() -> {
             ServerPlayer sender = ctx.getSender();
             if (sender != null) {
@@ -26,10 +25,8 @@ public class C2SRoboCodePacket {
                 PseudoRobo robo = registry.get(msg.redbyteID);
                 if (robo != null) {
                     robo.setCode(msg.code);
+                    robo.evaluate();
                     registry.setDirty();
-                    RoboEntity roboEntity = robo.resolveEntity(sender.serverLevel());
-                    if (roboEntity != null)
-                        roboEntity.setCode(msg.code);
                 }
             }
         });
@@ -42,7 +39,7 @@ public class C2SRoboCodePacket {
         buffer.writeUtf(code);
     }
 
-    public static C2SRoboCodePacket decode(FriendlyByteBuf buffer) {
-        return new C2SRoboCodePacket(buffer.readUUID(), buffer.readUtf());
+    public static C2SEvaluateCodePacket decode(FriendlyByteBuf buffer) {
+        return new C2SEvaluateCodePacket(buffer.readUUID(), buffer.readUtf());
     }
 }

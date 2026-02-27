@@ -1,125 +1,180 @@
 package net.stonygeist.interpreter;
 
-import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.network.PacketDistributor;
+import com.google.common.collect.ImmutableList;
 import net.stonygeist.interpreter.analysis.nodes.TokenKind;
-import net.stonygeist.interpreter.analysis.nodes.expr.*;
-import net.stonygeist.interpreter.analysis.nodes.stmt.*;
-import net.stonygeist.interpreter.miscellaneous.Config;
-import net.stonygeist.redbyte.Redbyte;
-import net.stonygeist.redbyte.server.C2SFunctionsPaket;
+import net.stonygeist.interpreter.binder.expr.*;
+import net.stonygeist.interpreter.binder.stmt.*;
+import net.stonygeist.interpreter.symbols.FunctionSymbol;
+import net.stonygeist.interpreter.symbols.LabelSymbol;
+import net.stonygeist.interpreter.symbols.VariableSymbol;
+import net.stonygeist.redbyte.entity.robo.RoboEntity;
+import net.stonygeist.redbyte.manager.PseudoRobo;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Hashtable;
-import java.util.UUID;
+import java.util.Stack;
 
 public final class Evaluator {
-    private final Stmt[] stmts;
-    private final UUID redbyteID;
-    private final Dictionary<String, Float> variables = new Hashtable<>();
+    private final Stack<BoundBlockStmt> globalStmts = new Stack<>();
+    private final Dictionary<VariableSymbol, Object> variables = new Hashtable<>();
+    private final PseudoRobo robo;
+    private Dictionary<LabelSymbol, Integer> labelToIndex;
+    private int index;
 
-    public Evaluator(Stmt[] stmts, UUID redbyteID) {
-        this.stmts = stmts;
-        this.redbyteID = redbyteID;
+    public Evaluator(ImmutableList<BoundBlockStmt> globalStmts, PseudoRobo robo) {
+        this.robo = robo;
+        this.globalStmts.addAll(globalStmts.reverse());
     }
 
-    public void run() {
-        for (Stmt stmt : stmts) {
-            evaluateStmt(stmt);
+    public void tick(PseudoRobo robo) {
+        if (globalStmts.isEmpty())
+            return;
+
+        BoundBlockStmt current = globalStmts.peek();
+        evaluate(current, robo);
+        if (index >= current.stmts.size()) {
+            index = 0;
+            labelToIndex = null;
+            globalStmts.pop();
         }
     }
 
-    private void evaluateStmt(Stmt stmt) {
-        switch (stmt) {
-            case ExprStmt exprStmt:
-                evaluateExpr(exprStmt.expr);
+    public boolean getFinished() {
+        return globalStmts.isEmpty();
+    }
+
+    public RoboEntity getRoboEntity() {
+        return robo.getEntity();
+    }
+
+    private void evaluate(BoundBlockStmt stmt, PseudoRobo robo) {
+        labelToIndex = new Hashtable<>();
+        for (int i = 0; i < stmt.stmts.size(); ++i)
+            if (stmt.stmts.get(i) instanceof BoundLabelStmt l)
+                labelToIndex.put(l.label, i + 1);
+
+        switch (stmt.stmts.get(index)) {
+            case BoundExprStmt exprStmt:
+                ++index;
+                evaluateExpr(exprStmt.expr, robo);
                 break;
-            case BlockStmt blockStmt:
-                Arrays.stream(blockStmt.stmts).forEach(this::evaluateStmt);
+            case BoundLabelStmt ignored:
+                ++index;
                 break;
-            case IfStmt ifStmt:
-                Boolean condition = evaluateExpr(ifStmt.condition, Boolean.class);
-                if (condition)
-                    evaluateStmt(ifStmt.thenStmt);
-                else if (ifStmt.elseStmt != null)
-                    evaluateStmt(ifStmt.elseStmt);
+            case BoundGotoStmt gotoStmt:
+                index = labelToIndex.get(gotoStmt.label);
                 break;
-            case LoopStmt loopStmt:
-                Float count = evaluateExpr(loopStmt.count, Float.class);
-                for (int i = 0; i < count; ++i)
-                    evaluateStmt(loopStmt.stmt);
+            case BoundConditionalGotoStmt conditionalGotoStmt:
+                Object condition = evaluateExpr(conditionalGotoStmt.condition, robo);
+                if (condition == null)
+                    throw new RuntimeException();
+
+                if ((boolean) condition == conditionalGotoStmt.jumpIfTrue)
+                    index = labelToIndex.get(conditionalGotoStmt.label);
+                else
+                    ++index;
                 break;
             default:
                 throw new RuntimeException();
         }
     }
 
-    private <T> T evaluateExpr(Expr expr, Class<T> classType) {
-        Object value = evaluateExpr(expr);
-        if (classType.isInstance(value))
-            return classType.cast(value);
-        throw new RuntimeException();
-    }
-
-    private Object evaluateExpr(Expr expr) {
+    private @Nullable Object evaluateExpr(BoundExpr expr, PseudoRobo robo) {
         return switch (expr) {
-            case LiteralExpr literalExpr -> {
-                if (literalExpr.token.kind == TokenKind.Number)
-                    yield Float.valueOf(literalExpr.token.lexeme);
+            case BoundLiteralExpr literalExpr -> literalExpr.value;
+            case BoundUnaryExpr unaryExpr -> {
+                Object operand = evaluateExpr(unaryExpr.operand, robo);
+                if (operand == null)
+                    throw new RuntimeException();
+                if (unaryExpr.operator.operatorKind() == TokenKind.Bang)
+                    yield !(boolean) operand;
+                else if (unaryExpr.operator.operatorKind() == TokenKind.Minus)
+                    yield -(float) operand;
+                else if (unaryExpr.operator.operatorKind() == TokenKind.Plus)
+                    yield -(float) operand;
                 throw new RuntimeException();
             }
-            case UnaryExpr unaryExpr -> -evaluateExpr(unaryExpr.operand, Float.class);
-            case BinaryExpr binaryExpr -> {
-                Float left = evaluateExpr(binaryExpr.left, Float.class);
-                Float right = evaluateExpr(binaryExpr.right, Float.class);
-                switch (binaryExpr.op.kind) {
-                    case Plus:
-                        yield left + right;
-                    case Minus:
-                        yield left - right;
+            case BoundBinaryExpr binaryExpr -> {
+                Object left = evaluateExpr(binaryExpr.left, robo);
+                Object right = evaluateExpr(binaryExpr.right, robo);
+                if (left == null || right == null)
+                    throw new RuntimeException();
+
+                switch (binaryExpr.operator.operatorKind()) {
+                    case Plus: {
+                        if (left instanceof Float f1 && right instanceof Float f2)
+                            yield f1 + f2;
+                        else if (left instanceof String s1 && right instanceof String s2)
+                            yield s1 + s2;
+                    }
+                    case Minus: {
+                        yield (float) left - (float) right;
+                    }
                     case Star:
-                        yield left * right;
-                    case Slash:
-                        yield left / right;
+                        yield (float) left * (float) right;
+                    case Slash: {
+                        yield (float) left / (float) right;
+                    }
+                    case EqualsEquals: {
+                        yield equalsPrimitives(left, right);
+                    }
+                    case NotEquals: {
+                        yield !equalsPrimitives(left, right);
+                    }
+                    case Greater: {
+                        yield (float) left > (float) right;
+                    }
+                    case GreaterEquals: {
+                        yield (float) left >= (float) right;
+                    }
+                    case Less: {
+                        yield (float) left < (float) right;
+                    }
+                    case LessEquals: {
+                        yield (float) left <= (float) right;
+                    }
+                    case And: {
+                        yield (boolean) left && (boolean) right;
+                    }
+                    case Or: {
+                        yield (boolean) left || (boolean) right;
+                    }
                     default:
                         throw new RuntimeException();
                 }
             }
-            case GroupExpr groupExpr -> evaluateExpr(groupExpr.expr);
-            case NameExpr nameExpr -> {
-                Float value = variables.get(nameExpr.name.lexeme.toLowerCase());
+            case BoundGroupExpr groupExpr -> evaluateExpr(groupExpr.expr, robo);
+            case BoundNameExpr nameExpr -> {
+                Object value = variables.get(nameExpr.symbol);
                 if (value == null)
                     throw new RuntimeException();
                 yield value;
             }
-            case AssignExpr assignExpr -> {
-                Float value = evaluateExpr(assignExpr.value, Float.class);
-                variables.put(assignExpr.name.lexeme.toLowerCase(), value);
+            case BoundAssignExpr assignExpr -> {
+                Object value = evaluateExpr(assignExpr.value, robo);
+                variables.put(assignExpr.symbol, value);
                 yield value;
             }
-            case CallExpr callExpr -> {
-                Object[] args = Arrays.stream(callExpr.args).map(this::evaluateExpr).toArray(Object[]::new);
-                Config.Function function = Config.getFunction(callExpr.name.lexeme.toLowerCase());
-                if (function == null || function.parameterCount() != args.length)
-                    throw new RuntimeException();
-
-                for (int i = 0; i < args.length; ++i)
-                    if (!function.parameterTypes()[i].isInstance(args[i]))
-                        throw new RuntimeException();
-
-                switch (callExpr.name.lexeme.toLowerCase()) {
-                    case "walk" ->
-                            Redbyte.CHANNEL.send(new C2SFunctionsPaket.WalkFunction(redbyteID, (Float) args[0]), PacketDistributor.SERVER.noArg());
-                    case "walkto" ->
-                            Redbyte.CHANNEL.send(new C2SFunctionsPaket.WalkToFunction(redbyteID, new Vec3((Float) args[0], (Float) args[1], (Float) args[2])), PacketDistributor.SERVER.noArg());
-                    case "jump" ->
-                            Redbyte.CHANNEL.send(new C2SFunctionsPaket.JumpFunction(redbyteID), PacketDistributor.SERVER.noArg());
-                    default -> throw new RuntimeException();
-                }
-
-                yield 0f;
+            case BoundCallExpr callExpr -> {
+                Object[] args = callExpr.args.stream().map(a -> evaluateExpr(a, robo)).toArray(Object[]::new);
+                FunctionSymbol function = callExpr.symbol;
+                yield function.callback.apply(this, robo, args);
             }
+            default -> throw new RuntimeException();
+        };
+    }
+
+    public static boolean equalsPrimitives(Object a, Object b) {
+        if (a == b) return true;
+        if (a == null || b == null) return false;
+        if (!a.getClass().equals(b.getClass()))
+            throw new RuntimeException();
+
+        return switch (a) {
+            case Float f1 when b instanceof Float f2 -> Float.compare(f1, f2) == 0;
+            case Boolean bo1 when b instanceof Boolean bo2 -> bo1 == bo2;
+            case String c1 when b instanceof String c2 -> c1.equals(c2);
             default -> throw new RuntimeException();
         };
     }

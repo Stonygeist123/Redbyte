@@ -9,7 +9,6 @@ import net.stonygeist.interpreter.miscellaneous.Config;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 public class Parser {
     private final Token[] tokens;
@@ -32,6 +31,8 @@ public class Parser {
         return switch (token.kind) {
             case LBrace -> parseBlockStmt(token);
             case If -> parseIfStmt(token);
+            case While -> parseWhileStmt(token);
+            case Till -> parseTillStmt(token);
             case Loop -> parseLoopStmt(token);
             default -> new ExprStmt(parseExpr(0));
         };
@@ -67,6 +68,20 @@ public class Parser {
         return new IfStmt(keyword, condition, stmt, elseToken, elseStmt);
     }
 
+    private Stmt parseWhileStmt(Token keyword) {
+        ++current;
+        Expr condition = parseExpr(0);
+        Stmt stmt = parseStmt();
+        return new WhileStmt(keyword, condition, stmt);
+    }
+
+    private Stmt parseTillStmt(Token keyword) {
+        ++current;
+        Expr condition = parseExpr(0);
+        Stmt stmt = parseStmt();
+        return new TillStmt(keyword, condition, stmt);
+    }
+
     private Stmt parseLoopStmt(Token keyword) {
         ++current;
         Expr count = parseExpr(0);
@@ -79,10 +94,10 @@ public class Parser {
         ++current;
         if (token == null) throw new RuntimeException();
         return checkExtension(switch (token.kind) {
-            case Number -> new LiteralExpr(token);
+            case Number, String -> new LiteralExpr(token);
             case Identifier -> new NameExpr(token);
             case LParen -> new GroupExpr(token, parseExpr(0), match(TokenKind.RParen));
-            case Minus -> new UnaryExpr(parseExpr(Config.unaryPrecedence), token);
+            case Plus, Minus, Bang -> new UnaryExpr(parseExpr(Config.unaryPrecedence), token);
             default -> throw new RuntimeException();
         }, parentPrecedence);
     }
@@ -112,8 +127,6 @@ public class Parser {
             if (token.kind == TokenKind.Equals)
                 return new AssignExpr(nameExpr.name, token, parseExpr(0));
             else if (token.kind == TokenKind.LParen) {
-                if (Config.functions.stream().noneMatch(f -> Objects.equals(f.name(), nameExpr.name.lexeme.toLowerCase())))
-                    throw new RuntimeException();
                 Token lParen = match(TokenKind.LParen);
                 List<Expr> args = new ArrayList<>();
                 while (!isAtEnd() && getCurrent() != null && getCurrent().kind != TokenKind.RParen) {
@@ -123,11 +136,12 @@ public class Parser {
                 }
 
                 Token rParen = match(TokenKind.RParen);
-                return new CallExpr(nameExpr.name, lParen, args.toArray(new Expr[0]), rParen);
+                expr = new CallExpr(nameExpr.name, lParen, args.toArray(new Expr[0]), rParen);
             }
-        }
+        } else
+            return expr;
 
-        return expr;
+        return checkExtension(expr, parentPrecedence);
     }
 
     private Token getCurrent() {

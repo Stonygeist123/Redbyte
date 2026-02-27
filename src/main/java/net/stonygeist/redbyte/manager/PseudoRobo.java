@@ -1,26 +1,39 @@
 package net.stonygeist.redbyte.manager;
 
+import com.google.common.collect.ImmutableList;
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-import net.stonygeist.redbyte.entity.robo.BehaviourController;
+import net.stonygeist.interpreter.Evaluator;
+import net.stonygeist.interpreter.analysis.Lexer;
+import net.stonygeist.interpreter.analysis.Parser;
+import net.stonygeist.interpreter.analysis.nodes.Token;
+import net.stonygeist.interpreter.analysis.nodes.stmt.Stmt;
+import net.stonygeist.interpreter.binder.Binder;
+import net.stonygeist.interpreter.binder.stmt.BoundStmt;
+import net.stonygeist.interpreter.lowerer.Lowerer;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.index.RedbyteConfigs;
 import net.stonygeist.redbyte.index.RedbyteEntities;
+import org.slf4j.Logger;
 
 import java.lang.ref.WeakReference;
+import java.util.List;
 import java.util.UUID;
 
 public class PseudoRobo {
     private final UUID redbyteID;
-    public final BehaviourController behaviourController;
+    public Evaluator evaluator;
     private WeakReference<RoboEntity> entityRef = new WeakReference<>(null);
     private Vec3 currentPos;
     private String code;
     public ServerLevel serverLevel;
     private Vec3 targetVelocity;
+    private ServerPlayer targetPlayer;
     private float speed;
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code) {
@@ -30,7 +43,6 @@ public class PseudoRobo {
         this.code = code;
         targetVelocity = Vec3.ZERO;
         speed = RedbyteConfigs.ROBO_DEFAULT_SPEED;
-        behaviourController = new BehaviourController(this);
     }
 
     public static PseudoRobo deserializeNBT(ServerLevel level, CompoundTag tag) {
@@ -80,8 +92,28 @@ public class PseudoRobo {
             despawnEntity();
 
         updateEntity();
-        if (behaviourController != null) behaviourController.tick(this);
-        move(getTargetVelocity());
+        if (evaluator != null) {
+            evaluator.tick(this);
+            if (evaluator.getFinished())
+                evaluator = null;
+        }
+        if (targetVelocity.length() != 0f)
+            move(getTargetVelocity());
+    }
+
+    public void evaluate() {
+        try {
+            Lexer lexer = new Lexer(code);
+            List<Token> tokens = lexer.lex();
+            Parser parser = new Parser(tokens.toArray(new Token[0]));
+            Stmt[] stmts = parser.parse();
+            Binder binder = new Binder(stmts);
+            ImmutableList<BoundStmt> boundStmts = binder.bind();
+            evaluator = new Evaluator(boundStmts.stream().map(Lowerer::lower).collect(ImmutableList.toImmutableList()), this);
+        } catch (RuntimeException e) {
+            Logger logger = LogUtils.getLogger();
+            logger.error("Error");
+        }
     }
 
     private void despawnEntity() {
@@ -117,7 +149,7 @@ public class PseudoRobo {
     }
 
     public float getSpeed() {
-        return speed;
+        return speed / 2f;
     }
 
     public void setSpeed(float speed) {
@@ -140,6 +172,14 @@ public class PseudoRobo {
         this.targetVelocity = targetVelocity;
     }
 
+    public ServerPlayer getTargetPlayer() {
+        return targetPlayer;
+    }
+
+    public void setTargetPlayer(ServerPlayer targetPlayer) {
+        this.targetPlayer = targetPlayer;
+    }
+
     public UUID getRedbyteID() {
         return redbyteID;
     }
@@ -150,7 +190,6 @@ public class PseudoRobo {
 
     public void setEntity(RoboEntity entity) {
         entityRef = new WeakReference<>(entity);
-        behaviourController.setRoboRef(new WeakReference<>(entity));
     }
 
     public void setCode(String code) {
