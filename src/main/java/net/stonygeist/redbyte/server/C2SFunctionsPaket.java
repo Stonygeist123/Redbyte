@@ -28,7 +28,7 @@ public final class C2SFunctionsPaket {
                     RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
                     PseudoRobo robo = registry.get(msg.redbyteID);
                     if (robo != null)
-                        robo.behaviourController.addState(BehaviourController.State.Walk, new float[]{msg.blocks});
+                        robo.behaviourController.addState(BehaviourController.State.Walk, new Object[]{msg.blocks});
                 }
             });
 
@@ -62,7 +62,7 @@ public final class C2SFunctionsPaket {
                     PseudoRobo robo = registry.get(msg.redbyteID);
                     if (robo != null) {
                         Vector3f pos = msg.pos.toVector3f();
-                        robo.behaviourController.addState(BehaviourController.State.WalkTo, new float[]{pos.x, pos.y, pos.z});
+                        robo.behaviourController.addState(BehaviourController.State.WalkTo, new Object[]{pos.x, pos.y, pos.z});
                     }
                 }
             });
@@ -107,6 +107,102 @@ public final class C2SFunctionsPaket {
 
         public static JumpFunction decode(FriendlyByteBuf buffer) {
             return new JumpFunction(buffer.readUUID());
+        }
+    }
+
+    public static class FollowFunction {
+        private final UUID redbyteID;
+        private final String address;
+
+        public FollowFunction(UUID redbyteID, String address) {
+            this.redbyteID = redbyteID;
+            this.address = address;
+        }
+
+        public static void handle(FollowFunction msg, CustomPayloadEvent.Context ctx) {
+            ctx.enqueueWork(() -> {
+                ServerPlayer sender = ctx.getSender();
+                if (sender != null) {
+                    RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
+                    PseudoRobo robo = registry.get(msg.redbyteID);
+                    if (robo != null)
+                        robo.behaviourController.addState(BehaviourController.State.Follow, new Object[]{msg.address});
+                }
+            });
+
+            ctx.setPacketHandled(true);
+        }
+
+        public void encode(FriendlyByteBuf buffer) {
+            buffer.writeUUID(redbyteID);
+            buffer.writeUtf(address);
+        }
+
+        public static FollowFunction decode(FriendlyByteBuf buffer) {
+            return new FollowFunction(buffer.readUUID(), buffer.readUtf());
+        }
+    }
+
+    public static class StopFollowFunction {
+        private final UUID redbyteID;
+
+        public StopFollowFunction(UUID redbyteID) {
+            this.redbyteID = redbyteID;
+        }
+
+        public static void handle(StopFollowFunction msg, CustomPayloadEvent.Context ctx) {
+            ctx.enqueueWork(() -> {
+                ServerPlayer sender = ctx.getSender();
+                if (sender != null) {
+                    RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
+                    PseudoRobo robo = registry.get(msg.redbyteID);
+                    if (robo != null)
+                        robo.behaviourController.addState(BehaviourController.State.StopFollow);
+                }
+            });
+
+            ctx.setPacketHandled(true);
+        }
+
+        public void encode(FriendlyByteBuf buffer) {
+            buffer.writeUUID(redbyteID);
+        }
+
+        public static StopFollowFunction decode(FriendlyByteBuf buffer) {
+            return new StopFollowFunction(buffer.readUUID());
+        }
+    }
+
+    public static class AttackFunction {
+        private final UUID redbyteID;
+        private final String address;
+
+        public AttackFunction(UUID redbyteID, String address) {
+            this.redbyteID = redbyteID;
+            this.address = address;
+        }
+
+        public static void handle(AttackFunction msg, CustomPayloadEvent.Context ctx) {
+            ctx.enqueueWork(() -> {
+                ServerPlayer sender = ctx.getSender();
+                if (sender != null) {
+                    RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
+                    PseudoRobo robo = registry.get(msg.redbyteID);
+                    if (robo != null)
+                        robo.behaviourController.addState(BehaviourController.State.Attack, new Object[]{msg.address});
+                }
+            });
+
+            ctx.setPacketHandled(true);
+        }
+
+        public void encode(FriendlyByteBuf buffer) {
+            buffer.writeUUID(redbyteID);
+            buffer.writeUtf(address);
+        }
+
+        public static AttackFunction decode(FriendlyByteBuf buffer) {
+            return new AttackFunction(buffer.readUUID(), buffer.readUtf());
         }
     }
 }

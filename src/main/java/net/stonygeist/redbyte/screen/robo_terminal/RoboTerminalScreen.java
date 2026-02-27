@@ -8,6 +8,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.network.PacketDistributor;
 import net.stonygeist.redbyte.Redbyte;
+import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.server.C2SRoboCodePacket;
 import org.jetbrains.annotations.NotNull;
 
@@ -25,6 +26,7 @@ public class RoboTerminalScreen extends Screen {
     private int curLine;
     private int tickCounter;
 
+    private final RoboEntity roboEntity;
     private TextFieldHelper textFieldHelper;
     private TerminalText terminalText;
     private UUID redbyteID;
@@ -32,8 +34,9 @@ public class RoboTerminalScreen extends Screen {
 
     // TODO: Add documentations in-game
 
-    public RoboTerminalScreen() {
+    public RoboTerminalScreen(RoboEntity roboEntity) {
         super(Component.translatable("screen.redbyte.robo_terminal.edit"));
+        this.roboEntity = roboEntity;
         terminalText = new TerminalText();
     }
 
@@ -41,7 +44,7 @@ public class RoboTerminalScreen extends Screen {
     protected void init() {
         super.init();
         addRenderableWidget(new StartButton(width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2, 100, 20,
-                Component.translatable("screen.redbyte.robo_terminal.start"), terminalText::toString, redbyteID));
+                Component.translatable("screen.redbyte.robo_terminal.start"), terminalText::toString, roboEntity));
     }
 
     @Override

@@ -117,7 +117,7 @@ public class PseudoRobo {
     }
 
     public float getSpeed() {
-        return speed;
+        return speed / 20f;
     }
 
     public void setSpeed(float speed) {

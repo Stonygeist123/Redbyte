@@ -59,7 +59,69 @@ public class Lexer {
                 kind = TokenKind.RBrace;
                 break;
             case '=':
-                kind = TokenKind.Equals;
+                if (peek() == '=') {
+                    lexeme.append(peek());
+                    ++current;
+                    kind = TokenKind.EqualsEquals;
+                } else
+                    kind = TokenKind.Equals;
+                break;
+            case '!':
+                if (peek() == '=') {
+                    lexeme.append(peek());
+                    ++current;
+                    kind = TokenKind.NotEquals;
+                } else
+                    kind = TokenKind.Bang;
+                break;
+            case '>':
+                if (peek() == '=') {
+                    lexeme.append(peek());
+                    ++current;
+                    kind = TokenKind.GreaterEquals;
+                } else
+                    kind = TokenKind.Greater;
+                break;
+            case '<':
+                if (peek() == '=') {
+                    lexeme.append(peek());
+                    ++current;
+                    kind = TokenKind.LessEquals;
+                } else
+                    kind = TokenKind.Less;
+                break;
+            case '"':
+            case '\'':
+                kind = TokenKind.String;
+                boolean invalid = true;
+                while (!isAtEnd()) {
+                    boolean done = false;
+                    char currentChar = peek();
+                    lexeme.append(currentChar);
+                    ++current;
+                    switch (currentChar) {
+                        case '\'':
+                            if (c == '"')
+                                break;
+                            done = true;
+                            invalid = false;
+                            break;
+                        case '"':
+                            if (c == '\'')
+                                break;
+                            done = true;
+                            invalid = false;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (done)
+                        break;
+                }
+
+                if (invalid)
+                    throw new RuntimeException();
                 break;
             case '\n', '\r', ' ':
                 kind = TokenKind.Whitespace;
@@ -84,13 +146,13 @@ public class Lexer {
                     }
 
                     kind = TokenKind.Number;
-                } else if (Character.isAlphabetic(c)) {
-                    while (Character.isAlphabetic(peek())) {
+                } else if (Character.isAlphabetic(c) || c == '_') {
+                    while (Character.isAlphabetic(peek()) || peek() == '_') {
                         lexeme.append(peek());
                         ++current;
                     }
 
-                    kind = Config.keywords.getOrDefault(lexeme.toString(), TokenKind.Identifier);
+                    kind = Config.keywords.getOrDefault(lexeme.toString().toLowerCase(), TokenKind.Identifier);
                 }
                 // TODO: Add error messages
                 break;

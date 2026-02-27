@@ -33,6 +33,8 @@ public class Parser {
             case LBrace -> parseBlockStmt(token);
             case If -> parseIfStmt(token);
             case Loop -> parseLoopStmt(token);
+            case While -> parseWhileStmt(token);
+            case Till -> parseTillStmt(token);
             default -> new ExprStmt(parseExpr(0));
         };
     }
@@ -74,15 +76,29 @@ public class Parser {
         return new LoopStmt(keyword, count, stmt);
     }
 
+    private Stmt parseWhileStmt(Token keyword) {
+        ++current;
+        Expr condition = parseExpr(0);
+        Stmt stmt = parseStmt();
+        return new WhileStmt(keyword, condition, stmt);
+    }
+
+    private Stmt parseTillStmt(Token keyword) {
+        ++current;
+        Expr condition = parseExpr(0);
+        Stmt stmt = parseStmt();
+        return new TillStmt(keyword, condition, stmt);
+    }
+
     private Expr parseExpr(int parentPrecedence) {
         Token token = getCurrent();
         ++current;
         if (token == null) throw new RuntimeException();
         return checkExtension(switch (token.kind) {
-            case Number -> new LiteralExpr(token);
+            case Number, String -> new LiteralExpr(token);
             case Identifier -> new NameExpr(token);
             case LParen -> new GroupExpr(token, parseExpr(0), match(TokenKind.RParen));
-            case Minus -> new UnaryExpr(parseExpr(Config.unaryPrecedence), token);
+            case Minus, Bang -> new UnaryExpr(parseExpr(Config.unaryPrecedence), token);
             default -> throw new RuntimeException();
         }, parentPrecedence);
     }
@@ -123,11 +139,12 @@ public class Parser {
                 }
 
                 Token rParen = match(TokenKind.RParen);
-                return new CallExpr(nameExpr.name, lParen, args.toArray(new Expr[0]), rParen);
+                expr = new CallExpr(nameExpr.name, lParen, args.toArray(new Expr[0]), rParen);
             }
-        }
+        } else
+            return expr;
 
-        return expr;
+        return checkExtension(expr, parentPrecedence);
     }
 
     private Token getCurrent() {

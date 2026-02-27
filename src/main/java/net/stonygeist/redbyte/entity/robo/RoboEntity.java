@@ -19,6 +19,7 @@ import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.stonygeist.redbyte.goals.FollowPlayerGoal;
 import net.stonygeist.redbyte.index.RedbyteConfigs;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 import net.stonygeist.redbyte.manager.RoboRegistry;
@@ -44,6 +45,7 @@ public class RoboEntity extends PathfinderMob {
         goalSelector.addGoal(0, new FloatGoal(this));
         goalSelector.addGoal(1, new RandomLookAroundGoal(this));
         goalSelector.addGoal(2, new LookAtPlayerGoal(this, Player.class, 6f));
+        goalSelector.addGoal(3, new FollowPlayerGoal(this));
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -61,7 +63,7 @@ public class RoboEntity extends PathfinderMob {
     @Override
     protected @NotNull InteractionResult mobInteract(@NotNull Player player, @NotNull InteractionHand hand) {
         if (level().isClientSide()) {
-            RoboTerminalScreen screen = new RoboTerminalScreen();
+            RoboTerminalScreen screen = new RoboTerminalScreen(this);
             screen.setId(getRedbyteID());
             screen.setCode(getCode());
             Minecraft.getInstance().setScreen(screen);
