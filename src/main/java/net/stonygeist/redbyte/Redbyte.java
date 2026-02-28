@@ -49,55 +49,10 @@ public class Redbyte {
                 .decoder(C2SStoreRoboCodePacket::decode)
                 .consumerMainThread(C2SStoreRoboCodePacket::handle)
                 .add();
-//        CHANNEL.messageBuilder(C2SFunctionsPaket.WalkFunction.class, networkID++)
-//                .encoder(C2SFunctionsPaket.WalkFunction::encode)
-//                .decoder(C2SFunctionsPaket.WalkFunction::decode)
-//                .consumerMainThread(C2SFunctionsPaket.WalkFunction::handle)
-//                .add();
-//        CHANNEL.messageBuilder(C2SFunctionsPaket.WalkToFunction.class, networkID++)
-//                .encoder(C2SFunctionsPaket.WalkToFunction::encode)
-//                .decoder(C2SFunctionsPaket.WalkToFunction::decode)
-//                .consumerMainThread(C2SFunctionsPaket.WalkToFunction::handle)
-//                .add();
-//        CHANNEL.messageBuilder(C2SFunctionsPaket.JumpFunction.class, networkID++)
-//                .encoder(C2SFunctionsPaket.JumpFunction::encode)
-//                .decoder(C2SFunctionsPaket.JumpFunction::decode)
-//                .consumerMainThread(C2SFunctionsPaket.JumpFunction::handle)
-//                .add();
-//        CHANNEL.messageBuilder(C2SFunctionsPaket.FollowFunction.class, networkID++)
-//                .encoder(C2SFunctionsPaket.FollowFunction::encode)
-//                .decoder(C2SFunctionsPaket.FollowFunction::decode)
-//                .consumerMainThread(C2SFunctionsPaket.FollowFunction::handle)
-//                .add();
-//        CHANNEL.messageBuilder(C2SFunctionsPaket.StopFollowFunction.class, networkID++)
-//                .encoder(C2SFunctionsPaket.StopFollowFunction::encode)
-//                .decoder(C2SFunctionsPaket.StopFollowFunction::decode)
-//                .consumerMainThread(C2SFunctionsPaket.StopFollowFunction::handle)
-//                .add();
-//        CHANNEL.messageBuilder(C2SFunctionsPaket.AttackFunction.class, networkID++)
-//                .encoder(C2SFunctionsPaket.AttackFunction::encode)
-//                .decoder(C2SFunctionsPaket.AttackFunction::decode)
-//                .consumerMainThread(C2SFunctionsPaket.AttackFunction::handle)
-//                .add();
         CHANNEL.messageBuilder(C2SEvaluateCodePacket.class, networkID++)
                 .encoder(C2SEvaluateCodePacket::encode)
                 .decoder(C2SEvaluateCodePacket::decode)
                 .consumerMainThread(C2SEvaluateCodePacket::handle)
-                .add();
-        CHANNEL.messageBuilder(C2SFunctionsPaket.FollowFunction.class, networkID++)
-                .encoder(C2SFunctionsPaket.FollowFunction::encode)
-                .decoder(C2SFunctionsPaket.FollowFunction::decode)
-                .consumerMainThread(C2SFunctionsPaket.FollowFunction::handle)
-                .add();
-        CHANNEL.messageBuilder(C2SFunctionsPaket.StopFollowFunction.class, networkID++)
-                .encoder(C2SFunctionsPaket.StopFollowFunction::encode)
-                .decoder(C2SFunctionsPaket.StopFollowFunction::decode)
-                .consumerMainThread(C2SFunctionsPaket.StopFollowFunction::handle)
-                .add();
-        CHANNEL.messageBuilder(C2SFunctionsPaket.AttackFunction.class, networkID++)
-                .encoder(C2SFunctionsPaket.AttackFunction::encode)
-                .decoder(C2SFunctionsPaket.AttackFunction::decode)
-                .consumerMainThread(C2SFunctionsPaket.AttackFunction::handle)
                 .add();
     }
 
