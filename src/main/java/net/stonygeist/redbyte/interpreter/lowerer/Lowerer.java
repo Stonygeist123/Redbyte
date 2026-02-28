@@ -91,7 +91,7 @@ public final class Lowerer {
 
                 BoundOperator.BoundBinaryOperator incrementOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.Plus, TypeSymbol.Number, TypeSymbol.Number);
                 assert incrementOperator != null;
-                BoundExprStmt increment = new BoundExprStmt(new BoundAssignExpr(variable, new BoundBinaryExpr(nameExpr, incrementOperator, new BoundLiteralExpr(1))));
+                BoundExprStmt increment = new BoundExprStmt(new BoundAssignExpr(variable, new BoundBinaryExpr(nameExpr, incrementOperator, new BoundLiteralExpr(1f))));
 
                 BoundWhileStmt whileStmt = new BoundWhileStmt(condition, new BoundBlockStmt(ImmutableList.of(loopStmt.body, increment)));
                 yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(

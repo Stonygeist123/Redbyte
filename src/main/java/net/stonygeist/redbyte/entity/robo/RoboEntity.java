@@ -9,19 +9,16 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
-import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
-import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
 import net.stonygeist.redbyte.goals.FollowPlayerGoal;
+import net.stonygeist.redbyte.goals.WalkGoal;
+import net.stonygeist.redbyte.goals.WalkToGoal;
 import net.stonygeist.redbyte.index.RedbyteConfigs;
-import net.stonygeist.redbyte.manager.PseudoRobo;
 import net.stonygeist.redbyte.manager.RoboRegistry;
 import net.stonygeist.redbyte.screen.robo_terminal.RoboTerminalScreen;
 import org.jetbrains.annotations.NotNull;
@@ -43,9 +40,9 @@ public class RoboEntity extends PathfinderMob {
     @Override
     protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
-        goalSelector.addGoal(1, new RandomLookAroundGoal(this));
-        goalSelector.addGoal(2, new LookAtPlayerGoal(this, Player.class, 6f));
-        goalSelector.addGoal(3, new FollowPlayerGoal(this));
+        goalSelector.addGoal(1, new FollowPlayerGoal(this));
+        goalSelector.addGoal(2, new WalkGoal(this));
+        goalSelector.addGoal(3, new WalkToGoal(this));
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -59,6 +56,11 @@ public class RoboEntity extends PathfinderMob {
                 .add(Attributes.ARMOR_TOUGHNESS, 6f)
                 .add(Attributes.SCALE, 2.25f)
                 .add(Attributes.STEP_HEIGHT, 1f);
+    }
+
+    @Override
+    public boolean isSensitiveToWater() {
+        return true;
     }
 
     @Override
@@ -107,20 +109,6 @@ public class RoboEntity extends PathfinderMob {
         super.readAdditionalSaveData(tag);
         if (tag.hasUUID("redbyteID")) setRedbyteID(tag.getUUID("redbyteID"));
         if (tag.contains("code")) setCode(tag.getString("code"));
-    }
-
-    public void syncFromVirtual(PseudoRobo robo) {
-        Vec3 targetVelocity = robo.getTargetVelocity();
-        Vec3 currentVelocity = getDeltaMovement();
-
-        // Keep jump/gravity vertical velocity while airborne; control only horizontal via virtual state.
-        double verticalVelocity = onGround() ? targetVelocity.y : currentVelocity.y;
-        Vec3 appliedVelocity = new Vec3(targetVelocity.x, verticalVelocity, targetVelocity.z);
-
-        setDeltaMovement(appliedVelocity);
-        if (appliedVelocity.x > 0 || appliedVelocity.z > 0) {
-            move(MoverType.SELF, appliedVelocity);
-        }
     }
 
     @Override

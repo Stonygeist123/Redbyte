@@ -1,18 +1,19 @@
 package net.stonygeist.redbyte.goals;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.phys.Vec3;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 import net.stonygeist.redbyte.manager.RoboRegistry;
 
-public class FollowPlayerGoal extends Goal {
+public class WalkToGoal extends Goal {
     private final RoboEntity roboEntity;
     private PseudoRobo robo;
-    private ServerPlayer property;
+    private Vec3 property;
 
-    public FollowPlayerGoal(RoboEntity roboEntity) {
+    public WalkToGoal(RoboEntity roboEntity) {
         this.roboEntity = roboEntity;
     }
 
@@ -23,23 +24,26 @@ public class FollowPlayerGoal extends Goal {
             robo = registry.get(roboEntity.getRedbyteID());
             return false;
         } else {
-            property = robo.getFollowPlayerGoalProp();
-            return property != null && property.isAlive();
+            property = robo.getWalkToGoalProp();
+            if (property == null)
+                return false;
+
+            roboEntity.getNavigation().moveTo(property.x, property.y, property.z, robo.getSpeed());
+            return roboEntity.getNavigation().getPath() != null;
         }
     }
 
     @Override
     public boolean canContinueToUse() {
-        return canUse();
+        property = robo.getWalkToGoalProp();
+        return property != null;
     }
 
     @Override
     public void tick() {
-        roboEntity.getNavigation().moveTo(property, robo.getSpeed());
-    }
-
-    @Override
-    public void stop() {
-        roboEntity.getNavigation().stop();
+        if (roboEntity.getNavigation().shouldRecomputePath(BlockPos.containing(property)))
+            roboEntity.getNavigation().recomputePath();
+        else if (roboEntity.getNavigation().isDone())
+            robo.setWalkToGoalProp(null);
     }
 }

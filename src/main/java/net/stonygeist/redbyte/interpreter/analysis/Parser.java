@@ -1,10 +1,10 @@
 package net.stonygeist.redbyte.interpreter.analysis;
 
+import net.stonygeist.redbyte.interpreter.Config;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.*;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.*;
-import net.stonygeist.redbyte.interpreter.miscellaneous.Config;
 
 import java.util.ArrayList;
 import java.util.Arrays;

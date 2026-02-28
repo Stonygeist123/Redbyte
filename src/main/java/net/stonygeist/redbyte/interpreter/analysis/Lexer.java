@@ -1,9 +1,8 @@
 package net.stonygeist.redbyte.interpreter.analysis;
 
+import net.stonygeist.redbyte.interpreter.Config;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
-import net.stonygeist.redbyte.interpreter.miscellaneous.Config;
-import net.stonygeist.redbyte.interpreter.miscellaneous.TextSpan;
 
 import java.util.ArrayList;
 import java.util.List;

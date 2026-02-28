@@ -5,7 +5,7 @@ import net.stonygeist.redbyte.interpreter.symbols.LabelSymbol;
 
 public class BoundConditionalGotoStmt extends BoundStmt {
     public final LabelSymbol label;
-    public BoundExpr condition;
+    public final BoundExpr condition;
     public final boolean jumpIfTrue;
 
     public BoundConditionalGotoStmt(LabelSymbol label, BoundExpr condition) {

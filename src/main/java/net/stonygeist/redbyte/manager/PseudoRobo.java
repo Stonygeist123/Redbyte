@@ -19,6 +19,7 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.Stmt;
 import net.stonygeist.redbyte.interpreter.binder.Binder;
 import net.stonygeist.redbyte.interpreter.binder.stmt.BoundStmt;
 import net.stonygeist.redbyte.interpreter.lowerer.Lowerer;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.lang.ref.WeakReference;
@@ -32,8 +33,9 @@ public class PseudoRobo {
     private Vec3 currentPos;
     private String code;
     public ServerLevel serverLevel;
-    private Vec3 targetVelocity;
-    private ServerPlayer targetPlayer;
+    private @Nullable ServerPlayer followPlayerGoalProp;
+    private @Nullable Float walkGoalProp;
+    private @Nullable Vec3 walkToGoalProp;
     private float speed;
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code) {
@@ -41,7 +43,6 @@ public class PseudoRobo {
         this.serverLevel = serverLevel;
         this.currentPos = currentPos.getCenter().subtract(0, 0.5, 0);
         this.code = code;
-        targetVelocity = Vec3.ZERO;
         speed = RedbyteConfigs.ROBO_DEFAULT_SPEED;
     }
 
@@ -66,10 +67,8 @@ public class PseudoRobo {
 
     private void updateEntity() {
         RoboEntity roboEntity = resolveEntity(serverLevel);
-        if (roboEntity != null) {
-            roboEntity.syncFromVirtual(this);
+        if (roboEntity != null)
             currentPos = roboEntity.position();
-        }
     }
 
     public CompoundTag serializeNBT() {
@@ -97,8 +96,6 @@ public class PseudoRobo {
             if (evaluator.getFinished())
                 evaluator = null;
         }
-        if (targetVelocity.length() != 0f)
-            move(getTargetVelocity());
     }
 
     public void evaluate() {
@@ -131,10 +128,6 @@ public class PseudoRobo {
         setEntity(robo);
     }
 
-    private void move(Vec3 targetVelocity) {
-        currentPos = currentPos.add(targetVelocity);
-    }
-
     public static Vec3 readVec3FromTag(CompoundTag tag, String key) {
         double x = tag.getDouble(key + "X");
         double y = tag.getDouble(key + "Y");
@@ -156,30 +149,6 @@ public class PseudoRobo {
         this.speed = speed;
     }
 
-    public Vec3 getPos() {
-        return currentPos;
-    }
-
-    public void setPos(Vec3 currentPos) {
-        this.currentPos = currentPos;
-    }
-
-    public Vec3 getTargetVelocity() {
-        return targetVelocity;
-    }
-
-    public void setTargetVelocity(Vec3 targetVelocity) {
-        this.targetVelocity = targetVelocity;
-    }
-
-    public ServerPlayer getTargetPlayer() {
-        return targetPlayer;
-    }
-
-    public void setTargetPlayer(ServerPlayer targetPlayer) {
-        this.targetPlayer = targetPlayer;
-    }
-
     public UUID getRedbyteID() {
         return redbyteID;
     }
@@ -194,5 +163,29 @@ public class PseudoRobo {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public @Nullable ServerPlayer getFollowPlayerGoalProp() {
+        return followPlayerGoalProp;
+    }
+
+    public void setFollowPlayerGoalProp(@Nullable ServerPlayer followPlayerGoalProp) {
+        this.followPlayerGoalProp = followPlayerGoalProp;
+    }
+
+    public @Nullable Float getWalkGoalProp() {
+        return walkGoalProp;
+    }
+
+    public void setWalkGoalProp(@Nullable Float walkGoalProp) {
+        this.walkGoalProp = walkGoalProp;
+    }
+
+    public @Nullable Vec3 getWalkToGoalProp() {
+        return walkToGoalProp;
+    }
+
+    public void setWalkToGoalProp(@Nullable Vec3 walkToGoalProp) {
+        this.walkToGoalProp = walkToGoalProp;
     }
 }

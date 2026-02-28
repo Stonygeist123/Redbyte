@@ -1,6 +1,6 @@
 package net.stonygeist.redbyte.interpreter.analysis.nodes;
 
-import net.stonygeist.redbyte.interpreter.miscellaneous.TextSpan;
+import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;

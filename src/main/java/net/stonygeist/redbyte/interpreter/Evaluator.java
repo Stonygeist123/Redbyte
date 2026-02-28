@@ -19,8 +19,8 @@ public final class Evaluator {
     private final Stack<BoundBlockStmt> globalStmts = new Stack<>();
     private final Dictionary<VariableSymbol, Object> variables = new Hashtable<>();
     private final PseudoRobo robo;
-    private Dictionary<LabelSymbol, Integer> labelToIndex;
     private int index;
+    private Dictionary<LabelSymbol, Integer> labelToIndex;
 
     public Evaluator(ImmutableList<BoundBlockStmt> globalStmts, PseudoRobo robo) {
         this.robo = robo;
@@ -56,8 +56,12 @@ public final class Evaluator {
 
         switch (stmt.stmts.get(index)) {
             case BoundExprStmt exprStmt:
-                ++index;
-                evaluateExpr(exprStmt.expr, robo);
+                try {
+                    evaluateExpr(exprStmt.expr, robo);
+                    ++index;
+                } catch (PendingEvaluation e) {
+                    break;
+                }
                 break;
             case BoundLabelStmt ignored:
                 ++index;
@@ -163,6 +167,9 @@ public final class Evaluator {
             }
             default -> throw new RuntimeException();
         };
+    }
+
+    public static final class PendingEvaluation extends RuntimeException {
     }
 
     public static boolean equalsPrimitives(Object a, Object b) {
