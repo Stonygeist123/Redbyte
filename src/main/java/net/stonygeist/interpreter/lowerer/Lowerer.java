@@ -72,11 +72,13 @@ public final class Lowerer {
                 BoundLabelStmt endLabelStmt = new BoundLabelStmt(endLabel);
                 yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(gotoCheck, continueLabelStmt, whileStmt.body, checkLabelStmt, gotoTrue, endLabelStmt)));
             }
-            case BoundTillStmt tillStmt -> {
+            case BoundOnceStmt onceStmt -> {
                 BoundOperator.BoundUnaryOperator conditionOperator = BoundOperator.BoundUnaryOperator.bind(TokenKind.Bang, TypeSymbol.Boolean);
                 assert conditionOperator != null;
-                BoundUnaryExpr negatedCondition = new BoundUnaryExpr(tillStmt.condition, conditionOperator);
-                yield rewriteStmt(new BoundWhileStmt(negatedCondition, tillStmt.body));
+                BoundUnaryExpr negatedCondition = new BoundUnaryExpr(onceStmt.condition, conditionOperator);
+                BoundWhileStmt whileStmt = new BoundWhileStmt(negatedCondition, new BoundBlockStmt(ImmutableList.of()));
+                BoundIfStmt ifStmt = new BoundIfStmt(onceStmt.condition, onceStmt.body, null);
+                yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(whileStmt, ifStmt)));
             }
             case BoundLoopStmt loopStmt -> {
                 VariableSymbol variable = new VariableSymbol("LoopVar_" + ++loopVarCount, TypeSymbol.Number);

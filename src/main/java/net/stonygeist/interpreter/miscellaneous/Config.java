@@ -59,7 +59,7 @@ public enum Config {
             .put("else", TokenKind.Else)
             .put("loop", TokenKind.Loop)
             .put("while", TokenKind.While)
-            .put("till", TokenKind.Till)
+            .put("once", TokenKind.Once)
             .put("or", TokenKind.Or)
             .put("and", TokenKind.And)
             .build();

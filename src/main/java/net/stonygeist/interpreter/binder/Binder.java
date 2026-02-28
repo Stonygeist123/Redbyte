@@ -52,13 +52,13 @@ public final class Binder {
                 BoundStmt thenStmt = bindStmt(whileStmt.stmt);
                 yield new BoundWhileStmt(condition, thenStmt);
             }
-            case TillStmt tillStmt -> {
-                BoundExpr condition = bindExpr(tillStmt.condition);
+            case OnceStmt onceStmt -> {
+                BoundExpr condition = bindExpr(onceStmt.condition);
                 if (condition.getType() != TypeSymbol.Boolean)
                     throw new RuntimeException();
 
-                BoundStmt thenStmt = bindStmt(tillStmt.stmt);
-                yield new BoundTillStmt(condition, thenStmt);
+                BoundStmt thenStmt = bindStmt(onceStmt.stmt);
+                yield new BoundOnceStmt(condition, thenStmt);
             }
             case LoopStmt loopStmt -> {
                 BoundExpr count = bindExpr(loopStmt.count);
