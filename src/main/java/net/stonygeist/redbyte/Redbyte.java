@@ -84,6 +84,21 @@ public class Redbyte {
                 .decoder(C2SEvaluateCodePacket::decode)
                 .consumerMainThread(C2SEvaluateCodePacket::handle)
                 .add();
+        CHANNEL.messageBuilder(C2SFunctionsPaket.FollowFunction.class, networkID++)
+                .encoder(C2SFunctionsPaket.FollowFunction::encode)
+                .decoder(C2SFunctionsPaket.FollowFunction::decode)
+                .consumerMainThread(C2SFunctionsPaket.FollowFunction::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SFunctionsPaket.StopFollowFunction.class, networkID++)
+                .encoder(C2SFunctionsPaket.StopFollowFunction::encode)
+                .decoder(C2SFunctionsPaket.StopFollowFunction::decode)
+                .consumerMainThread(C2SFunctionsPaket.StopFollowFunction::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SFunctionsPaket.AttackFunction.class, networkID++)
+                .encoder(C2SFunctionsPaket.AttackFunction::encode)
+                .decoder(C2SFunctionsPaket.AttackFunction::decode)
+                .consumerMainThread(C2SFunctionsPaket.AttackFunction::handle)
+                .add();
     }
 
     // Add the example block item to the building blocks tab
