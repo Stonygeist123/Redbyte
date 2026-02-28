@@ -2,6 +2,7 @@ package net.stonygeist.redbyte.entity.robo;
 
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.stonygeist.redbyte.manager.PseudoRobo;
@@ -15,16 +16,20 @@ public class BehaviourController {
     public enum State {
         Walk,
         WalkTo,
-        Jump
+        Jump,
+        Follow,
+        StopFollow,
+        Attack
     }
 
     public State state;
-    public float[] args;
+    public Object[] args;
     private WeakReference<RoboEntity> roboRef = new WeakReference<>(null);
     private final ServerLevel serverLevel;
     private int count;
     private Vec3 startPos;
-    private final LinkedList<Map.Entry<State, float[]>> stateQueue = new LinkedList<>();
+    private final LinkedList<Map.Entry<State, Object[]>> stateQueue = new LinkedList<>();
+    private ServerPlayer followPlayerTarget;
 
     public BehaviourController(PseudoRobo robo) {
         serverLevel = robo.serverLevel;
@@ -42,6 +47,15 @@ public class BehaviourController {
             case Jump:
                 handleJump(robo);
                 break;
+            case Follow:
+                handleFollow(robo);
+                break;
+            case StopFollow:
+                handleStopFollow(robo);
+                break;
+            case Attack:
+                handleAttack(robo);
+                break;
             case null:
                 robo.setTargetVelocity(Vec3.ZERO);
                 if (!stateQueue.isEmpty())
@@ -55,7 +69,7 @@ public class BehaviourController {
     private void handleWalk(PseudoRobo robo) {
         RoboEntity roboEntity = roboRef.get();
         if (roboEntity != null) {
-            float speed = robo.getSpeed() / 20f;
+            float speed = robo.getSpeed();
             Vec3 flatDir = Vec3.directionFromRotation(0f, roboEntity.getYRot()).normalize();
             Vec3 targetPos = roboEntity.position().add(flatDir);
 
@@ -74,7 +88,7 @@ public class BehaviourController {
                 }
             }
 
-            if (count >= args[0]) {
+            if (count >= (Float) args[0]) {
                 robo.setTargetVelocity(Vec3.ZERO);
                 robo.setPos(targetPos);
                 done();
@@ -96,17 +110,17 @@ public class BehaviourController {
     private void handleWalkTo(PseudoRobo robo) {
         RoboEntity roboEntity = roboRef.get();
         if (roboEntity != null) {
-            Vec3 targetPos = new Vec3(args[0], args[1], args[2]);
+            Vec3 targetPos = new Vec3((Float) args[0], (Float) args[1], (Float) args[2]);
             roboEntity.lookAt(EntityAnchorArgument.Anchor.EYES, targetPos);
             Vec3 dir = targetPos.subtract(robo.getPos());
             double dist = dir.length();
             if (dist < 0.05) {
                 robo.setPos(targetPos);
                 robo.setTargetVelocity(Vec3.ZERO);
-                args = new float[]{};
+                args = new Object[]{};
                 done();
             } else {
-                final float initialSpeed = robo.getSpeed() / 20f;
+                final float initialSpeed = robo.getSpeed();
                 float usedSpeed = initialSpeed;
 
                 Vec3 probe = dir.normalize().scale(.55f);
@@ -143,7 +157,7 @@ public class BehaviourController {
         }
     }
 
-    private void handleJump(PseudoRobo robo) {
+    private void handleJump(PseudoRobo ignored) {
         RoboEntity roboEntity = roboRef.get();
         if (roboEntity == null) return;
 
@@ -156,12 +170,32 @@ public class BehaviourController {
         }
     }
 
+    private void handleFollow(PseudoRobo ignored) {
+        setPlayerTarget((String) args[0]);
+        done();
+    }
+
+    private void handleStopFollow(PseudoRobo ignored) {
+        setPlayerTarget(null);
+        done();
+    }
+
+    private void handleAttack(PseudoRobo ignored) {
+        RoboEntity roboEntity = roboRef.get();
+        if (roboEntity == null) return;
+        ServerPlayer player = serverLevel.getPlayers(p -> p.getName().getString().equals(args[0])).getFirst();
+        if (roboEntity.isWithinMeleeAttackRange(player))
+            roboEntity.doHurtTarget(player);
+
+        done();
+    }
+
     private void done() {
-        Map.Entry<State, float[]> entry = stateQueue.peek();
+        Map.Entry<State, Object[]> entry = stateQueue.peek();
         stateQueue.poll();
         if (entry == null) {
             state = null;
-            args = new float[]{};
+            args = new Object[][]{};
         } else {
             state = entry.getKey();
             args = entry.getValue();
@@ -173,16 +207,30 @@ public class BehaviourController {
             startPos = roboEntity.position();
     }
 
-    public void setRoboRef(WeakReference<RoboEntity> roboRef) {
-        this.roboRef = roboRef;
-    }
-
-    public void addState(State state, float[] args) {
+    public void addState(State state, Object[] args) {
         stateQueue.add(new AbstractMap.SimpleEntry<>(state, args));
     }
 
     public void addState(State state) {
-        stateQueue.add(new AbstractMap.SimpleEntry<>(state, new float[]{}));
+        stateQueue.add(new AbstractMap.SimpleEntry<>(state, new Object[]{}));
+    }
+
+    public void setRoboRef(WeakReference<RoboEntity> roboRef) {
+        this.roboRef = roboRef;
+    }
+
+    public void setPlayerTarget(String playerName) {
+        if (playerName == null)
+            followPlayerTarget = null;
+        else {
+            var players = serverLevel.getPlayers(p -> p.getName().getString().equals(playerName));
+            if (players.isEmpty())
+                return;
+            followPlayerTarget = players.getFirst();
+        }
+    }
+
+    public ServerPlayer getPlayerTarget() {
+        return followPlayerTarget;
     }
 }
-

@@ -8,7 +8,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.network.PacketDistributor;
 import net.stonygeist.redbyte.Redbyte;
-import net.stonygeist.redbyte.server.C2SRoboCodePacket;
+import net.stonygeist.redbyte.entity.robo.RoboEntity;
+import net.stonygeist.redbyte.server.C2SStoreRoboCodePacket;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
@@ -25,13 +26,17 @@ public class RoboTerminalScreen extends Screen {
     private int curLine;
     private int tickCounter;
 
+    private final RoboEntity roboEntity;
     private TextFieldHelper textFieldHelper;
     private TerminalText terminalText;
     private UUID redbyteID;
     private boolean initialised;
 
-    public RoboTerminalScreen() {
+    // TODO: Add documentations in-game
+
+    public RoboTerminalScreen(RoboEntity roboEntity) {
         super(Component.translatable("screen.redbyte.robo_terminal.edit"));
+        this.roboEntity = roboEntity;
         terminalText = new TerminalText();
     }
 
@@ -39,7 +44,7 @@ public class RoboTerminalScreen extends Screen {
     protected void init() {
         super.init();
         addRenderableWidget(new StartButton(width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2, 100, 20,
-                Component.translatable("screen.redbyte.robo_terminal.start"), terminalText::toString, redbyteID));
+                Component.translatable("screen.redbyte.robo_terminal.start"), terminalText::toString, roboEntity));
     }
 
     @Override
@@ -88,9 +93,18 @@ public class RoboTerminalScreen extends Screen {
                 String line = lines[i];
                 boolean isCurLine = i == curLine;
                 boolean showCursor = (tickCounter / 10) % 2 == 0;
-                guiGraphics.drawString(font, line, x + 6, textY, 0xffffff);
+                if (textFieldHelper.isSelecting() && isCurLine) {
+                    String line1 = line.substring(0, textFieldHelper.getSelectionPos());
+                    String selection = line.substring(textFieldHelper.getSelectionPos(), textFieldHelper.getCursorPos());
+                    String line2 = line.substring(textFieldHelper.getCursorPos());
+                    guiGraphics.drawString(font, line1, x + 6, textY, 0xffffff);
+                    guiGraphics.drawString(font, selection, x + 6 + font.width(line1), textY, 0x0000ff);
+                    guiGraphics.drawString(font, line2, x + 6 + font.width(line1) + font.width(selection), textY, 0xffffff);
+                } else
+                    guiGraphics.drawString(font, line, x + 6, textY, 0xffffff);
                 if (isCurLine && showCursor)
                     guiGraphics.vLine(x + 5 + font.width(line.substring(0, textFieldHelper.getCursorPos())), textY - 1, textY - 1 + font.lineHeight, 0xffff00ff);
+
                 textY += isCurLine ? 14 : 10;
             }
         }
@@ -98,7 +112,6 @@ public class RoboTerminalScreen extends Screen {
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
-    //    TODO: Fix selection, ctrl + A ...
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (textFieldHelper == null) return super.keyPressed(keyCode, scanCode, modifiers);
@@ -107,7 +120,7 @@ public class RoboTerminalScreen extends Screen {
             if (curLine == 0)
                 textFieldHelper.setCursorPos(0);
             else {
-                curLine = curLine - 1;
+                --curLine;
                 if (textFieldHelper.getCursorPos() >= terminalText.getLines()[curLine].length())
                     textFieldHelper.setCursorPos(terminalText.getLines()[curLine].length());
             }
@@ -115,9 +128,8 @@ public class RoboTerminalScreen extends Screen {
             return true;
         } else if (keyCode == InputConstants.KEY_DOWN) {
             if (curLine + 1 >= terminalText.getLines().length)
-                terminalText.newLine();
-
-            curLine = curLine + 1;
+                terminalText.newLine(curLine, textFieldHelper.getCursorPos());
+            ++curLine;
             if (textFieldHelper.getCursorPos() >= terminalText.getLines()[curLine].length())
                 textFieldHelper.setCursorPos(terminalText.getLines()[curLine].length());
             return true;
@@ -144,7 +156,7 @@ public class RoboTerminalScreen extends Screen {
 
             return true;
         } else if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER) {
-            terminalText.newLine();
+            terminalText.newLine(curLine, textFieldHelper.getCursorPos());
             ++curLine;
             clampEditorState();
             return true;
@@ -170,7 +182,7 @@ public class RoboTerminalScreen extends Screen {
     @Override
     public void onClose() {
         super.onClose();
-        Redbyte.CHANNEL.send(new C2SRoboCodePacket(redbyteID, terminalText.toString()), PacketDistributor.SERVER.noArg());
+        Redbyte.CHANNEL.send(new C2SStoreRoboCodePacket(redbyteID, terminalText.toString()), PacketDistributor.SERVER.noArg());
     }
 
     public void setId(UUID redbyteID) {
@@ -188,7 +200,7 @@ public class RoboTerminalScreen extends Screen {
     private void clampEditorState() {
         String[] lines = terminalText.getLines();
         if (lines.length == 0) {
-            terminalText.newLine();
+            terminalText.newLine(curLine, textFieldHelper.getCursorPos());
             lines = terminalText.getLines();
         }
 

@@ -36,6 +36,7 @@ public final class RoboRegistry extends SavedData {
             PseudoRobo robo = PseudoRobo.deserializeNBT(level, roboTag);
             manager.robos.put(robo.getRedbyteID(), robo);
         }
+        
         return manager;
     }
 

@@ -18,8 +18,8 @@ import net.stonygeist.redbyte.entity.robo.RoboEntityRenderer;
 import net.stonygeist.redbyte.index.RedbyteCreativeTabs;
 import net.stonygeist.redbyte.index.RedbyteEntities;
 import net.stonygeist.redbyte.index.RedbyteItems;
-import net.stonygeist.redbyte.server.C2SFunctionsPaket;
-import net.stonygeist.redbyte.server.C2SRoboCodePacket;
+import net.stonygeist.redbyte.server.C2SEvaluateCodePacket;
+import net.stonygeist.redbyte.server.C2SStoreRoboCodePacket;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -44,25 +44,15 @@ public class Redbyte {
         modEventBus.addListener(this::addCreative);
 
         int networkID = 0;
-        CHANNEL.messageBuilder(C2SRoboCodePacket.class, networkID++)
-                .encoder(C2SRoboCodePacket::encode)
-                .decoder(C2SRoboCodePacket::decode)
-                .consumerMainThread(C2SRoboCodePacket::handle)
+        CHANNEL.messageBuilder(C2SStoreRoboCodePacket.class, networkID++)
+                .encoder(C2SStoreRoboCodePacket::encode)
+                .decoder(C2SStoreRoboCodePacket::decode)
+                .consumerMainThread(C2SStoreRoboCodePacket::handle)
                 .add();
-        CHANNEL.messageBuilder(C2SFunctionsPaket.WalkFunction.class, networkID++)
-                .encoder(C2SFunctionsPaket.WalkFunction::encode)
-                .decoder(C2SFunctionsPaket.WalkFunction::decode)
-                .consumerMainThread(C2SFunctionsPaket.WalkFunction::handle)
-                .add();
-        CHANNEL.messageBuilder(C2SFunctionsPaket.WalkToFunction.class, networkID++)
-                .encoder(C2SFunctionsPaket.WalkToFunction::encode)
-                .decoder(C2SFunctionsPaket.WalkToFunction::decode)
-                .consumerMainThread(C2SFunctionsPaket.WalkToFunction::handle)
-                .add();
-        CHANNEL.messageBuilder(C2SFunctionsPaket.JumpFunction.class, networkID++)
-                .encoder(C2SFunctionsPaket.JumpFunction::encode)
-                .decoder(C2SFunctionsPaket.JumpFunction::decode)
-                .consumerMainThread(C2SFunctionsPaket.JumpFunction::handle)
+        CHANNEL.messageBuilder(C2SEvaluateCodePacket.class, networkID++)
+                .encoder(C2SEvaluateCodePacket::encode)
+                .decoder(C2SEvaluateCodePacket::decode)
+                .consumerMainThread(C2SEvaluateCodePacket::handle)
                 .add();
     }
 

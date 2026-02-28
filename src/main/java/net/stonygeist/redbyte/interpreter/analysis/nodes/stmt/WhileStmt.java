@@ -1,0 +1,16 @@
+package net.stonygeist.redbyte.interpreter.analysis.nodes.stmt;
+
+import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
+import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.Expr;
+
+public final class WhileStmt extends Stmt {
+    public final Token keywordToken;
+    public final Expr condition;
+    public final Stmt stmt;
+
+    public WhileStmt(Token keywordToken, Expr condition, Stmt stmt) {
+        this.keywordToken = keywordToken;
+        this.condition = condition;
+        this.stmt = stmt;
+    }
+}

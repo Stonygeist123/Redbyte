@@ -35,7 +35,16 @@ public class TerminalText {
         return lines.toArray(new String[0]);
     }
 
-    public void newLine() {
+    public void newLine(int curLine, int cursorPos) {
         lines.add("");
+        if (curLine + 1 < lines.size()) {
+            for (int i = lines.size() - 2; i >= curLine; --i)
+                if (i == curLine)
+                    lines.set(i + 1, lines.get(i).substring(cursorPos));
+                else
+                    lines.set(i + 1, lines.get(i));
+
+            lines.set(curLine, lines.get(curLine).substring(0, cursorPos));
+        }
     }
 }
