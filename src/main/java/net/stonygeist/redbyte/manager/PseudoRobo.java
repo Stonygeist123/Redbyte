@@ -1,7 +1,6 @@
 package net.stonygeist.redbyte.manager;
 
 import com.google.common.collect.ImmutableList;
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -18,9 +17,9 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.Stmt;
 import net.stonygeist.redbyte.interpreter.binder.Binder;
 import net.stonygeist.redbyte.interpreter.binder.stmt.BoundStmt;
+import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.lowerer.Lowerer;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -28,15 +27,16 @@ import java.util.UUID;
 
 public class PseudoRobo {
     private final UUID redbyteID;
-    public Evaluator evaluator;
     private WeakReference<RoboEntity> entityRef = new WeakReference<>(null);
+    private ServerLevel serverLevel;
+    private Evaluator evaluator;
     private Vec3 currentPos;
     private String code;
-    public ServerLevel serverLevel;
     private @Nullable ServerPlayer followPlayerGoalProp;
     private @Nullable Float walkGoalProp;
     private @Nullable Vec3 walkToGoalProp;
     private float speed;
+    private ImmutableList<Diagnostic> diagnostics;
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code) {
         this.redbyteID = redbyteID;
@@ -99,17 +99,19 @@ public class PseudoRobo {
     }
 
     public void evaluate() {
-        try {
-            Lexer lexer = new Lexer(code);
-            List<Token> tokens = lexer.lex();
-            Parser parser = new Parser(tokens.toArray(new Token[0]));
-            Stmt[] stmts = parser.parse();
+        diagnostics = ImmutableList.of();
+        Lexer lexer = new Lexer(code);
+        List<Token> tokens = lexer.lex();
+
+        Parser parser = new Parser(tokens.toArray(new Token[0]), lexer.getDiagnostics());
+        Stmt[] stmts = parser.parse();
+        diagnostics = parser.getDiagnostics();
+        if (diagnostics.isEmpty()) {
             Binder binder = new Binder(stmts);
             ImmutableList<BoundStmt> boundStmts = binder.bind();
-            evaluator = new Evaluator(boundStmts.stream().map(Lowerer::lower).collect(ImmutableList.toImmutableList()), this);
-        } catch (RuntimeException e) {
-            Logger logger = LogUtils.getLogger();
-            logger.error("Error");
+            diagnostics = binder.getDiagnostics();
+            if (diagnostics.isEmpty())
+                evaluator = new Evaluator(boundStmts.stream().map(Lowerer::lower).collect(ImmutableList.toImmutableList()), this);
         }
     }
 
@@ -141,6 +143,10 @@ public class PseudoRobo {
         tag.putDouble(key + "Z", vec.z);
     }
 
+    public ServerLevel getServerLevel() {
+        return serverLevel;
+    }
+
     public float getSpeed() {
         return speed / 2f;
     }
@@ -159,6 +165,10 @@ public class PseudoRobo {
 
     public void setEntity(RoboEntity entity) {
         entityRef = new WeakReference<>(entity);
+    }
+
+    public ImmutableList<Diagnostic> getDiagnostics() {
+        return diagnostics;
     }
 
     public void setCode(String code) {

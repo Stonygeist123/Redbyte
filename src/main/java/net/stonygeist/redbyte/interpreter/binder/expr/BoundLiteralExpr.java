@@ -2,7 +2,7 @@ package net.stonygeist.redbyte.interpreter.binder.expr;
 
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 
-public final class BoundLiteralExpr extends BoundExpr {
+public final class BoundLiteralExpr implements BoundExpr {
     public final Object value;
     public final TypeSymbol type;
 

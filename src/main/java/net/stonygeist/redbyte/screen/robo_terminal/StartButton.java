@@ -25,4 +25,9 @@ public class StartButton extends Button {
         super.onPress();
         Redbyte.CHANNEL.send(new C2SEvaluateCodePacket(roboEntity.getRedbyteID(), getText.get()), PacketDistributor.SERVER.noArg());
     }
+
+    @Override
+    public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
+        return false;
+    }
 }

@@ -7,7 +7,7 @@ import java.util.Objects;
 public final class Token extends Node {
     public final String lexeme;
     public final TokenKind kind;
-    public final TextSpan span;
+    private final TextSpan span;
 
     public Token(String lexeme, TokenKind kind, TextSpan span) {
         this.lexeme = lexeme;

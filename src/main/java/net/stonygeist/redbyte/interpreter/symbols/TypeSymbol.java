@@ -5,6 +5,7 @@ public final class TypeSymbol extends Symbol {
     public final static TypeSymbol Text = new TypeSymbol("text");
     public final static TypeSymbol Boolean = new TypeSymbol("boolean");
     public final static TypeSymbol Void = new TypeSymbol("void");
+    public final static TypeSymbol Error = new TypeSymbol("error");
 
     public TypeSymbol(String name) {
         super(name);
@@ -13,5 +14,10 @@ public final class TypeSymbol extends Symbol {
     @Override
     public boolean equals(Object obj) {
         return obj instanceof TypeSymbol t && t.name.equals(name);
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 }

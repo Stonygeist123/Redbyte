@@ -56,7 +56,7 @@ public enum Config {
             .add(new FunctionSymbol("position_z", ImmutableList.of(), TypeSymbol.Number, (ev, robo, args) -> (float) ev.getRoboEntity().position().z))
             .add(new FunctionSymbol("follow", ImmutableList.of(TypeSymbol.Text), TypeSymbol.Void, (ev, robo, args) -> {
                 String address = (String) args[0];
-                List<ServerPlayer> players = robo.serverLevel.getPlayers(p -> p.getName().getString().equals(address));
+                List<ServerPlayer> players = robo.getServerLevel().getPlayers(p -> p.getName().getString().equals(address));
                 if (players.isEmpty())
                     throw new RuntimeException();
                 robo.setFollowPlayerGoalProp(players.getFirst());
@@ -68,7 +68,7 @@ public enum Config {
             }))
             .add(new FunctionSymbol("attack", ImmutableList.of(TypeSymbol.Text), TypeSymbol.Void, (ev, robo, args) -> {
                 String address = (String) args[0];
-                List<ServerPlayer> players = robo.serverLevel.getPlayers(p -> p.getName().getString().equals(address));
+                List<ServerPlayer> players = robo.getServerLevel().getPlayers(p -> p.getName().getString().equals(address));
                 if (players.isEmpty())
                     throw new RuntimeException();
 
@@ -78,7 +78,7 @@ public enum Config {
             }))
             .add(new FunctionSymbol("can_attack", ImmutableList.of(TypeSymbol.Text), TypeSymbol.Boolean, (ev, robo, args) -> {
                 String address = (String) args[0];
-                List<ServerPlayer> players = robo.serverLevel.getPlayers(p -> p.getName().getString().equals(address));
+                List<ServerPlayer> players = robo.getServerLevel().getPlayers(p -> p.getName().getString().equals(address));
                 if (players.isEmpty())
                     throw new RuntimeException();
                 return robo.getEntity().canAttack(players.getFirst()) && robo.getEntity().isWithinMeleeAttackRange(players.getFirst());

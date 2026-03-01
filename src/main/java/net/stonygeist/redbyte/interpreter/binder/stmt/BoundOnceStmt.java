@@ -2,12 +2,5 @@ package net.stonygeist.redbyte.interpreter.binder.stmt;
 
 import net.stonygeist.redbyte.interpreter.binder.expr.BoundExpr;
 
-public final class BoundOnceStmt extends BoundStmt {
-    public final BoundExpr condition;
-    public final BoundStmt body;
-
-    public BoundOnceStmt(BoundExpr condition, BoundStmt body) {
-        this.condition = condition;
-        this.body = body;
-    }
+public record BoundOnceStmt(BoundExpr condition, BoundStmt body) implements BoundStmt {
 }

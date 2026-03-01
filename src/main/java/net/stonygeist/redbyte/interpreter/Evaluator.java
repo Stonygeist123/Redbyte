@@ -33,7 +33,7 @@ public final class Evaluator {
 
         BoundBlockStmt current = globalStmts.peek();
         evaluate(current, robo);
-        if (index >= current.stmts.size()) {
+        if (index >= current.stmts().size()) {
             index = 0;
             labelToIndex = null;
             globalStmts.pop();
@@ -50,14 +50,14 @@ public final class Evaluator {
 
     private void evaluate(BoundBlockStmt stmt, PseudoRobo robo) {
         labelToIndex = new Hashtable<>();
-        for (int i = 0; i < stmt.stmts.size(); ++i)
-            if (stmt.stmts.get(i) instanceof BoundLabelStmt l)
-                labelToIndex.put(l.label, i + 1);
+        for (int i = 0; i < stmt.stmts().size(); ++i)
+            if (stmt.stmts().get(i) instanceof BoundLabelStmt(LabelSymbol label))
+                labelToIndex.put(label, i + 1);
 
-        switch (stmt.stmts.get(index)) {
+        switch (stmt.stmts().get(index)) {
             case BoundExprStmt exprStmt:
                 try {
-                    evaluateExpr(exprStmt.expr, robo);
+                    evaluateExpr(exprStmt.expr(), robo);
                     ++index;
                 } catch (PendingEvaluation e) {
                     break;
@@ -67,15 +67,15 @@ public final class Evaluator {
                 ++index;
                 break;
             case BoundGotoStmt gotoStmt:
-                index = labelToIndex.get(gotoStmt.label);
+                index = labelToIndex.get(gotoStmt.label());
                 break;
             case BoundConditionalGotoStmt conditionalGotoStmt:
-                Object condition = evaluateExpr(conditionalGotoStmt.condition, robo);
+                Object condition = evaluateExpr(conditionalGotoStmt.condition(), robo);
                 if (condition == null)
                     throw new RuntimeException();
 
-                if ((boolean) condition == conditionalGotoStmt.jumpIfTrue)
-                    index = labelToIndex.get(conditionalGotoStmt.label);
+                if ((boolean) condition == conditionalGotoStmt.jumpIfTrue())
+                    index = labelToIndex.get(conditionalGotoStmt.label());
                 else
                     ++index;
                 break;
@@ -88,24 +88,24 @@ public final class Evaluator {
         return switch (expr) {
             case BoundLiteralExpr literalExpr -> literalExpr.value;
             case BoundUnaryExpr unaryExpr -> {
-                Object operand = evaluateExpr(unaryExpr.operand, robo);
+                Object operand = evaluateExpr(unaryExpr.operand(), robo);
                 if (operand == null)
                     throw new RuntimeException();
-                if (unaryExpr.operator.operatorKind() == TokenKind.Bang)
+                if (unaryExpr.operator().operatorKind() == TokenKind.Bang)
                     yield !(boolean) operand;
-                else if (unaryExpr.operator.operatorKind() == TokenKind.Minus)
+                else if (unaryExpr.operator().operatorKind() == TokenKind.Minus)
                     yield -(float) operand;
-                else if (unaryExpr.operator.operatorKind() == TokenKind.Plus)
+                else if (unaryExpr.operator().operatorKind() == TokenKind.Plus)
                     yield -(float) operand;
                 throw new RuntimeException();
             }
             case BoundBinaryExpr binaryExpr -> {
-                Object left = evaluateExpr(binaryExpr.left, robo);
-                Object right = evaluateExpr(binaryExpr.right, robo);
+                Object left = evaluateExpr(binaryExpr.left(), robo);
+                Object right = evaluateExpr(binaryExpr.right(), robo);
                 if (left == null || right == null)
                     throw new RuntimeException();
 
-                switch (binaryExpr.operator.operatorKind()) {
+                switch (binaryExpr.operator().operatorKind()) {
                     case Plus: {
                         if (left instanceof Float f1 && right instanceof Float f2)
                             yield f1 + f2;
@@ -148,21 +148,21 @@ public final class Evaluator {
                         throw new RuntimeException();
                 }
             }
-            case BoundGroupExpr groupExpr -> evaluateExpr(groupExpr.expr, robo);
+            case BoundGroupExpr groupExpr -> evaluateExpr(groupExpr.expr(), robo);
             case BoundNameExpr nameExpr -> {
-                Object value = variables.get(nameExpr.symbol);
+                Object value = variables.get(nameExpr.symbol());
                 if (value == null)
                     throw new RuntimeException();
                 yield value;
             }
             case BoundAssignExpr assignExpr -> {
-                Object value = evaluateExpr(assignExpr.value, robo);
-                variables.put(assignExpr.symbol, value);
+                Object value = evaluateExpr(assignExpr.value(), robo);
+                variables.put(assignExpr.symbol(), value);
                 yield value;
             }
             case BoundCallExpr callExpr -> {
-                Object[] args = callExpr.args.stream().map(a -> evaluateExpr(a, robo)).toArray(Object[]::new);
-                FunctionSymbol function = callExpr.symbol;
+                Object[] args = callExpr.args().stream().map(a -> evaluateExpr(a, robo)).toArray(Object[]::new);
+                FunctionSymbol function = callExpr.symbol();
                 yield function.callback.apply(this, robo, args);
             }
             default -> throw new RuntimeException();

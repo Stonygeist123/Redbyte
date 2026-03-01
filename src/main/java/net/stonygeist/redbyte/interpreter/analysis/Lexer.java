@@ -1,8 +1,10 @@
 package net.stonygeist.redbyte.interpreter.analysis;
 
+import net.minecraft.network.chat.Component;
 import net.stonygeist.redbyte.interpreter.Config;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
+import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +13,7 @@ public class Lexer {
     private final String text;
     private final List<Token> tokens = new ArrayList<>();
     private int start, current;
+    private final List<Diagnostic> diagnostics = new ArrayList<>();
 
     public Lexer(String text) {
         this.text = text;
@@ -21,6 +24,8 @@ public class Lexer {
             start = current;
             getToken();
         }
+
+        tokens.add(new Token("", TokenKind.Eof, new TextSpan(text.length(), text.length())));
         return tokens;
     }
 
@@ -120,14 +125,13 @@ public class Lexer {
                 }
 
                 if (invalid)
-                    throw new RuntimeException();
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_string"), span()));
                 break;
             case '\n', '\r', ' ':
                 kind = TokenKind.Whitespace;
                 break;
             case '\0':
-                kind = TokenKind.Eof;
-                break;
+                return;
             default:
                 if (Character.isDigit(c)) {
                     boolean dot = false;
@@ -152,8 +156,8 @@ public class Lexer {
                     }
 
                     kind = Config.keywords.getOrDefault(lexeme.toString().toLowerCase(), TokenKind.Identifier);
-                }
-                // TODO: Add error messages
+                } else
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_character", String.valueOf(c)), span()));
                 break;
         }
 
@@ -166,5 +170,13 @@ public class Lexer {
 
     private char peek() {
         return isAtEnd() ? '\0' : text.charAt(current);
+    }
+
+    private TextSpan span() {
+        return new TextSpan(start, current);
+    }
+
+    public List<Diagnostic> getDiagnostics() {
+        return diagnostics;
     }
 }

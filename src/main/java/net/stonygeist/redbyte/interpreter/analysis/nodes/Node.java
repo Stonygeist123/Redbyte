@@ -16,14 +16,14 @@ public abstract class Node {
         List<Node> result = new ArrayList<>();
         Field[] fields = getClass().getFields();
         for (Field f : fields) {
-            if (f.getType().isAssignableFrom(Node.class)) {
+            if (Node.class.isAssignableFrom(f.getType())) {
                 try {
                     Node child = (Node) f.get(this);
                     if (child != null)
                         result.add(child);
                 } catch (IllegalAccessException ignored) {
                 }
-            } else if (f.getType().isArray() && f.getType().arrayType().isAssignableFrom(Node.class)) {
+            } else if (f.getType().isArray() && Node.class.isAssignableFrom(f.getType().arrayType())) {
                 try {
                     Node[] children = (Node[]) f.get(this);
                     if (children != null)
