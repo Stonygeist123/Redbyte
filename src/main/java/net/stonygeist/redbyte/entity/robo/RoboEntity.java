@@ -68,7 +68,7 @@ public class RoboEntity extends PathfinderMob {
         if (level().isClientSide()) {
             RoboTerminalScreen screen = new RoboTerminalScreen(this);
             screen.setId(getRedbyteID());
-            screen.setCode(getCode());
+            screen.saveCode(getCode());
             Minecraft.getInstance().setScreen(screen);
             return InteractionResult.SUCCESS;
         }
