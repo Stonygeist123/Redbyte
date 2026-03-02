@@ -10,21 +10,20 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.*;
 import net.stonygeist.redbyte.interpreter.binder.expr.*;
 import net.stonygeist.redbyte.interpreter.binder.stmt.*;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
+import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.List;
 
 public final class Binder {
     private final ImmutableList<Stmt> stmts;
     private final Hashtable<String, VariableSymbol> symbolTable = new Hashtable<>();
-    private final List<Diagnostic> diagnostics = new ArrayList<>();
+    private final DiagnosticBag diagnostics = new DiagnosticBag();
 
     public Binder(Stmt[] stmts) {
         this.stmts = Arrays.stream(stmts).collect(ImmutableList.toImmutableList());
@@ -146,8 +145,11 @@ public final class Binder {
                     yield new BoundErrorExpr();
                 }
 
-                if (function.parameters.size() != callExpr.args.length)
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", function.parameters.size(), callExpr.args.length), new TextSpan(callExpr.args[0].span().start(), callExpr.args[callExpr.args.length - 1].span().end())));
+                if (function.parameters.size() != callExpr.args.length) {
+                    TextSpan firstSpan = callExpr.args[0].span();
+                    TextSpan lastSpan = callExpr.args[callExpr.args.length - 1].span();
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", function.parameters.size(), callExpr.args.length), new TextSpan(firstSpan.startColumn(), lastSpan.endColumn(), firstSpan.lineStart(), lastSpan.lineEnd())));
+                }
 
                 ImmutableList<BoundExpr> args = Arrays.stream(callExpr.args).map(this::bindExpr).collect(ImmutableList.toImmutableList());
                 for (int i = 0; i < Math.min(args.size(), function.parameters.size()); i++)
@@ -167,7 +169,7 @@ public final class Binder {
         symbolTable.put(variable.name, variable);
     }
 
-    public ImmutableList<Diagnostic> getDiagnostics() {
-        return diagnostics.stream().collect(ImmutableList.toImmutableList());
+    public DiagnosticBag getDiagnostics() {
+        return diagnostics;
     }
 }

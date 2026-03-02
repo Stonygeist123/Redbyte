@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
+import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -36,7 +37,7 @@ public final class RoboRegistry extends SavedData {
             PseudoRobo robo = PseudoRobo.deserializeNBT(level, roboTag);
             manager.robos.put(robo.getRedbyteID(), robo);
         }
-        
+
         return manager;
     }
 
@@ -62,7 +63,7 @@ public final class RoboRegistry extends SavedData {
 
     public void newRobo(ServerLevel level, BlockPos spawnPos) {
         UUID id = UUID.randomUUID();
-        PseudoRobo robo = new PseudoRobo(level, id, spawnPos, "");
+        PseudoRobo robo = new PseudoRobo(level, id, spawnPos, "", false, new DiagnosticBag());
         add(robo);
         setDirty();
     }
@@ -73,7 +74,7 @@ public final class RoboRegistry extends SavedData {
     }
 
     public void ensureExists(UUID redbyteID, RoboEntity entity) {
-        PseudoRobo robo = robos.computeIfAbsent(redbyteID, (id) -> new PseudoRobo((ServerLevel) entity.level(), id, entity.blockPosition(), entity.getCode()));
+        PseudoRobo robo = robos.computeIfAbsent(redbyteID, (id) -> new PseudoRobo((ServerLevel) entity.level(), id, entity.blockPosition(), entity.getCode(), entity.getBuildDone(), entity.getDiagnostics()));
         RoboEntity trackedEntity = robo.getEntity();
         if (trackedEntity != null && trackedEntity != entity && !trackedEntity.isRemoved())
             trackedEntity.discard();

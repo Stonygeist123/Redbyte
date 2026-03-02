@@ -19,6 +19,7 @@ import net.stonygeist.redbyte.goals.FollowPlayerGoal;
 import net.stonygeist.redbyte.goals.WalkGoal;
 import net.stonygeist.redbyte.goals.WalkToGoal;
 import net.stonygeist.redbyte.index.RedbyteConfigs;
+import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.manager.RoboRegistry;
 import net.stonygeist.redbyte.screen.robo_terminal.RoboTerminalScreen;
 import org.jetbrains.annotations.NotNull;
@@ -30,6 +31,10 @@ public class RoboEntity extends PathfinderMob {
             SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<String> code =
             SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Boolean> buildDone =
+            SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<CompoundTag> diagnostics =
+            SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.COMPOUND_TAG);
 
     public RoboEntity(EntityType<? extends RoboEntity> type, Level level) {
         super(type, level);
@@ -95,6 +100,8 @@ public class RoboEntity extends PathfinderMob {
         super.defineSynchedData(builder);
         builder.define(code, "");
         builder.define(redbyteID, "");
+        builder.define(buildDone, false);
+        builder.define(diagnostics, new DiagnosticBag().serializeNBT());
     }
 
     @Override
@@ -102,6 +109,8 @@ public class RoboEntity extends PathfinderMob {
         super.addAdditionalSaveData(tag);
         if (redbyteID != null) tag.putUUID("redbyteID", getRedbyteID());
         if (code != null) tag.putString("code", getCode());
+        if (buildDone != null) tag.putBoolean("buildDone", getBuildDone());
+        if (diagnostics != null) tag.put("errors", getDiagnosticsTag());
     }
 
     @Override
@@ -109,6 +118,8 @@ public class RoboEntity extends PathfinderMob {
         super.readAdditionalSaveData(tag);
         if (tag.hasUUID("redbyteID")) setRedbyteID(tag.getUUID("redbyteID"));
         if (tag.contains("code")) setCode(tag.getString("code"));
+        if (tag.contains("buildDone")) setBuildDone(tag.getBoolean("buildDone"));
+        if (tag.contains("diagnostics")) entityData.set(diagnostics, tag.getCompound("diagnostics"));
     }
 
     @Override
@@ -123,6 +134,15 @@ public class RoboEntity extends PathfinderMob {
         }
     }
 
+    public UUID getRedbyteID() {
+        String raw = entityData.get(redbyteID);
+        return raw.isEmpty() ? null : UUID.fromString(raw);
+    }
+
+    public void setRedbyteID(UUID id) {
+        entityData.set(redbyteID, id.toString());
+    }
+
     public String getCode() {
         return entityData.get(code);
     }
@@ -131,12 +151,23 @@ public class RoboEntity extends PathfinderMob {
         entityData.set(RoboEntity.code, code);
     }
 
-    public UUID getRedbyteID() {
-        String raw = entityData.get(redbyteID);
-        return raw.isEmpty() ? null : UUID.fromString(raw);
+    public DiagnosticBag getDiagnostics() {
+        return DiagnosticBag.deserializeNBT(entityData.get(diagnostics));
     }
 
-    public void setRedbyteID(UUID id) {
-        entityData.set(redbyteID, id.toString());
+    public CompoundTag getDiagnosticsTag() {
+        return entityData.get(diagnostics);
+    }
+
+    public void setDiagnostics(DiagnosticBag diagnostics) {
+        entityData.set(RoboEntity.diagnostics, diagnostics.serializeNBT());
+    }
+
+    public boolean getBuildDone() {
+        return entityData.get(buildDone);
+    }
+
+    public void setBuildDone(boolean buildDone) {
+        entityData.set(RoboEntity.buildDone, buildDone);
     }
 }

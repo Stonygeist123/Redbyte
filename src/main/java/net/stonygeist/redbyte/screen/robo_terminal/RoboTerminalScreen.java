@@ -6,15 +6,23 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.font.TextFieldHelper;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraftforge.network.PacketDistributor;
 import net.stonygeist.redbyte.Redbyte;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
+import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
+import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
+import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
+import net.stonygeist.redbyte.server.C2SDiagnosticsPacket;
 import net.stonygeist.redbyte.server.C2SStoreRoboCodePacket;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.UUID;
 
+// Add screen to custom menu
 public class RoboTerminalScreen extends Screen {
     private static final int BORDER_COLOR = 0xff808080;
     private static final int SCREEN_COLOR = 0xff000000;
@@ -22,9 +30,14 @@ public class RoboTerminalScreen extends Screen {
     private static final int TERMINAL_WIDTH = 750;
     private static final int TERMINAL_HEIGHT = 360;
 
-    // Scrollbar
-    private static final int TEXT_PADDING_X = 6;
+    private static final int TEXT_PADDING_X = 14;
     private static final int TEXT_PADDING_Y = 20;
+
+    private static final int RESULT_PANEL_GAP = 12;
+    private static final int RESULT_PANEL_TOP_PADDING = 40;
+    private static final int DIAGNOSTIC_HIGHLIGHT_COLOR = 0x66ff0000;
+
+    // Scrollbar
     private static final int SCROLLBAR_HEIGHT = 4;
     private static final int SCROLLBAR_BOTTOM_PADDING = 8;
     private static final int SCROLLBAR_TRACK_COLOR = 0xff2d2d2d;
@@ -63,8 +76,8 @@ public class RoboTerminalScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        addRenderableWidget(new StartButton(width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2, 100, 20,
-                Component.translatable("screen.redbyte.robo_terminal.start"), terminalText::toString, roboEntity));
+        addRenderableWidget(new RunButton(width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2, 100, 20, roboEntity, this::runIsDisabled));
+        addRenderableWidget(new BuildButton(width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2 + 25, 100, 20, () -> terminalText.toString(), roboEntity));
     }
 
     @Override
@@ -78,13 +91,14 @@ public class RoboTerminalScreen extends Screen {
                     var y = TextFieldHelper.createClipboardSetter(mc);
                     textFieldHelper = new TextFieldHelper(
                             () -> terminalText.getLines()[curLine],
-                            text -> terminalText.setText(text, curLine), x, y,
+                            this::setText, x, y,
                             text -> true);
                     clampEditorState();
                 }
             }
         }
     }
+
 
     @Override
     protected void renderBlurredBackground(float pPartialTick) {
@@ -108,10 +122,11 @@ public class RoboTerminalScreen extends Screen {
             clampEditorState();
 
             int textX = x + TEXT_PADDING_X;
-            int textY = y + TEXT_PADDING_Y - 6;
+            int textY = y + TEXT_PADDING_Y;
             int visibleTextWidth = Math.min(MAX_TEXT_LINE_WIDTH, TERMINAL_WIDTH - (TEXT_PADDING_X * 2));
             int visibleTextHeight = TERMINAL_HEIGHT - TEXT_PADDING_Y - 4;
             String[] lines = terminalText.getLines();
+            int[] lineStartOffsets = buildLineStartOffsets(lines);
             String currentLine = lines[curLine];
             adjustHorizontalScroll(currentLine, Mth.clamp(textFieldHelper.getCursorPos(), 0, currentLine.length()), visibleTextWidth);
             adjustVerticalScroll(curLine, visibleTextHeight, followCursorOnRender);
@@ -124,12 +139,12 @@ public class RoboTerminalScreen extends Screen {
                 boolean isCurLine = i == curLine;
                 boolean showCursor = (tickCounter / 10) % 2 == 0;
 
-                // Calculate vertical position for this line
+                // Calculate vertical position for this lineStart
                 int lineY = textY + (i - firstVisibleLine) * font.lineHeight;
 
-                // Skip if line is above visible area
+                // Skip if lineStart is above visible area
                 if (lineY < textY) continue;
-                // Skip if line is below visible area
+                // Skip if lineStart is below visible area
                 if (lineY > textY + visibleTextHeight) break;
 
                 int visibleStart = firstVisibleIndex(line, horizontalScrollOffset);
@@ -138,66 +153,71 @@ public class RoboTerminalScreen extends Screen {
                 int safeCursorPos = Mth.clamp(textFieldHelper.getCursorPos(), 0, line.length());
                 int safeSelectionPos = Mth.clamp(textFieldHelper.getSelectionPos(), 0, line.length());
 
-                // Check if this line is part of our custom selection
+                // Check if this lineStart is part of our custom selection
                 boolean isLineInSelection = hasSelection &&
                         ((i >= selectionStartLine && i <= selectionEndLine) ||
                                 (i >= selectionEndLine && i <= selectionStartLine));
 
+                drawDiagnosticHighlightsForLine(
+                        guiGraphics, line, i, lineY, textX,
+                        visibleStart, visibleEnd + 1, lineStartOffsets
+                );
+
                 if (isLineInSelection) {
-                    // Calculate selection bounds for this line
+                    // Calculate selection bounds for this lineStart
                     int lineSelStart;
                     int lineSelEnd;
 
                     if (selectionStartLine < selectionEndLine) {
                         if (i == selectionStartLine) {
-                            // Start line of multi-line selection
+                            // Start lineStart of multi-lineStart selection
                             lineSelStart = selectionStartChar;
                             lineSelEnd = line.length();
                         } else if (i == selectionEndLine) {
-                            // End line of multi-line selection
+                            // End lineStart of multi-lineStart selection
                             lineSelStart = 0;
                             lineSelEnd = selectionEndChar;
                         } else {
-                            // Middle line of multi-line selection
+                            // Middle lineStart of multi-lineStart selection
                             lineSelStart = 0;
                             lineSelEnd = line.length();
                         }
                     } else {
-                        // Reverse selection (end before start)
+                        // Reverse selection (endColumn before startColumn)
                         if (selectionEndLine == selectionStartLine) {
-                            // Selection is within single line
+                            // Selection is within single lineStart
                             lineSelStart = Math.min(selectionStartChar, selectionEndChar);
                             lineSelEnd = Math.max(selectionStartChar, selectionEndChar);
                         } else if (i == selectionEndLine) {
-                            // Start line of multi-line selection (reversed)
+                            // Start lineStart of multi-lineStart selection (reversed)
                             lineSelStart = selectionEndChar;
                             lineSelEnd = line.length();
                         } else if (i == selectionStartLine) {
-                            // End line of multi-line selection (reversed)
+                            // End lineStart of multi-lineStart selection (reversed)
                             lineSelStart = 0;
                             lineSelEnd = selectionStartChar;
                         } else {
-                            // Middle line of multi-line selection (reversed)
+                            // Middle lineStart of multi-lineStart selection (reversed)
                             lineSelStart = 0;
                             lineSelEnd = line.length();
                         }
                     }
 
-                    // Draw the line with selection highlighting
+                    // Draw the lineStart with selection highlighting
                     drawClippedRange(guiGraphics, line, 0, lineSelStart, visibleStart, visibleEnd, textX, lineY, 0xffffff);
                     drawClippedRange(guiGraphics, line, lineSelStart, lineSelEnd, visibleStart, visibleEnd, textX, lineY, 0x0000ff);
                     drawClippedRange(guiGraphics, line, lineSelEnd, line.length(), visibleStart, visibleEnd + 1, textX, lineY, 0xffffff);
                 } else if (textFieldHelper.isSelecting() && isCurLine) {
-                    // Fall back to TextFieldHelper selection for current line
+                    // Fall back to TextFieldHelper selection for current lineStart
                     int selStart = Math.min(safeSelectionPos, safeCursorPos);
                     int selEnd = Math.max(safeSelectionPos, safeCursorPos);
                     drawClippedRange(guiGraphics, line, 0, selStart, visibleStart, visibleEnd, textX, lineY, 0xffffff);
                     drawClippedRange(guiGraphics, line, selStart, selEnd, visibleStart, visibleEnd, textX, lineY, 0x0000ff);
                     drawClippedRange(guiGraphics, line, selEnd, line.length(), visibleStart, visibleEnd + 1, textX, lineY, 0xffffff);
-                } else {
+                } else
                     drawClippedRange(guiGraphics, line, 0, line.length(), visibleStart, visibleEnd + 1, textX, lineY, 0xffffff);
-                }
 
+                guiGraphics.drawString(font, (i + 1) + ": ", x + 2, lineY, 0xa9a9a9);
                 if (isCurLine && showCursor) {
                     int cursorX = textX + font.width(line.substring(visibleStart, safeCursorPos));
                     guiGraphics.vLine(cursorX, lineY - 1, lineY - 1 + font.lineHeight, 0xffff00ff);
@@ -208,6 +228,7 @@ public class RoboTerminalScreen extends Screen {
             drawVerticalScrollbar(guiGraphics, x + TERMINAL_WIDTH - TEXT_PADDING_X, y + TEXT_PADDING_Y, visibleTextHeight);
         }
 
+        drawResultPanel(guiGraphics, x, y);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
@@ -378,6 +399,131 @@ public class RoboTerminalScreen extends Screen {
         Redbyte.CHANNEL.send(new C2SStoreRoboCodePacket(redbyteID, terminalText.toString()), PacketDistributor.SERVER.noArg());
     }
 
+    private void setText(String text) {
+        if (roboEntity.getBuildDone())
+            Redbyte.CHANNEL.send(new C2SDiagnosticsPacket(redbyteID, false, roboEntity.getDiagnosticsTag()), PacketDistributor.SERVER.noArg());
+        terminalText.setText(text, curLine);
+    }
+
+    private boolean runIsDisabled() {
+        return !roboEntity.getBuildDone() || !roboEntity.getDiagnostics().isEmpty();
+    }
+
+    private void drawResultPanel(GuiGraphics guiGraphics, int screenX, int screenY) {
+        int codePanelWidth = Math.min(MAX_TEXT_LINE_WIDTH, TERMINAL_WIDTH - (TEXT_PADDING_X * 2));
+        int panelX = screenX + TEXT_PADDING_X + codePanelWidth + RESULT_PANEL_GAP;
+        int panelY = screenY + RESULT_PANEL_TOP_PADDING;
+        int panelRight = screenX + TERMINAL_WIDTH - TEXT_PADDING_X - SCROLLBAR_HEIGHT - 2;
+        int panelWidth = panelRight - panelX;
+        if (panelWidth <= 0)
+            return;
+
+        guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.result"), panelX, panelY, 0x00ff00);
+
+        int contentY = panelY + font.lineHeight + 4;
+        int maxBottom = screenY + TERMINAL_HEIGHT - SCROLLBAR_BOTTOM_PADDING;
+        DiagnosticBag diagnostics = roboEntity.getDiagnostics();
+        if (diagnostics.isEmpty()) {
+            guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.no_errors"), panelX, contentY, 0xffaaaaaa);
+            return;
+        }
+
+        for (Diagnostic diagnostic : diagnostics) {
+            List<FormattedCharSequence> locationLines = font.split(FormattedText.of(formatDiagnosticLocation(diagnostic.span())), panelWidth);
+            for (FormattedCharSequence locationLine : locationLines) {
+                if (contentY + font.lineHeight > maxBottom) return;
+                guiGraphics.drawString(font, locationLine, panelX, contentY, 0xffaaaaaa);
+                contentY += font.lineHeight;
+            }
+
+            List<FormattedCharSequence> wrappedLines = font.split(FormattedText.of(diagnostic.message()), panelWidth);
+            for (FormattedCharSequence wrappedLine : wrappedLines) {
+                if (contentY + font.lineHeight > maxBottom) return;
+                guiGraphics.drawString(font, wrappedLine, panelX, contentY, 0xffff5555);
+                contentY += font.lineHeight;
+            }
+
+            contentY += font.lineHeight * 2;
+        }
+    }
+
+    private String formatDiagnosticLocation(TextSpan span) {
+        if (span.lineStart() == span.lineEnd()) {
+            if (span.startColumn() == span.endColumn())
+                return "Line " + span.lineStart() + ": " + span.endColumn();
+            return "Line " + span.lineStart() + ": " + span.startColumn() + "-" + span.endColumn();
+        }
+
+        return "Lines " + span.lineStart() + "-" + span.lineEnd() + ": " + span.startColumn() + "-" + span.endColumn();
+    }
+
+    private int[] buildLineStartOffsets(String[] lines) {
+        int[] offsets = new int[lines.length];
+        int running = 0;
+        for (int i = 0; i < lines.length; i++) {
+            offsets[i] = running;
+            running += lines[i].length() + 1;
+        }
+
+        return offsets;
+    }
+
+    private void drawDiagnosticHighlightsForLine(
+            GuiGraphics guiGraphics,
+            String line,
+            int lineIndex,
+            int lineY,
+            int textX,
+            int clipStart,
+            int clipEnd,
+            int[] lineStartOffsets
+    ) {
+        if (!roboEntity.getBuildDone())
+            return;
+
+        int lineStartAbs = lineStartOffsets[lineIndex];
+        int lineNumber = lineIndex + 1;
+
+        for (Diagnostic diagnostic : roboEntity.getDiagnostics()) {
+            TextSpan span = diagnostic.span();
+            if (lineNumber < span.lineStart() || lineNumber > span.lineEnd())
+                continue;
+
+            int localStart;
+            int localEnd;
+
+            if (span.lineStart() == span.lineEnd()) {
+                localStart = Mth.clamp(span.startColumn(), 0, line.length());
+                localEnd = Mth.clamp(span.endColumn(), 0, line.length());
+            } else if (lineNumber == span.lineStart()) {
+                localStart = Mth.clamp(span.startColumn() - lineStartAbs, 0, line.length());
+                localEnd = line.length();
+            } else if (lineNumber == span.lineEnd()) {
+                localStart = 0;
+                localEnd = Mth.clamp(span.endColumn(), 0, line.length());
+            } else {
+                localStart = 0;
+                localEnd = line.length();
+            }
+
+            // If EOF diagnostic at line end, highlight previous char so it is visible
+            if (localStart == localEnd && diagnostic.isAtEof()) {
+                if (localStart > 0) localStart--;
+                else if (!line.isEmpty()) localEnd = 1;
+                else continue;
+            }
+
+            int drawStart = Math.max(localStart, clipStart);
+            int drawEnd = Math.min(localEnd, clipEnd);
+            if (drawStart >= drawEnd)
+                continue;
+
+            int x1 = textX + font.width(line.substring(clipStart, drawStart));
+            int x2 = textX + font.width(line.substring(clipStart, drawEnd));
+            guiGraphics.fill(x1, lineY - 1, x2, lineY - 1 + font.lineHeight, DIAGNOSTIC_HIGHLIGHT_COLOR);
+        }
+    }
+
     private void drawClippedRange(GuiGraphics guiGraphics, String line, int rangeStart, int rangeEnd,
                                   int clipStart, int clipEnd, int x, int y, int color) {
         int drawStart = Math.max(rangeStart, clipStart);
@@ -533,7 +679,7 @@ public class RoboTerminalScreen extends Screen {
             selectionEndLine = terminalText.getLines().length - 1;
             selectionEndChar = terminalText.getLines()[selectionEndLine].length();
         } else {
-            // First Ctrl+A: select current line
+            // First Ctrl+A: select current lineStart
             selectionStartLine = curLine;
             selectionStartChar = 0;
             selectionEndLine = curLine;
@@ -555,7 +701,7 @@ public class RoboTerminalScreen extends Screen {
             selectionEndChar = textFieldHelper.getCursorPos();
         }
 
-        // Update selection end point based on arrow key
+        // Update selection endColumn point based on arrow key
         if (keyCode == InputConstants.KEY_UP) {
             if (curLine > 0) {
                 --curLine;
@@ -610,7 +756,7 @@ public class RoboTerminalScreen extends Screen {
 
         String[] lines = terminalText.getLines();
 
-        // Determine the actual selection bounds (normalize start/end)
+        // Determine the actual selection bounds (normalize startColumn/endColumn)
         int actualStartLine = Math.min(selectionStartLine, selectionEndLine);
         int actualEndLine = Math.max(selectionStartLine, selectionEndLine);
         int actualStartChar, actualEndChar;
@@ -623,7 +769,7 @@ public class RoboTerminalScreen extends Screen {
             actualEndChar = selectionStartChar;
         }
 
-        // Handle single line selection
+        // Handle single lineStart selection
         if (actualStartLine == actualEndLine) {
             String line = lines[actualStartLine];
             String before = line.substring(0, actualStartChar);
@@ -632,14 +778,14 @@ public class RoboTerminalScreen extends Screen {
             curLine = actualStartLine;
             textFieldHelper.setCursorPos(actualStartChar, false);
         } else {
-            // Handle multi-line selection
+            // Handle multi-lineStart selection
             String firstLine = lines[actualStartLine];
             String lastLine = lines[actualEndLine];
 
-            // Combine the parts before the selection start and after the selection end
+            // Combine the parts before the selection startColumn and after the selection endColumn
             String combined = firstLine.substring(0, actualStartChar) + lastLine.substring(actualEndChar);
 
-            // Replace the first line with the combined text
+            // Replace the first lineStart with the combined text
             terminalText.setText(combined, actualStartLine);
 
             // Remove all the lines in between

@@ -8,21 +8,24 @@ import net.stonygeist.redbyte.manager.RoboRegistry;
 
 import java.util.UUID;
 
-public class C2SEvaluateCodePacket {
+public class C2SBuildCodePacket {
     private final UUID redbyteID;
+    private final String code;
 
-    public C2SEvaluateCodePacket(UUID redbyteID) {
+    public C2SBuildCodePacket(UUID redbyteID, String code) {
         this.redbyteID = redbyteID;
+        this.code = code;
     }
 
-    public static void handle(C2SEvaluateCodePacket msg, CustomPayloadEvent.Context ctx) {
+    public static void handle(C2SBuildCodePacket msg, CustomPayloadEvent.Context ctx) {
         ctx.enqueueWork(() -> {
             ServerPlayer sender = ctx.getSender();
             if (sender != null) {
                 RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
                 PseudoRobo robo = registry.get(msg.redbyteID);
                 if (robo != null) {
-                    robo.evaluate();
+                    robo.setCode(msg.code);
+                    robo.build();
                     registry.setDirty();
                 }
             }
@@ -33,9 +36,10 @@ public class C2SEvaluateCodePacket {
 
     public void encode(FriendlyByteBuf buffer) {
         buffer.writeUUID(redbyteID);
+        buffer.writeUtf(code);
     }
 
-    public static C2SEvaluateCodePacket decode(FriendlyByteBuf buffer) {
-        return new C2SEvaluateCodePacket(buffer.readUUID());
+    public static C2SBuildCodePacket decode(FriendlyByteBuf buffer) {
+        return new C2SBuildCodePacket(buffer.readUUID(), buffer.readUtf());
     }
 }

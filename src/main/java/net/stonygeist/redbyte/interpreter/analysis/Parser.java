@@ -1,6 +1,5 @@
 package net.stonygeist.redbyte.interpreter.analysis;
 
-import com.google.common.collect.ImmutableList;
 import net.minecraft.network.chat.Component;
 import net.stonygeist.redbyte.interpreter.Config;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
@@ -8,6 +7,7 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.*;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.*;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
+import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import java.util.List;
 public class Parser {
     private final Token[] tokens;
     private int current;
-    private final List<Diagnostic> diagnostics = new ArrayList<>();
+    private final DiagnosticBag diagnostics = new DiagnosticBag();
 
     public Parser(Token[] tokens, List<Diagnostic> diagnostics) {
         this.tokens = Arrays.stream(tokens).filter(t -> t.kind != TokenKind.Whitespace).toArray(Token[]::new);
@@ -130,6 +130,8 @@ public class Parser {
                 token = getCurrent();
                 precedence = Config.getBinaryPrecedence(token.kind);
             }
+
+            return expr;
         } else if (expr instanceof NameExpr nameExpr) {
             if (token.kind == TokenKind.Equals)
                 return new AssignExpr(nameExpr.name, token, parseExpr(0));
@@ -159,7 +161,8 @@ public class Parser {
                     ++current;
 
                 expr = new CallExpr(nameExpr.name, token, args.toArray(new Expr[0]), rParen);
-            }
+            } else
+                return expr;
         } else
             return expr;
 
@@ -171,7 +174,7 @@ public class Parser {
         return current >= tokens.length ? tokens[tokens.length - 1] : tokens[current];
     }
 
-    public ImmutableList<Diagnostic> getDiagnostics() {
-        return diagnostics.stream().collect(ImmutableList.toImmutableList());
+    public DiagnosticBag getDiagnostics() {
+        return diagnostics;
     }
 }
