@@ -18,6 +18,8 @@ import net.stonygeist.redbyte.entity.robo.RoboEntityRenderer;
 import net.stonygeist.redbyte.index.RedbyteCreativeTabs;
 import net.stonygeist.redbyte.index.RedbyteEntities;
 import net.stonygeist.redbyte.index.RedbyteItems;
+import net.stonygeist.redbyte.server.C2SBuildCodePacket;
+import net.stonygeist.redbyte.server.C2SDiagnosticsPacket;
 import net.stonygeist.redbyte.server.C2SEvaluateCodePacket;
 import net.stonygeist.redbyte.server.C2SStoreRoboCodePacket;
 import org.slf4j.Logger;
@@ -33,15 +35,15 @@ public class Redbyte {
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "main")).simpleChannel();
 
     public Redbyte() {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
 
-        RedbyteCreativeTabs.register(modEventBus);
-        RedbyteItems.register(modEventBus);
-        RedbyteEntities.register(modEventBus);
+        RedbyteCreativeTabs.register(bus);
+        RedbyteItems.register(bus);
+        RedbyteEntities.register(bus);
 
-        modEventBus.addListener(this::addCreative);
+        bus.addListener(this::addCreative);
 
         int networkID = 0;
         CHANNEL.messageBuilder(C2SStoreRoboCodePacket.class, networkID++)
@@ -54,9 +56,18 @@ public class Redbyte {
                 .decoder(C2SEvaluateCodePacket::decode)
                 .consumerMainThread(C2SEvaluateCodePacket::handle)
                 .add();
+        CHANNEL.messageBuilder(C2SBuildCodePacket.class, networkID++)
+                .encoder(C2SBuildCodePacket::encode)
+                .decoder(C2SBuildCodePacket::decode)
+                .consumerMainThread(C2SBuildCodePacket::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SDiagnosticsPacket.class, networkID++)
+                .encoder(C2SDiagnosticsPacket::encode)
+                .decoder(C2SDiagnosticsPacket::decode)
+                .consumerMainThread(C2SDiagnosticsPacket::handle)
+                .add();
     }
 
-    // Add the example block item to the building blocks tab
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
         if (event.getTab() == RedbyteCreativeTabs.REDBYTE_TAB.get())
             event.accept(RedbyteItems.ROBO_SPAWNER);

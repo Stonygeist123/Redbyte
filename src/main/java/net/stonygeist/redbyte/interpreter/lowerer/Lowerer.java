@@ -27,8 +27,8 @@ public final class Lowerer {
 
         while (!stack.isEmpty()) {
             BoundStmt current = stack.pop();
-            if (current instanceof BoundBlockStmt b) {
-                for (BoundStmt s : b.stmts.reverse())
+            if (current instanceof BoundBlockStmt(ImmutableList<BoundStmt> stmts)) {
+                for (BoundStmt s : stmts.reverse())
                     stack.push(s);
             } else
                 builder.add(current);
@@ -41,23 +41,23 @@ public final class Lowerer {
         return switch (node) {
             case BoundBlockStmt blockStmt -> {
                 ImmutableList.Builder<BoundStmt> builder = ImmutableList.builder();
-                builder.addAll(blockStmt.stmts.stream().map(this::rewriteStmt).iterator());
+                builder.addAll(blockStmt.stmts().stream().map(this::rewriteStmt).iterator());
                 yield new BoundBlockStmt(builder.build());
             }
             case BoundIfStmt ifStmt -> {
-                if (ifStmt.elseStmt == null) {
+                if (ifStmt.elseStmt() == null) {
                     LabelSymbol endLabel = generateLabel();
-                    BoundConditionalGotoStmt gotoFalse = new BoundConditionalGotoStmt(endLabel, ifStmt.condition, false);
+                    BoundConditionalGotoStmt gotoFalse = new BoundConditionalGotoStmt(endLabel, ifStmt.condition(), false);
                     BoundLabelStmt endLabelStmt = new BoundLabelStmt(endLabel);
-                    yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(gotoFalse, ifStmt.thenStmt, endLabelStmt)));
+                    yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(gotoFalse, ifStmt.thenStmt(), endLabelStmt)));
                 } else {
                     LabelSymbol elseLabel = generateLabel();
                     LabelSymbol endLabel = generateLabel();
-                    BoundConditionalGotoStmt gotoFalse = new BoundConditionalGotoStmt(elseLabel, ifStmt.condition, false);
+                    BoundConditionalGotoStmt gotoFalse = new BoundConditionalGotoStmt(elseLabel, ifStmt.condition(), false);
                     BoundGotoStmt gotoEndStmt = new BoundGotoStmt(endLabel);
                     BoundLabelStmt elseLabelStmt = new BoundLabelStmt(elseLabel);
                     BoundLabelStmt endLabelStmt = new BoundLabelStmt(endLabel);
-                    yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(gotoFalse, ifStmt.thenStmt, gotoEndStmt, elseLabelStmt, ifStmt.elseStmt, endLabelStmt)));
+                    yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(gotoFalse, ifStmt.thenStmt(), gotoEndStmt, elseLabelStmt, ifStmt.elseStmt(), endLabelStmt)));
                 }
             }
             case BoundWhileStmt whileStmt -> {
@@ -68,16 +68,16 @@ public final class Lowerer {
                 BoundGotoStmt gotoCheck = new BoundGotoStmt(checkLabel);
                 BoundLabelStmt continueLabelStmt = new BoundLabelStmt(continueLabel);
                 BoundLabelStmt checkLabelStmt = new BoundLabelStmt(checkLabel);
-                BoundConditionalGotoStmt gotoTrue = new BoundConditionalGotoStmt(continueLabel, whileStmt.condition);
+                BoundConditionalGotoStmt gotoTrue = new BoundConditionalGotoStmt(continueLabel, whileStmt.condition());
                 BoundLabelStmt endLabelStmt = new BoundLabelStmt(endLabel);
-                yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(gotoCheck, continueLabelStmt, whileStmt.body, checkLabelStmt, gotoTrue, endLabelStmt)));
+                yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(gotoCheck, continueLabelStmt, whileStmt.body(), checkLabelStmt, gotoTrue, endLabelStmt)));
             }
             case BoundOnceStmt onceStmt -> {
                 BoundOperator.BoundUnaryOperator conditionOperator = BoundOperator.BoundUnaryOperator.bind(TokenKind.Bang, TypeSymbol.Boolean);
                 assert conditionOperator != null;
-                BoundUnaryExpr negatedCondition = new BoundUnaryExpr(onceStmt.condition, conditionOperator);
+                BoundUnaryExpr negatedCondition = new BoundUnaryExpr(onceStmt.condition(), conditionOperator);
                 BoundWhileStmt whileStmt = new BoundWhileStmt(negatedCondition, new BoundBlockStmt(ImmutableList.of()));
-                BoundIfStmt ifStmt = new BoundIfStmt(onceStmt.condition, onceStmt.body, null);
+                BoundIfStmt ifStmt = new BoundIfStmt(onceStmt.condition(), onceStmt.body(), null);
                 yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(whileStmt, ifStmt)));
             }
             case BoundLoopStmt loopStmt -> {
@@ -87,16 +87,16 @@ public final class Lowerer {
 
                 BoundOperator.BoundBinaryOperator conditonOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.LessEquals, TypeSymbol.Number, TypeSymbol.Number);
                 assert conditonOperator != null;
-                BoundBinaryExpr condition = new BoundBinaryExpr(nameExpr, conditonOperator, loopStmt.count);
+                BoundBinaryExpr condition = new BoundBinaryExpr(nameExpr, conditonOperator, loopStmt.count());
 
                 BoundOperator.BoundBinaryOperator incrementOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.Plus, TypeSymbol.Number, TypeSymbol.Number);
                 assert incrementOperator != null;
-                BoundExprStmt increment = new BoundExprStmt(new BoundAssignExpr(variable, new BoundBinaryExpr(nameExpr, incrementOperator, new BoundLiteralExpr(1))));
+                BoundExprStmt increment = new BoundExprStmt(new BoundAssignExpr(variable, new BoundBinaryExpr(nameExpr, incrementOperator, new BoundLiteralExpr(1f))));
 
-                BoundWhileStmt whileStmt = new BoundWhileStmt(condition, new BoundBlockStmt(ImmutableList.of(loopStmt.body, increment)));
+                BoundWhileStmt whileStmt = new BoundWhileStmt(condition, new BoundBlockStmt(ImmutableList.of(loopStmt.body(), increment)));
                 yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(
                         varDecl,
-                        new BoundExprStmt(loopStmt.count),
+                        new BoundExprStmt(loopStmt.count()),
                         whileStmt
                 )));
             }

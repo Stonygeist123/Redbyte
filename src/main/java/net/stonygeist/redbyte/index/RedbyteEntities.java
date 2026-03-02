@@ -12,7 +12,7 @@ import net.stonygeist.redbyte.entity.robo.RoboEntity;
 public class RedbyteEntities {
     public static final DeferredRegister<EntityType<?>> ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, Redbyte.MOD_ID);
     public static final RegistryObject<EntityType<RoboEntity>> ROBO = ENTITY_TYPES.register("robo", () -> EntityType.Builder.of(RoboEntity::new, MobCategory.CREATURE)
-            .sized(.3f, .75f)
+            .sized(.2f, .75f)
             .fireImmune()
             .build("robo"));
 

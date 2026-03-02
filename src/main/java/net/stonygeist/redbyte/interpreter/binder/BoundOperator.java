@@ -2,12 +2,13 @@ package net.stonygeist.redbyte.interpreter.binder;
 
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 
 public final class BoundOperator {
-    public record BoundUnaryOperator(TokenKind operatorKind, TypeSymbol type) {
+    public record BoundUnaryOperator(TokenKind operatorKind, @NotNull TypeSymbol type) {
 
         public static final BoundUnaryOperator[] operators = {
                 new BoundUnaryOperator(TokenKind.Plus, TypeSymbol.Number),

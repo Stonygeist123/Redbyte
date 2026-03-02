@@ -1,13 +1,16 @@
 package net.stonygeist.redbyte.manager;
 
 import com.google.common.collect.ImmutableList;
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.network.PacketDistributor;
+import net.stonygeist.redbyte.Redbyte;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.index.RedbyteConfigs;
 import net.stonygeist.redbyte.index.RedbyteEntities;
@@ -18,8 +21,11 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.Stmt;
 import net.stonygeist.redbyte.interpreter.binder.Binder;
 import net.stonygeist.redbyte.interpreter.binder.stmt.BoundStmt;
+import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
+import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.interpreter.lowerer.Lowerer;
-import org.slf4j.Logger;
+import net.stonygeist.redbyte.server.C2SDiagnosticsPacket;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -27,21 +33,26 @@ import java.util.UUID;
 
 public class PseudoRobo {
     private final UUID redbyteID;
-    public Evaluator evaluator;
     private WeakReference<RoboEntity> entityRef = new WeakReference<>(null);
+    private ServerLevel serverLevel;
+    private Evaluator evaluator;
     private Vec3 currentPos;
     private String code;
-    public ServerLevel serverLevel;
-    private Vec3 targetVelocity;
-    private ServerPlayer targetPlayer;
+    private boolean buildDone;
+    private DiagnosticBag diagnostics;
+    private @Nullable ServerPlayer followPlayerGoalProp;
+    private @Nullable Float walkGoalProp;
+    private @Nullable Vec3 walkToGoalProp;
     private float speed;
+    private ImmutableList<BoundStmt> buildResult;
 
-    public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code) {
+    public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code, boolean buildDone, DiagnosticBag diagnostics) {
         this.redbyteID = redbyteID;
         this.serverLevel = serverLevel;
         this.currentPos = currentPos.getCenter().subtract(0, 0.5, 0);
         this.code = code;
-        targetVelocity = Vec3.ZERO;
+        this.buildDone = buildDone;
+        this.diagnostics = diagnostics;
         speed = RedbyteConfigs.ROBO_DEFAULT_SPEED;
     }
 
@@ -49,7 +60,16 @@ public class PseudoRobo {
         UUID redbyteID = tag.getUUID("redbyteID");
         String code = tag.getString("code");
         Vec3 pos = readVec3FromTag(tag, "pos");
-        return new PseudoRobo(level, redbyteID, BlockPos.containing(pos), code);
+        DiagnosticBag diagnostics = new DiagnosticBag();
+        boolean buildDone = tag.getBoolean("buildDone");
+        ListTag diagnosticsList = tag.getList("diagnostics", Tag.TAG_COMPOUND);
+        for (int i = 0; i < diagnosticsList.size(); ++i) {
+            CompoundTag diagnosticTag = diagnosticsList.getCompound(i);
+            Diagnostic diagnostic = Diagnostic.deserializeNBT(diagnosticTag, i);
+            diagnostics.add(diagnostic);
+        }
+
+        return new PseudoRobo(level, redbyteID, BlockPos.containing(pos), code, buildDone, diagnostics);
     }
 
     public RoboEntity resolveEntity(ServerLevel level) {
@@ -66,10 +86,8 @@ public class PseudoRobo {
 
     private void updateEntity() {
         RoboEntity roboEntity = resolveEntity(serverLevel);
-        if (roboEntity != null) {
-            roboEntity.syncFromVirtual(this);
+        if (roboEntity != null)
             currentPos = roboEntity.position();
-        }
     }
 
     public CompoundTag serializeNBT() {
@@ -77,6 +95,9 @@ public class PseudoRobo {
         tag.putUUID("redbyteID", redbyteID);
         writeVec3ToTag(tag, "pos", currentPos);
         tag.putString("code", code);
+        tag.putBoolean("buildDone", buildDone);
+        tag.put("diagnostics", diagnostics.serializeNBT());
+        tag.putBoolean("buildDone", buildDone);
         return tag;
     }
 
@@ -97,23 +118,32 @@ public class PseudoRobo {
             if (evaluator.getFinished())
                 evaluator = null;
         }
-        if (targetVelocity.length() != 0f)
-            move(getTargetVelocity());
+    }
+
+    public void build() {
+        diagnostics = new DiagnosticBag();
+        Lexer lexer = new Lexer(code);
+        List<Token> tokens = lexer.lex();
+
+        Parser parser = new Parser(tokens.toArray(new Token[0]), lexer.getDiagnostics());
+        Stmt[] stmts = parser.parse();
+        diagnostics = parser.getDiagnostics();
+        if (diagnostics.isEmpty()) {
+            Binder binder = new Binder(stmts);
+            buildResult = binder.bind();
+            diagnostics = binder.getDiagnostics();
+        }
+
+        buildDone = true;
+        if (diagnostics.isEmpty())
+            Redbyte.CHANNEL.send(new C2SDiagnosticsPacket(redbyteID, true, DiagnosticBag.EMPTY), PacketDistributor.SERVER.noArg());
+        else
+            Redbyte.CHANNEL.send(new C2SDiagnosticsPacket(redbyteID, true, diagnostics.serializeNBT()), PacketDistributor.SERVER.noArg());
     }
 
     public void evaluate() {
-        try {
-            Lexer lexer = new Lexer(code);
-            List<Token> tokens = lexer.lex();
-            Parser parser = new Parser(tokens.toArray(new Token[0]));
-            Stmt[] stmts = parser.parse();
-            Binder binder = new Binder(stmts);
-            ImmutableList<BoundStmt> boundStmts = binder.bind();
-            evaluator = new Evaluator(boundStmts.stream().map(Lowerer::lower).collect(ImmutableList.toImmutableList()), this);
-        } catch (RuntimeException e) {
-            Logger logger = LogUtils.getLogger();
-            logger.error("Error");
-        }
+        if (diagnostics.isEmpty())
+            evaluator = new Evaluator(buildResult.stream().map(Lowerer::lower).collect(ImmutableList.toImmutableList()), this);
     }
 
     private void despawnEntity() {
@@ -131,10 +161,6 @@ public class PseudoRobo {
         setEntity(robo);
     }
 
-    private void move(Vec3 targetVelocity) {
-        currentPos = currentPos.add(targetVelocity);
-    }
-
     public static Vec3 readVec3FromTag(CompoundTag tag, String key) {
         double x = tag.getDouble(key + "X");
         double y = tag.getDouble(key + "Y");
@@ -148,36 +174,16 @@ public class PseudoRobo {
         tag.putDouble(key + "Z", vec.z);
     }
 
+    public ServerLevel getServerLevel() {
+        return serverLevel;
+    }
+
     public float getSpeed() {
-        return speed / 2f;
+        return speed / 3f;
     }
 
     public void setSpeed(float speed) {
         this.speed = speed;
-    }
-
-    public Vec3 getPos() {
-        return currentPos;
-    }
-
-    public void setPos(Vec3 currentPos) {
-        this.currentPos = currentPos;
-    }
-
-    public Vec3 getTargetVelocity() {
-        return targetVelocity;
-    }
-
-    public void setTargetVelocity(Vec3 targetVelocity) {
-        this.targetVelocity = targetVelocity;
-    }
-
-    public ServerPlayer getTargetPlayer() {
-        return targetPlayer;
-    }
-
-    public void setTargetPlayer(ServerPlayer targetPlayer) {
-        this.targetPlayer = targetPlayer;
     }
 
     public UUID getRedbyteID() {
@@ -194,5 +200,45 @@ public class PseudoRobo {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public void setBuildDone(boolean buildDone) {
+        this.buildDone = buildDone;
+    }
+
+    public boolean getBuildDone() {
+        return buildDone;
+    }
+
+    public DiagnosticBag getDiagnostics() {
+        return diagnostics;
+    }
+
+    public void setDiagnostics(DiagnosticBag diagnostics) {
+        this.diagnostics = diagnostics;
+    }
+
+    public @Nullable ServerPlayer getFollowPlayerGoalProp() {
+        return followPlayerGoalProp;
+    }
+
+    public void setFollowPlayerGoalProp(@Nullable ServerPlayer followPlayerGoalProp) {
+        this.followPlayerGoalProp = followPlayerGoalProp;
+    }
+
+    public @Nullable Float getWalkGoalProp() {
+        return walkGoalProp;
+    }
+
+    public void setWalkGoalProp(@Nullable Float walkGoalProp) {
+        this.walkGoalProp = walkGoalProp;
+    }
+
+    public @Nullable Vec3 getWalkToGoalProp() {
+        return walkToGoalProp;
+    }
+
+    public void setWalkToGoalProp(@Nullable Vec3 walkToGoalProp) {
+        this.walkToGoalProp = walkToGoalProp;
     }
 }

@@ -1,9 +1,11 @@
 package net.stonygeist.redbyte.interpreter.analysis;
 
+import net.minecraft.network.chat.Component;
+import net.stonygeist.redbyte.interpreter.Config;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
-import net.stonygeist.redbyte.interpreter.miscellaneous.Config;
-import net.stonygeist.redbyte.interpreter.miscellaneous.TextSpan;
+import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
+import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +13,8 @@ import java.util.List;
 public class Lexer {
     private final String text;
     private final List<Token> tokens = new ArrayList<>();
-    private int start, current;
+    private int start, current, column, lineStart = 1, lineEnd = 1;
+    private final DiagnosticBag diagnostics = new DiagnosticBag();
 
     public Lexer(String text) {
         this.text = text;
@@ -19,15 +22,19 @@ public class Lexer {
 
     public List<Token> lex() {
         while (!isAtEnd()) {
-            start = current;
+            start = column;
+            lineStart = lineEnd;
             getToken();
         }
+
+        tokens.add(new Token("", TokenKind.Eof, new TextSpan(column, column, lineEnd, lineEnd)));
         return tokens;
     }
 
     private void getToken() {
         char c = peek();
         ++current;
+        ++column;
         TokenKind kind = TokenKind.Bad;
         StringBuilder lexeme = new StringBuilder(String.valueOf(c));
         switch (c) {
@@ -62,6 +69,7 @@ public class Lexer {
                 if (peek() == '=') {
                     lexeme.append(peek());
                     ++current;
+                    ++column;
                     kind = TokenKind.EqualsEquals;
                 } else
                     kind = TokenKind.Equals;
@@ -70,6 +78,7 @@ public class Lexer {
                 if (peek() == '=') {
                     lexeme.append(peek());
                     ++current;
+                    ++column;
                     kind = TokenKind.NotEquals;
                 } else
                     kind = TokenKind.Bang;
@@ -78,6 +87,7 @@ public class Lexer {
                 if (peek() == '=') {
                     lexeme.append(peek());
                     ++current;
+                    ++column;
                     kind = TokenKind.GreaterEquals;
                 } else
                     kind = TokenKind.Greater;
@@ -86,6 +96,7 @@ public class Lexer {
                 if (peek() == '=') {
                     lexeme.append(peek());
                     ++current;
+                    ++column;
                     kind = TokenKind.LessEquals;
                 } else
                     kind = TokenKind.Less;
@@ -99,6 +110,7 @@ public class Lexer {
                     char currentChar = peek();
                     lexeme.append(currentChar);
                     ++current;
+                    ++column;
                     switch (currentChar) {
                         case '\'':
                             if (c == '"')
@@ -112,6 +124,11 @@ public class Lexer {
                             done = true;
                             invalid = false;
                             break;
+                        case '\n':
+                            done = true;
+                            ++lineEnd;
+                            column = 0;
+                            break;
                         default:
                             break;
                     }
@@ -121,14 +138,18 @@ public class Lexer {
                 }
 
                 if (invalid)
-                    throw new RuntimeException();
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_string"), span()));
                 break;
-            case '\n', '\r', ' ':
+            case '\n', '\r':
+                kind = TokenKind.Whitespace;
+                ++lineEnd;
+                column = 0;
+                break;
+            case ' ':
                 kind = TokenKind.Whitespace;
                 break;
             case '\0':
-                kind = TokenKind.Eof;
-                break;
+                return;
             default:
                 if (Character.isDigit(c)) {
                     boolean dot = false;
@@ -143,6 +164,7 @@ public class Lexer {
                             break;
 
                         ++current;
+                        ++column;
                     }
 
                     kind = TokenKind.Number;
@@ -150,15 +172,16 @@ public class Lexer {
                     while (Character.isAlphabetic(peek()) || peek() == '_') {
                         lexeme.append(peek());
                         ++current;
+                        ++column;
                     }
 
                     kind = Config.keywords.getOrDefault(lexeme.toString().toLowerCase(), TokenKind.Identifier);
-                }
-                // TODO: Add error messages
+                } else
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_character", String.valueOf(c)), span()));
                 break;
         }
 
-        tokens.add(new Token(lexeme.toString(), kind, new TextSpan(start, current)));
+        tokens.add(new Token(lexeme.toString(), kind, span()));
     }
 
     private boolean isAtEnd() {
@@ -167,5 +190,13 @@ public class Lexer {
 
     private char peek() {
         return isAtEnd() ? '\0' : text.charAt(current);
+    }
+
+    private TextSpan span() {
+        return new TextSpan(start, column, lineStart, lineEnd);
+    }
+
+    public DiagnosticBag getDiagnostics() {
+        return diagnostics;
     }
 }
