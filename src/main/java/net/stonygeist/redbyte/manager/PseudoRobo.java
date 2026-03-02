@@ -95,7 +95,9 @@ public class PseudoRobo {
         tag.putUUID("redbyteID", redbyteID);
         writeVec3ToTag(tag, "pos", currentPos);
         tag.putString("code", code);
+        tag.putBoolean("buildDone", buildDone);
         tag.put("diagnostics", diagnostics.serializeNBT());
+        tag.putBoolean("buildDone", buildDone);
         return tag;
     }
 
