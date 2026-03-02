@@ -1,10 +1,14 @@
 package net.stonygeist.redbyte.interpreter.analysis;
 
+import net.minecraft.network.chat.Component;
+import net.stonygeist.redbyte.interpreter.Config;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.*;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.*;
-import net.stonygeist.redbyte.interpreter.miscellaneous.Config;
+import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
+import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,21 +17,22 @@ import java.util.List;
 public class Parser {
     private final Token[] tokens;
     private int current;
+    private final DiagnosticBag diagnostics = new DiagnosticBag();
 
-    public Parser(Token[] tokens) {
+    public Parser(Token[] tokens, List<Diagnostic> diagnostics) {
         this.tokens = Arrays.stream(tokens).filter(t -> t.kind != TokenKind.Whitespace).toArray(Token[]::new);
+        this.diagnostics.addAll(diagnostics);
     }
 
     public Stmt[] parse() {
         List<Stmt> stmts = new ArrayList<>();
-        while (!isAtEnd())
+        while (getCurrent().kind != TokenKind.Eof)
             stmts.add(parseStmt());
         return stmts.toArray(new Stmt[0]);
     }
 
     private Stmt parseStmt() {
         Token token = getCurrent();
-        if (token == null) throw new RuntimeException();
         return switch (token.kind) {
             case LBrace -> parseBlockStmt(token);
             case If -> parseIfStmt(token);
@@ -42,14 +47,15 @@ public class Parser {
         ++current;
         List<Stmt> stmts = new ArrayList<>();
         Token rBrace = getCurrent();
-        while (!isAtEnd() && rBrace != null) {
-            if (rBrace.kind == TokenKind.RBrace) break;
+        while (getCurrent().kind != TokenKind.RBrace && getCurrent().kind != TokenKind.Eof) {
             stmts.add(parseStmt());
             rBrace = getCurrent();
         }
 
-        if (rBrace == null || rBrace.kind != TokenKind.RBrace) throw new RuntimeException();
-        ++current;
+        if (rBrace.kind != TokenKind.RBrace)
+            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_character", "'}'", "None"), rBrace.span()));
+        else
+            ++current;
         return new BlockStmt(lBrace, stmts.toArray(new Stmt[0]), rBrace);
     }
 
@@ -59,7 +65,7 @@ public class Parser {
         Stmt stmt = parseStmt();
         Token elseToken = getCurrent();
         Stmt elseStmt = null;
-        if (elseToken != null && elseToken.kind == TokenKind.Else) {
+        if (elseToken.kind == TokenKind.Else) {
             ++current;
             elseStmt = parseStmt();
         } else
@@ -92,63 +98,83 @@ public class Parser {
     private Expr parseExpr(int parentPrecedence) {
         Token token = getCurrent();
         ++current;
-        if (token == null) throw new RuntimeException();
         return checkExtension(switch (token.kind) {
             case Number, String -> new LiteralExpr(token);
             case Identifier -> new NameExpr(token);
-            case LParen -> new GroupExpr(token, parseExpr(0), match(TokenKind.RParen));
+            case LParen -> {
+                Expr expr = parseExpr(0);
+                Token rParen = getCurrent();
+                if (rParen.kind != TokenKind.RParen)
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_character", "')'", rParen.lexeme), rParen.span()));
+                else
+                    ++current;
+                yield new GroupExpr(token, expr, rParen);
+            }
             case Plus, Minus, Bang -> new UnaryExpr(parseExpr(Config.unaryPrecedence), token);
-            default -> throw new RuntimeException();
+            default -> {
+                diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_expression"), token.span()));
+                yield new ErrorExpr(token);
+            }
         }, parentPrecedence);
-    }
-
-    private Token match(TokenKind kind) {
-        Token token = getCurrent();
-        ++current;
-        if (token == null || token.kind != kind)
-            throw new RuntimeException();
-        return token;
     }
 
     private Expr checkExtension(Expr expr, int parentPrecedence) {
         Token token = getCurrent();
-        if (token == null) return expr;
+        if (token.kind == TokenKind.Eof)
+            return expr;
         else if (Config.getBinaryPrecedence(token.kind) > parentPrecedence) {
             int precedence = Config.getBinaryPrecedence(token.kind);
-            while (precedence > parentPrecedence && !isAtEnd()) {
+            while (precedence > parentPrecedence) {
                 ++current;
                 expr = new BinaryExpr(expr, token, parseExpr(precedence));
-                if (!isAtEnd()) {
-                    token = getCurrent();
-                    precedence = Config.getBinaryPrecedence(token.kind);
-                }
+                token = getCurrent();
+                precedence = Config.getBinaryPrecedence(token.kind);
             }
+
+            return expr;
         } else if (expr instanceof NameExpr nameExpr) {
             if (token.kind == TokenKind.Equals)
                 return new AssignExpr(nameExpr.name, token, parseExpr(0));
             else if (token.kind == TokenKind.LParen) {
-                Token lParen = match(TokenKind.LParen);
+                ++current;
                 List<Expr> args = new ArrayList<>();
-                while (!isAtEnd() && getCurrent() != null && getCurrent().kind != TokenKind.RParen) {
+                boolean needsArg = false;
+                while (getCurrent().kind != TokenKind.RParen && getCurrent().kind != TokenKind.Eof) {
+                    needsArg = false;
                     args.add(parseExpr(0));
-                    if (getCurrent().kind != TokenKind.RParen && !isAtEnd())
-                        match(TokenKind.Comma);
+                    Token currentToken = getCurrent();
+                    if (currentToken.kind != TokenKind.RParen && currentToken.kind != TokenKind.Eof && currentToken.kind != TokenKind.Comma)
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_character", "')' or ','", currentToken.lexeme), currentToken.span()));
+                    else if (currentToken.kind == TokenKind.Comma) {
+                        needsArg = true;
+                        ++current;
+                    }
                 }
 
-                Token rParen = match(TokenKind.RParen);
-                expr = new CallExpr(nameExpr.name, lParen, args.toArray(new Expr[0]), rParen);
-            }
+                if (needsArg)
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_expression"), getCurrent().span()));
+
+                Token rParen = getCurrent();
+                if (rParen.kind != TokenKind.RParen)
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_character", "')'", rParen.lexeme), rParen.span()));
+                else
+                    ++current;
+
+                expr = new CallExpr(nameExpr.name, token, args.toArray(new Expr[0]), rParen);
+            } else
+                return expr;
         } else
             return expr;
 
         return checkExtension(expr, parentPrecedence);
     }
 
+    @NotNull
     private Token getCurrent() {
-        return isAtEnd() ? null : tokens[current];
+        return current >= tokens.length ? tokens[tokens.length - 1] : tokens[current];
     }
 
-    private boolean isAtEnd() {
-        return current >= tokens.length;
+    public DiagnosticBag getDiagnostics() {
+        return diagnostics;
     }
 }

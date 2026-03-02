@@ -2,9 +2,9 @@ package net.stonygeist.redbyte.interpreter.binder.expr;
 
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 
-public record BoundGroupExpr(BoundExpr expr) implements BoundExpr {
+public class BoundErrorExpr implements BoundExpr {
     @Override
     public TypeSymbol getType() {
-        return expr.getType();
+        return TypeSymbol.Error;
     }
 }

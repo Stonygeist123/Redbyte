@@ -23,16 +23,12 @@ public class TerminalText {
         lines.set(line, text);
     }
 
-    public void addText(String text, int line, int cursorPos) {
-        String lineText = lines.get(line);
-        if (cursorPos >= lineText.length())
-            lines.set(line, lineText + text);
-        else
-            lines.set(line, lineText.substring(0, cursorPos) + text + lineText.substring(cursorPos));
-    }
-
     public String[] getLines() {
         return lines.toArray(new String[0]);
+    }
+
+    public void removeLine(int line) {
+        lines.remove(line);
     }
 
     public void newLine(int curLine, int cursorPos) {

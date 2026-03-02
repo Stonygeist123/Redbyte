@@ -22,12 +22,12 @@ public class RoboModel<T extends RoboEntity> extends EntityModel<T> {
         MeshDefinition meshdefinition = new MeshDefinition();
         PartDefinition partdefinition = meshdefinition.getRoot();
 
-        PartDefinition robo = partdefinition.addOrReplaceChild("robo", CubeListBuilder.create().texOffs(0, 0).addBox(-1.0F, -5.0F, -2.0F, 3.0F, 5.0F, 4.0F, new CubeDeformation(0.0F))
-                .texOffs(0, 9).addBox(-1.0F, -8.0F, -1.0F, 3.0F, 3.0F, 2.0F, new CubeDeformation(0.0F))
-                .texOffs(10, 9).addBox(-1.0F, 0.0F, -1.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(0.0F))
-                .texOffs(0, 14).addBox(1.0F, 0.0F, -1.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(0.0F))
-                .texOffs(14, 0).addBox(2.0F, -5.0F, -1.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(0.0F))
-                .texOffs(6, 15).addBox(-2.0F, -5.0F, -1.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(0.0F, 20.0F, 0.0F));
+        PartDefinition robo = partdefinition.addOrReplaceChild("robo", CubeListBuilder.create().texOffs(0, 0).addBox(-3F, -3.1667F, -2.0F, 3.0F, 5.0F, 4.0F, new CubeDeformation(0.0F))
+                .texOffs(0, 9).addBox(-3F, -6.1667F, -1.0F, 3.0F, 3.0F, 2.0F, new CubeDeformation(0.0F))
+                .texOffs(10, 9).addBox(-3F, 1.8333F, -1.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(0.0F))
+                .texOffs(0, 14).addBox(-1F, 1.8333F, -1.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(0.0F))
+                .texOffs(14, 0).addBox(0F, -3.1667F, -1.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(0.0F))
+                .texOffs(6, 15).addBox(-4F, -3.1667F, -1.0F, 1.0F, 4.0F, 2.0F, new CubeDeformation(0.0F)), PartPose.offset(1.5F, 18.1667F, 0.0F));
 
         return LayerDefinition.create(meshdefinition, 32, 32);
     }

@@ -7,6 +7,8 @@ Design automation and create your own robotic helpers directly inside your world
 
 <span style="color:#E03E2D;">This mod is still in its very beginning phase.</span>
 
+[Go to CurseForge](https://www.curseforge.com/minecraft/mc-mods/redbyte) - - - [Go to Discord](https://discord.gg/Qszbf3bAg7)
+
 **✨ Features**
 
 **🤖 Robo – a robot that can interact with the world**
