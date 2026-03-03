@@ -8,7 +8,8 @@ import net.minecraftforge.registries.RegistryObject;
 import net.stonygeist.redbyte.Redbyte;
 import net.stonygeist.redbyte.item.RoboSpawner;
 
-public class RedbyteItems {
+public enum RedbyteItems {
+    ;
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, Redbyte.MOD_ID);
     public static final RegistryObject<RoboSpawner> ROBO_SPAWNER = ITEMS.register("robo_spawner", () -> new RoboSpawner(new Item.Properties()));
 

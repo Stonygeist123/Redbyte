@@ -24,7 +24,7 @@ import net.stonygeist.redbyte.interpreter.binder.stmt.BoundStmt;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.interpreter.lowerer.Lowerer;
-import net.stonygeist.redbyte.server.C2SDiagnosticsPacket;
+import net.stonygeist.redbyte.server.C2SBuildResultPacket;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -43,8 +43,8 @@ public class PseudoRobo {
     private @Nullable ServerPlayer followPlayerGoalProp;
     private @Nullable Float walkGoalProp;
     private @Nullable Vec3 walkToGoalProp;
-    private float speed;
     private ImmutableList<BoundStmt> buildResult;
+    private float speed;
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code, boolean buildDone, DiagnosticBag diagnostics) {
         this.redbyteID = redbyteID;
@@ -72,11 +72,21 @@ public class PseudoRobo {
         return new PseudoRobo(level, redbyteID, BlockPos.containing(pos), code, buildDone, diagnostics);
     }
 
+    public CompoundTag serializeNBT() {
+        CompoundTag tag = new CompoundTag();
+        tag.putUUID("redbyteID", redbyteID);
+        writeVec3ToTag(tag, "pos", currentPos);
+        tag.putString("code", code);
+        tag.putBoolean("buildDone", buildDone);
+        diagnostics.serializeNBTToTag(tag);
+        return tag;
+    }
+
     public RoboEntity resolveEntity(ServerLevel level) {
         RoboEntity entity = getEntity();
         if (entity != null && !entity.isRemoved()) return entity;
         for (Entity e : level.getAllEntities())
-            if (e instanceof RoboEntity robo && redbyteID.equals(robo.getRedbyteID())) {
+            if (e instanceof RoboEntity robo && redbyteID.equals(robo.getRedbyteID().orElse(null))) {
                 setEntity(robo);
                 return robo;
             }
@@ -88,17 +98,6 @@ public class PseudoRobo {
         RoboEntity roboEntity = resolveEntity(serverLevel);
         if (roboEntity != null)
             currentPos = roboEntity.position();
-    }
-
-    public CompoundTag serializeNBT() {
-        CompoundTag tag = new CompoundTag();
-        tag.putUUID("redbyteID", redbyteID);
-        writeVec3ToTag(tag, "pos", currentPos);
-        tag.putString("code", code);
-        tag.putBoolean("buildDone", buildDone);
-        tag.put("diagnostics", diagnostics.serializeNBT());
-        tag.putBoolean("buildDone", buildDone);
-        return tag;
     }
 
     public void tick(ServerLevel serverLevel) {
@@ -135,14 +134,16 @@ public class PseudoRobo {
         }
 
         buildDone = true;
+        getEntity().setBuildDone(true);
+        getEntity().setDiagnostics(diagnostics);
         if (diagnostics.isEmpty())
-            Redbyte.CHANNEL.send(new C2SDiagnosticsPacket(redbyteID, true, DiagnosticBag.EMPTY), PacketDistributor.SERVER.noArg());
+            Redbyte.CHANNEL.send(new C2SBuildResultPacket(redbyteID, true, DiagnosticBag.EMPTY), PacketDistributor.SERVER.noArg());
         else
-            Redbyte.CHANNEL.send(new C2SDiagnosticsPacket(redbyteID, true, diagnostics.serializeNBT()), PacketDistributor.SERVER.noArg());
+            Redbyte.CHANNEL.send(new C2SBuildResultPacket(redbyteID, true, diagnostics.serializeNBT()), PacketDistributor.SERVER.noArg());
     }
 
     public void evaluate() {
-        if (diagnostics.isEmpty())
+        if (diagnostics.isEmpty() && !buildResult.isEmpty())
             evaluator = new Evaluator(buildResult.stream().map(Lowerer::lower).collect(ImmutableList.toImmutableList()), this);
     }
 
@@ -195,23 +196,20 @@ public class PseudoRobo {
     }
 
     public void setEntity(RoboEntity entity) {
+        entity.setRedbyteID(redbyteID);
+        entity.setCode(code);
+        entity.setBuildDone(buildDone);
+        entity.setDiagnostics(diagnostics);
         entityRef = new WeakReference<>(entity);
     }
 
     public void setCode(String code) {
         this.code = code;
+        getEntity().setCode(code);
     }
 
     public void setBuildDone(boolean buildDone) {
         this.buildDone = buildDone;
-    }
-
-    public boolean getBuildDone() {
-        return buildDone;
-    }
-
-    public DiagnosticBag getDiagnostics() {
-        return diagnostics;
     }
 
     public void setDiagnostics(DiagnosticBag diagnostics) {

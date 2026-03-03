@@ -1,7 +1,7 @@
 package net.stonygeist.redbyte.interpreter.analysis;
 
 import net.minecraft.network.chat.Component;
-import net.stonygeist.redbyte.interpreter.Config;
+import net.stonygeist.redbyte.interpreter.Miscellaneous;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
@@ -175,7 +175,7 @@ public class Lexer {
                         ++column;
                     }
 
-                    kind = Config.keywords.getOrDefault(lexeme.toString().toLowerCase(), TokenKind.Identifier);
+                    kind = Miscellaneous.keywords.getOrDefault(lexeme.toString().toLowerCase(), TokenKind.Identifier);
                 } else
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_character", String.valueOf(c)), span()));
                 break;

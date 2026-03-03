@@ -2,7 +2,7 @@ package net.stonygeist.redbyte.interpreter.binder;
 
 import com.google.common.collect.ImmutableList;
 import net.minecraft.network.chat.Component;
-import net.stonygeist.redbyte.interpreter.Config;
+import net.stonygeist.redbyte.interpreter.Miscellaneous;
 import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.*;
@@ -139,7 +139,7 @@ public final class Binder {
             }
             case CallExpr callExpr -> {
                 String name = callExpr.name.lexeme.toLowerCase();
-                FunctionSymbol function = Config.getFunction(name);
+                FunctionSymbol function = Miscellaneous.getFunction(name);
                 if (function == null) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.function_not_found", name), callExpr.name.span()));
                     yield new BoundErrorExpr();
