@@ -1,14 +1,10 @@
-package net.stonygeist.redbyte.screen.robo_terminal;
+package net.stonygeist.redbyte.menu.robo_terminal.screen;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class TerminalText {
     private final List<String> lines = new ArrayList<>();
-
-    public TerminalText() {
-        lines.add("");
-    }
 
     public TerminalText(String text) {
         lines.addAll(List.of(text.split("\\n", -1)));

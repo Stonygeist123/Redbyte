@@ -1,7 +1,7 @@
 package net.stonygeist.redbyte.interpreter.analysis;
 
 import net.minecraft.network.chat.Component;
-import net.stonygeist.redbyte.interpreter.Config;
+import net.stonygeist.redbyte.interpreter.Miscellaneous;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.*;
@@ -110,7 +110,7 @@ public class Parser {
                     ++current;
                 yield new GroupExpr(token, expr, rParen);
             }
-            case Plus, Minus, Bang -> new UnaryExpr(parseExpr(Config.unaryPrecedence), token);
+            case Plus, Minus, Bang -> new UnaryExpr(parseExpr(Miscellaneous.unaryPrecedence), token);
             default -> {
                 diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_expression"), token.span()));
                 yield new ErrorExpr(token);
@@ -122,13 +122,13 @@ public class Parser {
         Token token = getCurrent();
         if (token.kind == TokenKind.Eof)
             return expr;
-        else if (Config.getBinaryPrecedence(token.kind) > parentPrecedence) {
-            int precedence = Config.getBinaryPrecedence(token.kind);
+        else if (Miscellaneous.getBinaryPrecedence(token.kind) > parentPrecedence) {
+            int precedence = Miscellaneous.getBinaryPrecedence(token.kind);
             while (precedence > parentPrecedence) {
                 ++current;
                 expr = new BinaryExpr(expr, token, parseExpr(precedence));
                 token = getCurrent();
-                precedence = Config.getBinaryPrecedence(token.kind);
+                precedence = Miscellaneous.getBinaryPrecedence(token.kind);
             }
 
             return expr;

@@ -35,8 +35,10 @@ public class C2SBuildCodePacket {
     }
 
     public void encode(FriendlyByteBuf buffer) {
-        buffer.writeUUID(redbyteID);
-        buffer.writeUtf(code);
+        if (redbyteID != null) {
+            buffer.writeUUID(redbyteID);
+            buffer.writeUtf(code);
+        }
     }
 
     public static C2SBuildCodePacket decode(FriendlyByteBuf buffer) {

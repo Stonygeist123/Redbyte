@@ -26,8 +26,10 @@ public class WalkGoal extends Goal {
     @Override
     public boolean canUse() {
         if (robo == null) {
-            RoboRegistry registry = RoboRegistry.get((ServerLevel) roboEntity.level());
-            robo = registry.get(roboEntity.getRedbyteID());
+            if (roboEntity.getRedbyteID().isPresent()) {
+                RoboRegistry registry = RoboRegistry.get((ServerLevel) roboEntity.level());
+                robo = registry.get(roboEntity.getRedbyteID().get());
+            }
         } else {
             property = robo.getWalkGoalProp();
             if (property != null) {

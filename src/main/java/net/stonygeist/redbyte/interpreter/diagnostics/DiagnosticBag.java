@@ -30,4 +30,12 @@ public final class DiagnosticBag extends ArrayList<Diagnostic> {
         tag.put("diagnostics", diagnosticsList);
         return tag;
     }
+
+    public void serializeNBTToTag(CompoundTag tag) {
+        ListTag diagnosticsList = new ListTag();
+        for (int i = 0; i < size(); i++)
+            diagnosticsList.add(get(i).serializeNBT(i));
+
+        tag.put("diagnostics", diagnosticsList);
+    }
 }
