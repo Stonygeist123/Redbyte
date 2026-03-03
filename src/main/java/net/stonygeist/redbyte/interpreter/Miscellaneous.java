@@ -11,7 +11,7 @@ import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public enum Config {
+public enum Miscellaneous {
     ;
     public final static int unaryPrecedence = 7;
 

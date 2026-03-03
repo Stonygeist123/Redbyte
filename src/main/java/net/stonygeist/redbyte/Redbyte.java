@@ -1,6 +1,7 @@
 package net.stonygeist.redbyte;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
@@ -18,8 +19,10 @@ import net.stonygeist.redbyte.entity.robo.RoboEntityRenderer;
 import net.stonygeist.redbyte.index.RedbyteCreativeTabs;
 import net.stonygeist.redbyte.index.RedbyteEntities;
 import net.stonygeist.redbyte.index.RedbyteItems;
+import net.stonygeist.redbyte.index.RedbyteMenus;
+import net.stonygeist.redbyte.menu.robo_terminal.screen.RoboTerminalScreen;
 import net.stonygeist.redbyte.server.C2SBuildCodePacket;
-import net.stonygeist.redbyte.server.C2SDiagnosticsPacket;
+import net.stonygeist.redbyte.server.C2SBuildResultPacket;
 import net.stonygeist.redbyte.server.C2SEvaluateCodePacket;
 import net.stonygeist.redbyte.server.C2SStoreRoboCodePacket;
 import org.slf4j.Logger;
@@ -42,6 +45,7 @@ public class Redbyte {
         RedbyteCreativeTabs.register(bus);
         RedbyteItems.register(bus);
         RedbyteEntities.register(bus);
+        RedbyteMenus.register(bus);
 
         bus.addListener(this::addCreative);
 
@@ -61,10 +65,10 @@ public class Redbyte {
                 .decoder(C2SBuildCodePacket::decode)
                 .consumerMainThread(C2SBuildCodePacket::handle)
                 .add();
-        CHANNEL.messageBuilder(C2SDiagnosticsPacket.class, networkID++)
-                .encoder(C2SDiagnosticsPacket::encode)
-                .decoder(C2SDiagnosticsPacket::decode)
-                .consumerMainThread(C2SDiagnosticsPacket::handle)
+        CHANNEL.messageBuilder(C2SBuildResultPacket.class, networkID++)
+                .encoder(C2SBuildResultPacket::encode)
+                .decoder(C2SBuildResultPacket::decode)
+                .consumerMainThread(C2SBuildResultPacket::handle)
                 .add();
     }
 
@@ -82,10 +86,13 @@ public class Redbyte {
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @Mod.EventBusSubscriber(modid = MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-    public static class ClientModEvents {
+    public enum ClientModEvents {
+        ;
+
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
             EntityRenderers.register(RedbyteEntities.ROBO.get(), RoboEntityRenderer::new);
+            MenuScreens.register(RedbyteMenus.ROBO_TERMINAL.get(), RoboTerminalScreen::new);
         }
     }
 

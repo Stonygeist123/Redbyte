@@ -1,4 +1,4 @@
-package net.stonygeist.redbyte.screen.robo_terminal;
+package net.stonygeist.redbyte.menu.robo_terminal.screen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
@@ -23,13 +23,13 @@ public class RunButton extends Button {
 
     @Override
     public @NotNull Component getMessage() {
-        return isDisabled.get() ? Component.translatable("screen.redbyte.robo_terminal.run_disabled") : Component.translatable("screen.redbyte.robo_terminal.run");
+        return isDisabled.get() || roboEntity.getRedbyteID().isPresent() ? Component.translatable("screen.redbyte.robo_terminal.run_disabled") : Component.translatable("screen.redbyte.robo_terminal.run");
     }
 
     @Override
     public void onPress() {
-        if (!isDisabled.get())
-            Redbyte.CHANNEL.send(new C2SEvaluateCodePacket(roboEntity.getRedbyteID()), PacketDistributor.SERVER.noArg());
+        if (!isDisabled.get() && roboEntity.getRedbyteID().isPresent())
+            Redbyte.CHANNEL.send(new C2SEvaluateCodePacket(roboEntity.getRedbyteID().get()), PacketDistributor.SERVER.noArg());
     }
 
     @Override

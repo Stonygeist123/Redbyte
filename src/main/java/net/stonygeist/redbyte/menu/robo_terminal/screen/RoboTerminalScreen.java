@@ -1,34 +1,33 @@
-package net.stonygeist.redbyte.screen.robo_terminal;
+package net.stonygeist.redbyte.menu.robo_terminal.screen;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.font.TextFieldHelper;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraftforge.network.PacketDistributor;
 import net.stonygeist.redbyte.Redbyte;
-import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
-import net.stonygeist.redbyte.server.C2SDiagnosticsPacket;
+import net.stonygeist.redbyte.menu.robo_terminal.RoboTerminal;
 import net.stonygeist.redbyte.server.C2SStoreRoboCodePacket;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.UUID;
 
-// Add screen to custom menu
-public class RoboTerminalScreen extends Screen {
+public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTerminal> {
     private static final int BORDER_COLOR = 0xff808080;
     private static final int SCREEN_COLOR = 0xff000000;
 
-    private static final int TERMINAL_WIDTH = 750;
-    private static final int TERMINAL_HEIGHT = 360;
+    private static final int TERMINAL_WIDTH = 800;
+    private static final int TERMINAL_HEIGHT = 400;
 
     private static final int TEXT_PADDING_X = 14;
     private static final int TEXT_PADDING_Y = 20;
@@ -58,31 +57,38 @@ public class RoboTerminalScreen extends Screen {
     private int selectionEndChar;
     private boolean hasSelection;
 
-    private final RoboEntity roboEntity;
     private TextFieldHelper textFieldHelper;
-    private TerminalText terminalText;
-    private UUID redbyteID;
-    private boolean initialised;
     private boolean followCursorOnRender = true;
+    private boolean errorHighlightingDisabled;
+    private boolean runDisabledUntilBuild = true;
+    private CompoundTag lastDiagnosticsTag = new CompoundTag();
 
     // TODO: Add documentations in-game
 
-    public RoboTerminalScreen(RoboEntity roboEntity) {
-        super(Component.translatable("screen.redbyte.robo_terminal.edit"));
-        this.roboEntity = roboEntity;
-        terminalText = new TerminalText();
+    public RoboTerminalScreen(RoboTerminal menu, Inventory playerInventory, Component title) {
+        super(menu, playerInventory, title);
     }
 
     @Override
     protected void init() {
         super.init();
-        addRenderableWidget(new RunButton(width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2, 100, 20, roboEntity, this::runIsDisabled));
-        addRenderableWidget(new BuildButton(width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2 + 25, 100, 20, () -> terminalText.toString(), roboEntity));
+        if (getMenu().getRoboEntity() != null && getMenu().getTerminalText() != null) {
+            addRenderableWidget(new RunButton(
+                    width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2, 100, 20,
+                    getMenu().getRoboEntity(),
+                    this::runIsDisabled)
+            );
+            addRenderableWidget(new BuildButton(
+                    width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2 + 25, 100, 20,
+                    () -> getMenu().getTerminalText().toString(),
+                    getMenu().getRoboEntity().getRedbyteID().orElse(null))
+            );
+        }
     }
 
     @Override
-    public void tick() {
-        if (initialised) {
+    public void containerTick() {
+        if (getMenu().getTerminalText() != null) {
             ++tickCounter;
             if (textFieldHelper == null) {
                 Minecraft mc = getMinecraft();
@@ -90,7 +96,7 @@ public class RoboTerminalScreen extends Screen {
                     var x = TextFieldHelper.createClipboardGetter(mc);
                     var y = TextFieldHelper.createClipboardSetter(mc);
                     textFieldHelper = new TextFieldHelper(
-                            () -> terminalText.getLines()[curLine],
+                            () -> getMenu().getTerminalText().getLines()[curLine],
                             this::setText, x, y,
                             text -> true);
                     clampEditorState();
@@ -99,34 +105,33 @@ public class RoboTerminalScreen extends Screen {
         }
     }
 
-
     @Override
-    protected void renderBlurredBackground(float pPartialTick) {
-    }
-
-    @Override
-    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics, mouseX, mouseY, partialTick);
-
+    protected void renderBg(@NotNull GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         int x = (width - TERMINAL_WIDTH) / 2;
         int y = (height - TERMINAL_HEIGHT) / 2;
-
+        guiGraphics.drawString(font, getTitle(), x + 6, y + 6, 0x00ff00);
         guiGraphics.fill(x - 4, y - 4, x + TERMINAL_WIDTH + 4, y + TERMINAL_HEIGHT + 4, BORDER_COLOR);
         guiGraphics.fill(x, y, x + TERMINAL_WIDTH, y + TERMINAL_HEIGHT, SCREEN_COLOR);
 
-        guiGraphics.drawString(font, getTitle(), x + 6, y + 6, 0x00ff00);
-
-        if (!initialised || textFieldHelper == null) {
+        if (getMenu().getTerminalText() == null || textFieldHelper == null) {
             guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.loading"), width / 2, height / 2, 0xffffffff);
         } else {
+            if (getMenu().getRoboEntity() != null) {
+                CompoundTag currentDiagnosticsTag = getMenu().getRoboEntity().getDiagnosticsTag();
+                if (!currentDiagnosticsTag.equals(lastDiagnosticsTag)) {
+                    errorHighlightingDisabled = false;
+                    runDisabledUntilBuild = false;
+                    lastDiagnosticsTag = currentDiagnosticsTag.copy();
+                }
+            }
+
             clampEditorState();
 
             int textX = x + TEXT_PADDING_X;
             int textY = y + TEXT_PADDING_Y;
             int visibleTextWidth = Math.min(MAX_TEXT_LINE_WIDTH, TERMINAL_WIDTH - (TEXT_PADDING_X * 2));
             int visibleTextHeight = TERMINAL_HEIGHT - TEXT_PADDING_Y - 4;
-            String[] lines = terminalText.getLines();
-            int[] lineStartOffsets = buildLineStartOffsets(lines);
+            String[] lines = getMenu().getTerminalText().getLines();
             String currentLine = lines[curLine];
             adjustHorizontalScroll(currentLine, Mth.clamp(textFieldHelper.getCursorPos(), 0, currentLine.length()), visibleTextWidth);
             adjustVerticalScroll(curLine, visibleTextHeight, followCursorOnRender);
@@ -134,7 +139,7 @@ public class RoboTerminalScreen extends Screen {
             int firstVisibleLine = Math.max(0, verticalScrollOffset / font.lineHeight);
             int lastVisibleLine = Math.min(lines.length - 1, firstVisibleLine + (visibleTextHeight / font.lineHeight) + 1);
 
-            for (int i = firstVisibleLine; i <= lastVisibleLine && i < lines.length; i++) {
+            for (int i = firstVisibleLine; i <= lastVisibleLine && i < lines.length; ++i) {
                 String line = lines[i];
                 boolean isCurLine = i == curLine;
                 boolean showCursor = (tickCounter / 10) % 2 == 0;
@@ -158,9 +163,9 @@ public class RoboTerminalScreen extends Screen {
                         ((i >= selectionStartLine && i <= selectionEndLine) ||
                                 (i >= selectionEndLine && i <= selectionStartLine));
 
-                drawDiagnosticHighlightsForLine(
+                drawErrorHighlightsForLine(
                         guiGraphics, line, i, lineY, textX,
-                        visibleStart, visibleEnd + 1, lineStartOffsets
+                        visibleStart, visibleEnd + 1
                 );
 
                 if (isLineInSelection) {
@@ -229,7 +234,14 @@ public class RoboTerminalScreen extends Screen {
         }
 
         drawResultPanel(guiGraphics, x, y);
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    protected void renderLabels(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    }
+
+    @Override
+    protected void renderBlurredBackground(float pPartialTick) {
     }
 
     @Override
@@ -264,8 +276,8 @@ public class RoboTerminalScreen extends Screen {
                 --curLine;
             return true;
         } else if (keyCode == InputConstants.KEY_DOWN) {
-            if (curLine + 1 >= terminalText.getLines().length)
-                terminalText.newLine(curLine, textFieldHelper.getCursorPos());
+            if (curLine + 1 >= getMenu().getTerminalText().getLines().length)
+                getMenu().getTerminalText().newLine(curLine, textFieldHelper.getCursorPos());
             ++curLine;
             return true;
         } else if (keyCode == InputConstants.KEY_LEFT) {
@@ -278,16 +290,16 @@ public class RoboTerminalScreen extends Screen {
 
             return true;
         } else if (keyCode == InputConstants.KEY_RIGHT) {
-            if (textFieldHelper.getCursorPos() < terminalText.getLines()[curLine].length()) {
+            if (textFieldHelper.getCursorPos() < getMenu().getTerminalText().getLines()[curLine].length()) {
                 textFieldHelper.setCursorPos(textFieldHelper.getCursorPos() + 1, false);
-            } else if (curLine + 1 < terminalText.getLines().length) {
+            } else if (curLine + 1 < getMenu().getTerminalText().getLines().length) {
                 ++curLine;
                 textFieldHelper.setCursorToStart();
             }
 
             return true;
         } else if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER) {
-            terminalText.newLine(curLine, textFieldHelper.getCursorPos());
+            getMenu().getTerminalText().newLine(curLine, textFieldHelper.getCursorPos());
             ++curLine;
             return true;
         } else if (keyCode == InputConstants.KEY_BACKSPACE) {
@@ -300,13 +312,17 @@ public class RoboTerminalScreen extends Screen {
             TextFieldHelper.CursorStep cursorStep = hasControlDown() ? TextFieldHelper.CursorStep.WORD : TextFieldHelper.CursorStep.CHARACTER;
             if (textFieldHelper.getCursorPos() == 0 && curLine > 0) {
                 --curLine;
-                textFieldHelper.insertText(terminalText.getLines()[curLine + 1]);
-                terminalText.removeLine(curLine + 1);
+                textFieldHelper.insertText(getMenu().getTerminalText().getLines()[curLine + 1]);
+                getMenu().getTerminalText().removeLine(curLine + 1);
             } else
                 textFieldHelper.removeFromCursor(-1, cursorStep);
             return true;
-        } else
-            return textFieldHelper.keyPressed(keyCode) || super.keyPressed(keyCode, scanCode, modifiers);
+        } else if (keyCode == InputConstants.KEY_ESCAPE) {
+            onClose();
+            return true;
+        }
+
+        return textFieldHelper.keyPressed(keyCode);
     }
 
     @Override
@@ -330,12 +346,12 @@ public class RoboTerminalScreen extends Screen {
         if (textFieldHelper == null) return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
 
         int visibleTextHeight = TERMINAL_HEIGHT - TEXT_PADDING_Y - 4;
-        int totalContentHeight = terminalText.getLines().length * font.lineHeight;
+        int totalContentHeight = getMenu().getTerminalText().getLines().length * font.lineHeight;
 
         // Check if Shift is held for horizontal scrolling
         if (hasShiftDown()) {
             // Horizontal scrolling with Shift + mouse wheel
-            String currentLine = terminalText.getLines()[curLine];
+            String currentLine = getMenu().getTerminalText().getLines()[curLine];
             int lineWidth = font.width(currentLine);
             int maxLineWidth = Math.min(MAX_TEXT_LINE_WIDTH, TERMINAL_WIDTH - (TEXT_PADDING_X * 2));
             int maxScrollX = Math.max(0, lineWidth - maxLineWidth);
@@ -373,7 +389,7 @@ public class RoboTerminalScreen extends Screen {
                 verticalScrollOffset = Mth.clamp(verticalScrollOffset, 0, maxScrollY);
 
                 int firstVisibleLine = Math.max(0, verticalScrollOffset / font.lineHeight);
-                int lastVisibleLine = Math.min(terminalText.getLines().length - 1, firstVisibleLine + (visibleTextHeight / font.lineHeight));
+                int lastVisibleLine = Math.min(getMenu().getTerminalText().getLines().length - 1, firstVisibleLine + (visibleTextHeight / font.lineHeight));
 
                 if (scrollY > 0) {
                     if (curLine <= firstVisibleLine && curLine > 0) {
@@ -381,7 +397,7 @@ public class RoboTerminalScreen extends Screen {
                         textFieldHelper.setCursorToEnd();
                     }
                 } else if (scrollY < 0)
-                    if (curLine >= lastVisibleLine && curLine + 1 < terminalText.getLines().length) {
+                    if (curLine >= lastVisibleLine && curLine + 1 < getMenu().getTerminalText().getLines().length) {
                         ++curLine;
                         textFieldHelper.setCursorToStart();
                     }
@@ -396,17 +412,22 @@ public class RoboTerminalScreen extends Screen {
     @Override
     public void onClose() {
         super.onClose();
-        Redbyte.CHANNEL.send(new C2SStoreRoboCodePacket(redbyteID, terminalText.toString()), PacketDistributor.SERVER.noArg());
+        if (getMenu().getRoboEntity() != null)
+            Redbyte.CHANNEL.send(new C2SStoreRoboCodePacket(getMenu().getRoboEntity().getRedbyteID().orElse(null), getMenu().getTerminalText().toString()), PacketDistributor.SERVER.noArg());
     }
 
     private void setText(String text) {
-        if (roboEntity.getBuildDone())
-            Redbyte.CHANNEL.send(new C2SDiagnosticsPacket(redbyteID, false, roboEntity.getDiagnosticsTag()), PacketDistributor.SERVER.noArg());
-        terminalText.setText(text, curLine);
+        getMenu().getTerminalText().setText(text, curLine);
+        errorHighlightingDisabled = true;
+        runDisabledUntilBuild = true;
     }
 
     private boolean runIsDisabled() {
-        return !roboEntity.getBuildDone() || !roboEntity.getDiagnostics().isEmpty();
+        if (getMenu().getRoboEntity() == null)
+            return true;
+        if (runDisabledUntilBuild)
+            return true;
+        return !getMenu().getRoboEntity().getBuildDone() || !getMenu().getRoboEntity().getDiagnostics().isEmpty();
     }
 
     private void drawResultPanel(GuiGraphics guiGraphics, int screenX, int screenY) {
@@ -415,14 +436,14 @@ public class RoboTerminalScreen extends Screen {
         int panelY = screenY + RESULT_PANEL_TOP_PADDING;
         int panelRight = screenX + TERMINAL_WIDTH - TEXT_PADDING_X - SCROLLBAR_HEIGHT - 2;
         int panelWidth = panelRight - panelX;
-        if (panelWidth <= 0)
-            return;
-
         guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.result"), panelX, panelY, 0x00ff00);
+
+        if (getMenu().getRoboEntity() == null)
+            return;
 
         int contentY = panelY + font.lineHeight + 4;
         int maxBottom = screenY + TERMINAL_HEIGHT - SCROLLBAR_BOTTOM_PADDING;
-        DiagnosticBag diagnostics = roboEntity.getDiagnostics();
+        DiagnosticBag diagnostics = getMenu().getRoboEntity().getDiagnostics();
         if (diagnostics.isEmpty()) {
             guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.no_errors"), panelX, contentY, 0xffaaaaaa);
             return;
@@ -457,34 +478,23 @@ public class RoboTerminalScreen extends Screen {
         return "Lines " + span.lineStart() + "-" + span.lineEnd() + ": " + span.startColumn() + "-" + span.endColumn();
     }
 
-    private int[] buildLineStartOffsets(String[] lines) {
-        int[] offsets = new int[lines.length];
-        int running = 0;
-        for (int i = 0; i < lines.length; i++) {
-            offsets[i] = running;
-            running += lines[i].length() + 1;
-        }
-
-        return offsets;
-    }
-
-    private void drawDiagnosticHighlightsForLine(
+    private void drawErrorHighlightsForLine(
             GuiGraphics guiGraphics,
             String line,
             int lineIndex,
             int lineY,
             int textX,
             int clipStart,
-            int clipEnd,
-            int[] lineStartOffsets
+            int clipEnd
     ) {
-        if (!roboEntity.getBuildDone())
+        if (errorHighlightingDisabled)
             return;
 
-        int lineStartAbs = lineStartOffsets[lineIndex];
-        int lineNumber = lineIndex + 1;
+        if (getMenu().getRoboEntity() == null || getMenu().getRoboEntity().getDiagnostics().isEmpty() || !getMenu().getRoboEntity().getBuildDone())
+            return;
 
-        for (Diagnostic diagnostic : roboEntity.getDiagnostics()) {
+        int lineNumber = lineIndex + 1;
+        for (Diagnostic diagnostic : getMenu().getRoboEntity().getDiagnostics()) {
             TextSpan span = diagnostic.span();
             if (lineNumber < span.lineStart() || lineNumber > span.lineEnd())
                 continue;
@@ -496,7 +506,7 @@ public class RoboTerminalScreen extends Screen {
                 localStart = Mth.clamp(span.startColumn(), 0, line.length());
                 localEnd = Mth.clamp(span.endColumn(), 0, line.length());
             } else if (lineNumber == span.lineStart()) {
-                localStart = Mth.clamp(span.startColumn() - lineStartAbs, 0, line.length());
+                localStart = Mth.clamp(span.startColumn(), 0, line.length());
                 localEnd = line.length();
             } else if (lineNumber == span.lineEnd()) {
                 localStart = 0;
@@ -506,7 +516,6 @@ public class RoboTerminalScreen extends Screen {
                 localEnd = line.length();
             }
 
-            // If EOF diagnostic at line end, highlight previous char so it is visible
             if (localStart == localEnd && diagnostic.isAtEof()) {
                 if (localStart > 0) localStart--;
                 else if (!line.isEmpty()) localEnd = 1;
@@ -579,7 +588,7 @@ public class RoboTerminalScreen extends Screen {
     }
 
     private void adjustVerticalScroll(int curLine, int visibleHeight, boolean followCursor) {
-        int totalContentHeight = terminalText.getLines().length * font.lineHeight;
+        int totalContentHeight = getMenu().getTerminalText().getLines().length * font.lineHeight;
         int maxScrollY = Math.max(0, totalContentHeight - visibleHeight);
         verticalScrollOffset = Mth.clamp(verticalScrollOffset, 0, maxScrollY);
 
@@ -614,7 +623,7 @@ public class RoboTerminalScreen extends Screen {
     }
 
     private void drawVerticalScrollbar(GuiGraphics guiGraphics, int x, int y, int visibleTextHeight) {
-        int lineCount = terminalText.getLines().length;
+        int lineCount = getMenu().getTerminalText().getLines().length;
         int totalContentHeight = lineCount * font.lineHeight;
         if (totalContentHeight <= visibleTextHeight)
             return;
@@ -637,37 +646,15 @@ public class RoboTerminalScreen extends Screen {
         guiGraphics.fill(x, thumbY, x + SCROLLBAR_HEIGHT, thumbY + thumbHeight, SCROLLBAR_THUMB_COLOR);
     }
 
-    public void setId(UUID redbyteID) {
-        this.redbyteID = redbyteID;
-    }
-
-    public void saveCode(String code) {
-        terminalText = new TerminalText(code == null ? "" : code);
-        curLine = 0;
-        tickCounter = 0;
-        textFieldHelper = null;
-        horizontalScrollOffset = 0;
-        verticalScrollOffset = 0;
-        followCursorOnRender = true;
-        initialised = true;
-
-        // Initialize selection variables
-        selectionStartLine = 0;
-        selectionStartChar = 0;
-        selectionEndLine = 0;
-        selectionEndChar = 0;
-        hasSelection = false;
-    }
-
     private void clampEditorState() {
-        String[] lines = terminalText.getLines();
+        String[] lines = getMenu().getTerminalText().getLines();
         if (lines.length == 0) {
-            terminalText.newLine(curLine, textFieldHelper.getCursorPos());
-            lines = terminalText.getLines();
+            getMenu().getTerminalText().newLine(curLine, textFieldHelper.getCursorPos());
+            lines = getMenu().getTerminalText().getLines();
         }
 
         curLine = Mth.clamp(curLine, 0, lines.length - 1);
-        if (textFieldHelper.getCursorPos() > terminalText.getLines()[curLine].length())
+        if (textFieldHelper.getCursorPos() > getMenu().getTerminalText().getLines()[curLine].length())
             textFieldHelper.setCursorToEnd();
     }
 
@@ -676,21 +663,21 @@ public class RoboTerminalScreen extends Screen {
         if (hasSelection) {
             selectionStartLine = 0;
             selectionStartChar = 0;
-            selectionEndLine = terminalText.getLines().length - 1;
-            selectionEndChar = terminalText.getLines()[selectionEndLine].length();
+            selectionEndLine = getMenu().getTerminalText().getLines().length - 1;
+            selectionEndChar = getMenu().getTerminalText().getLines()[selectionEndLine].length();
         } else {
             // First Ctrl+A: select current lineStart
             selectionStartLine = curLine;
             selectionStartChar = 0;
             selectionEndLine = curLine;
-            selectionEndChar = terminalText.getLines()[curLine].length();
+            selectionEndChar = getMenu().getTerminalText().getLines()[curLine].length();
         }
 
         hasSelection = true;
     }
 
     private boolean handleShiftArrowKeys(int keyCode) {
-        String[] lines = terminalText.getLines();
+        String[] lines = getMenu().getTerminalText().getLines();
 
         // Initialize selection if not already started
         if (!hasSelection) {
@@ -754,7 +741,7 @@ public class RoboTerminalScreen extends Screen {
     private void deleteSelection() {
         if (!hasSelection) return;
 
-        String[] lines = terminalText.getLines();
+        String[] lines = getMenu().getTerminalText().getLines();
 
         // Determine the actual selection bounds (normalize startColumn/endColumn)
         int actualStartLine = Math.min(selectionStartLine, selectionEndLine);
@@ -774,7 +761,7 @@ public class RoboTerminalScreen extends Screen {
             String line = lines[actualStartLine];
             String before = line.substring(0, actualStartChar);
             String after = line.substring(actualEndChar);
-            terminalText.setText(before + after, actualStartLine);
+            getMenu().getTerminalText().setText(before + after, actualStartLine);
             curLine = actualStartLine;
             textFieldHelper.setCursorPos(actualStartChar, false);
         } else {
@@ -786,11 +773,11 @@ public class RoboTerminalScreen extends Screen {
             String combined = firstLine.substring(0, actualStartChar) + lastLine.substring(actualEndChar);
 
             // Replace the first lineStart with the combined text
-            terminalText.setText(combined, actualStartLine);
+            getMenu().getTerminalText().setText(combined, actualStartLine);
 
             // Remove all the lines in between
             for (int i = actualEndLine; i > actualStartLine; i--) {
-                terminalText.removeLine(i);
+                getMenu().getTerminalText().removeLine(i);
             }
 
             // Update cursor position

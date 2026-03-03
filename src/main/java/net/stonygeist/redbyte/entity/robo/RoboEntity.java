@@ -1,19 +1,24 @@
 package net.stonygeist.redbyte.entity.robo;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.Level;
 import net.stonygeist.redbyte.goals.FollowPlayerGoal;
 import net.stonygeist.redbyte.goals.WalkGoal;
@@ -21,14 +26,16 @@ import net.stonygeist.redbyte.goals.WalkToGoal;
 import net.stonygeist.redbyte.index.RedbyteConfigs;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.manager.RoboRegistry;
-import net.stonygeist.redbyte.screen.robo_terminal.RoboTerminalScreen;
+import net.stonygeist.redbyte.menu.robo_terminal.RoboTerminal;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.UUID;
 
-public class RoboEntity extends PathfinderMob {
-    private static final EntityDataAccessor<String> redbyteID =
-            SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.STRING);
+public class RoboEntity extends PathfinderMob implements MenuProvider {
+    private static final EntityDataAccessor<Optional<UUID>> redbyteID =
+            SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.OPTIONAL_UUID);
     private static final EntityDataAccessor<String> code =
             SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Boolean> buildDone =
@@ -70,36 +77,37 @@ public class RoboEntity extends PathfinderMob {
 
     @Override
     protected @NotNull InteractionResult mobInteract(@NotNull Player player, @NotNull InteractionHand hand) {
-        if (level().isClientSide()) {
-            RoboTerminalScreen screen = new RoboTerminalScreen(this);
-            screen.setId(getRedbyteID());
-            screen.saveCode(getCode());
-            Minecraft.getInstance().setScreen(screen);
+        if (!level().isClientSide() && player instanceof ServerPlayer serverPlayer && getRedbyteID().isPresent()) {
+            serverPlayer.openMenu(
+                    new SimpleMenuProvider(
+                            this,
+                            Component.translatable("screen.redbyte.robo_terminal.title")
+                    ),
+                    (buffer) -> buffer.writeUUID(getRedbyteID().get())
+            );
             return InteractionResult.SUCCESS;
         }
 
-        return InteractionResult.PASS;
+        return InteractionResult.sidedSuccess(level().isClientSide());
+    }
+
+    @Override
+    public @Nullable AbstractContainerMenu createMenu(int containerId, @NotNull Inventory inventory, @NotNull Player player) {
+        return new RoboTerminal(containerId, inventory);
     }
 
     @Override
     public void kill() {
         super.kill();
         if (redbyteID != null && level() instanceof ServerLevel serverLevel)
-            RoboRegistry.get(serverLevel).remove(getRedbyteID());
-    }
-
-    @Override
-    public void remove(@NotNull RemovalReason reason) {
-        super.remove(reason);
-        if (reason.shouldDestroy() && level() instanceof ServerLevel serverLevel)
-            RoboRegistry.get(serverLevel).remove(getRedbyteID());
+            RoboRegistry.get(serverLevel).remove(getRedbyteID().orElse(null));
     }
 
     @Override
     protected void defineSynchedData(SynchedEntityData.@NotNull Builder builder) {
         super.defineSynchedData(builder);
         builder.define(code, "");
-        builder.define(redbyteID, "");
+        builder.define(redbyteID, Optional.empty());
         builder.define(buildDone, false);
         builder.define(diagnostics, new DiagnosticBag().serializeNBT());
     }
@@ -107,7 +115,7 @@ public class RoboEntity extends PathfinderMob {
     @Override
     public void addAdditionalSaveData(@NotNull CompoundTag tag) {
         super.addAdditionalSaveData(tag);
-        if (redbyteID != null) tag.putUUID("redbyteID", getRedbyteID());
+        if (redbyteID != null && getRedbyteID().isPresent()) tag.putUUID("redbyteID", getRedbyteID().get());
         if (code != null) tag.putString("code", getCode());
         if (buildDone != null) tag.putBoolean("buildDone", getBuildDone());
         if (diagnostics != null) tag.put("errors", getDiagnosticsTag());
@@ -126,21 +134,23 @@ public class RoboEntity extends PathfinderMob {
     public void onAddedToWorld() {
         super.onAddedToWorld();
         if (level() instanceof ServerLevel serverLevel) {
-            if (getRedbyteID() == null)
+            if (getRedbyteID().isEmpty())
                 setRedbyteID(UUID.randomUUID());
 
             RoboRegistry registry = RoboRegistry.get(serverLevel);
-            registry.ensureExists(getRedbyteID(), this);
+            registry.ensureExists(getRedbyteID().get(), this);
         }
+
+        setBuildDone(false);
     }
 
-    public UUID getRedbyteID() {
-        String raw = entityData.get(redbyteID);
-        return raw.isEmpty() ? null : UUID.fromString(raw);
+    @NotNull
+    public Optional<UUID> getRedbyteID() {
+        return entityData.get(redbyteID);
     }
 
     public void setRedbyteID(UUID id) {
-        entityData.set(redbyteID, id.toString());
+        entityData.set(redbyteID, Optional.of(id));
     }
 
     public String getCode() {

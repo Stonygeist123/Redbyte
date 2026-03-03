@@ -32,7 +32,8 @@ public class C2SEvaluateCodePacket {
     }
 
     public void encode(FriendlyByteBuf buffer) {
-        buffer.writeUUID(redbyteID);
+        if (redbyteID != null)
+            buffer.writeUUID(redbyteID);
     }
 
     public static C2SEvaluateCodePacket decode(FriendlyByteBuf buffer) {

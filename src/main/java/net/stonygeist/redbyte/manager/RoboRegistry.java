@@ -48,12 +48,14 @@ public final class RoboRegistry extends SavedData {
     }
 
     public @Nullable PseudoRobo get(UUID redbyteID) {
-        return robos.get(redbyteID);
+        return redbyteID != null ? robos.get(redbyteID) : null;
     }
 
-    public void remove(UUID redbyteID) {
-        robos.remove(redbyteID);
-        setDirty();
+    public void remove(@Nullable UUID redbyteID) {
+        if (redbyteID != null) {
+            robos.remove(redbyteID);
+            setDirty();
+        }
     }
 
     public void add(PseudoRobo robo) {

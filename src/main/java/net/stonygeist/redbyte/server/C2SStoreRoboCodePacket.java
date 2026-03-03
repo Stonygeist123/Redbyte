@@ -3,7 +3,6 @@ package net.stonygeist.redbyte.server;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.network.CustomPayloadEvent;
-import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 import net.stonygeist.redbyte.manager.RoboRegistry;
 
@@ -27,9 +26,6 @@ public class C2SStoreRoboCodePacket {
                 if (robo != null) {
                     robo.setCode(msg.code);
                     registry.setDirty();
-                    RoboEntity roboEntity = robo.resolveEntity(sender.serverLevel());
-                    if (roboEntity != null)
-                        roboEntity.setCode(msg.code);
                 }
             }
         });
@@ -38,8 +34,10 @@ public class C2SStoreRoboCodePacket {
     }
 
     public void encode(FriendlyByteBuf buffer) {
-        buffer.writeUUID(redbyteID);
-        buffer.writeUtf(code);
+        if (redbyteID != null) {
+            buffer.writeUUID(redbyteID);
+            buffer.writeUtf(code);
+        }
     }
 
     public static C2SStoreRoboCodePacket decode(FriendlyByteBuf buffer) {

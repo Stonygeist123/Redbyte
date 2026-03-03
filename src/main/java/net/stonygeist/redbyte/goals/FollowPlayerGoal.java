@@ -19,8 +19,11 @@ public class FollowPlayerGoal extends Goal {
     @Override
     public boolean canUse() {
         if (robo == null) {
-            RoboRegistry registry = RoboRegistry.get((ServerLevel) roboEntity.level());
-            robo = registry.get(roboEntity.getRedbyteID());
+            if (roboEntity.getRedbyteID().isPresent()) {
+                RoboRegistry registry = RoboRegistry.get((ServerLevel) roboEntity.level());
+                robo = registry.get(roboEntity.getRedbyteID().get());
+            }
+
             return false;
         } else {
             property = robo.getFollowPlayerGoalProp();
