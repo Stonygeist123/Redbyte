@@ -140,6 +140,8 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             RoboRegistry registry = RoboRegistry.get(serverLevel);
             registry.ensureExists(getRedbyteID().get(), this);
         }
+
+        setBuildDone(false);
     }
 
     @NotNull

@@ -43,7 +43,7 @@ public class PseudoRobo {
     private @Nullable ServerPlayer followPlayerGoalProp;
     private @Nullable Float walkGoalProp;
     private @Nullable Vec3 walkToGoalProp;
-    private ImmutableList<BoundStmt> buildResult;
+    private ImmutableList<BoundStmt> buildResult = ImmutableList.of();
     private float speed;
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code, boolean buildDone, DiagnosticBag diagnostics) {
@@ -210,6 +210,7 @@ public class PseudoRobo {
 
     public void setBuildDone(boolean buildDone) {
         this.buildDone = buildDone;
+        getEntity().setBuildDone(buildDone);
     }
 
     public void setDiagnostics(DiagnosticBag diagnostics) {
