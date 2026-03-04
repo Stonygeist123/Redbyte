@@ -8,10 +8,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
-import net.stonygeist.redbyte.interpreter.data_types.EntityDataType;
-import net.stonygeist.redbyte.interpreter.data_types.MonsterDataType;
-import net.stonygeist.redbyte.interpreter.data_types.PlayerDataType;
-import net.stonygeist.redbyte.interpreter.data_types.VectorDataType;
+import net.stonygeist.redbyte.interpreter.data_types.*;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 
@@ -68,7 +65,7 @@ public enum Miscellaneous {
             .add(new FunctionSymbol("z", ImmutableList.of(VectorDataType.TYPE), TypeSymbol.Number,
                     (ev, robo, args) -> ((VectorDataType) args[0]).getVector().z))
             .add(new FunctionSymbol("follow", ImmutableList.of(EntityDataType.TYPE), TypeSymbol.Void, (ev, robo, args) -> {
-                EntityDataType<?> entity = (EntityDataType<?>) args[0];
+                CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
                 robo.setFollowEntityGoalProp(entity.getEntity());
                 return null;
             }))
@@ -77,7 +74,7 @@ public enum Miscellaneous {
                 return null;
             }))
             .add(new FunctionSymbol("attack", ImmutableList.of(EntityDataType.TYPE), TypeSymbol.Void, (ev, robo, args) -> {
-                EntityDataType<?> entity = (EntityDataType<?>) args[0];
+                CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
                 if (entity.isNull())
                     return null;
 
@@ -87,7 +84,7 @@ public enum Miscellaneous {
                 return null;
             }))
             .add(new FunctionSymbol("can_attack", ImmutableList.of(EntityDataType.TYPE), TypeSymbol.Boolean, (ev, robo, args) -> {
-                EntityDataType<?> entity = (EntityDataType<?>) args[0];
+                CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
                 if (entity.isNull()) return false;
                 RoboEntity roboEntity = robo.getEntity();
                 return roboEntity.canAttack(entity.getEntity()) && roboEntity.isInRange(entity.getEntity()) && roboEntity.hasLineOfSight(entity.getEntity());
