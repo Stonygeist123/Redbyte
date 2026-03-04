@@ -6,8 +6,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.PacketDistributor;
 import net.stonygeist.redbyte.Redbyte;
@@ -40,7 +40,7 @@ public class PseudoRobo {
     private String code;
     private boolean buildDone;
     private DiagnosticBag diagnostics;
-    private @Nullable ServerPlayer followPlayerGoalProp;
+    private @Nullable LivingEntity followPlayerGoalProp;
     private @Nullable Float walkGoalProp;
     private @Nullable Vec3 walkToGoalProp;
     private ImmutableList<BoundStmt> buildResult = ImmutableList.of();
@@ -217,11 +217,11 @@ public class PseudoRobo {
         this.diagnostics = diagnostics;
     }
 
-    public @Nullable ServerPlayer getFollowPlayerGoalProp() {
+    public @Nullable LivingEntity getFollowPlayerGoalProp() {
         return followPlayerGoalProp;
     }
 
-    public void setFollowPlayerGoalProp(@Nullable ServerPlayer followPlayerGoalProp) {
+    public void setFollowEntityGoalProp(@Nullable LivingEntity followPlayerGoalProp) {
         this.followPlayerGoalProp = followPlayerGoalProp;
     }
 

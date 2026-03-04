@@ -5,6 +5,7 @@ import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.binder.expr.*;
 import net.stonygeist.redbyte.interpreter.binder.stmt.*;
+import net.stonygeist.redbyte.interpreter.data_types.RoboDataType;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.LabelSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
@@ -160,6 +161,7 @@ public final class Evaluator {
                 variables.put(assignExpr.symbol(), value);
                 yield value;
             }
+            case BoundRoboExpr ignored -> new RoboDataType(getRoboEntity());
             case BoundCallExpr callExpr -> {
                 Object[] args = callExpr.args().stream().map(a -> evaluateExpr(a, robo)).toArray(Object[]::new);
                 FunctionSymbol function = callExpr.symbol();
