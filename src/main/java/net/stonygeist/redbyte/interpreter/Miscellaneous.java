@@ -8,7 +8,10 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
-import net.stonygeist.redbyte.interpreter.data_types.*;
+import net.stonygeist.redbyte.interpreter.data_types.EntityDataType;
+import net.stonygeist.redbyte.interpreter.data_types.MonsterDataType;
+import net.stonygeist.redbyte.interpreter.data_types.PlayerDataType;
+import net.stonygeist.redbyte.interpreter.data_types.VectorDataType;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 
@@ -54,7 +57,6 @@ public enum Miscellaneous {
                 robo.getEntity().jumpFromGround();
                 return null;
             }))
-            .add(new FunctionSymbol("self", ImmutableList.of(), RoboDataType.TYPE, (ev, robo, args) -> (float) ev.getRoboEntity().position().x))
             .add(new FunctionSymbol("position", ImmutableList.of(EntityDataType.TYPE), VectorDataType.TYPE, (ev, robo, args) -> {
                 EntityDataType<?> entity = (EntityDataType<?>) args[0];
                 return new VectorDataType(entity.getEntity().position());
@@ -113,5 +115,6 @@ public enum Miscellaneous {
             .put("once", TokenKind.Once)
             .put("or", TokenKind.Or)
             .put("and", TokenKind.And)
+            .put("robo", TokenKind.Robo)
             .build();
 }
