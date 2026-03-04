@@ -118,7 +118,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         } else {
             if (getMenu().getRoboEntity() != null) {
                 CompoundTag currentDiagnosticsTag = getMenu().getRoboEntity().getDiagnosticsTag();
-                if (!currentDiagnosticsTag.equals(lastDiagnosticsTag)) {
+                if (!currentDiagnosticsTag.equals(lastDiagnosticsTag) || (lastDiagnosticsTag.isEmpty() && currentDiagnosticsTag.isEmpty())) {
                     errorHighlightingDisabled = false;
                     runDisabledUntilBuild = false;
                     lastDiagnosticsTag = currentDiagnosticsTag.copy();
@@ -444,7 +444,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         int contentY = panelY + font.lineHeight + 4;
         int maxBottom = screenY + TERMINAL_HEIGHT - SCROLLBAR_BOTTOM_PADDING;
         DiagnosticBag diagnostics = getMenu().getRoboEntity().getDiagnostics();
-        if (diagnostics.isEmpty()) {
+        if (diagnostics.isEmpty() && getMenu().getRoboEntity().getBuildDone()) {
             guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.no_errors"), panelX, contentY, 0xffaaaaaa);
             return;
         }
