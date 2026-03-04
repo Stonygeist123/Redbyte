@@ -101,6 +101,7 @@ public class Parser {
         return checkExtension(switch (token.kind) {
             case Number, String -> new LiteralExpr(token);
             case Identifier -> new NameExpr(token);
+            case Robo -> new RoboExpr(token);
             case LParen -> {
                 Expr expr = parseExpr(0);
                 Token rParen = getCurrent();
@@ -133,9 +134,10 @@ public class Parser {
 
             return expr;
         } else if (expr instanceof NameExpr nameExpr) {
-            if (token.kind == TokenKind.Equals)
+            if (token.kind == TokenKind.Equals) {
+                ++current;
                 return new AssignExpr(nameExpr.name, token, parseExpr(0));
-            else if (token.kind == TokenKind.LParen) {
+            } else if (token.kind == TokenKind.LParen) {
                 ++current;
                 List<Expr> args = new ArrayList<>();
                 boolean needsArg = false;

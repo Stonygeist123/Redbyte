@@ -6,7 +6,7 @@ public enum TokenKind {
     LParen, RParen, Comma, LBrace, RBrace,
     Equals,
 
-    Number, String, Identifier,
+    Number, String, Identifier, Robo,
 
     If, Else, Loop, While, Once, Or, And,
 

@@ -12,6 +12,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -142,6 +143,10 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         }
 
         setBuildDone(false);
+    }
+
+    public boolean isInRange(@NotNull LivingEntity target) {
+        return distanceToSqr(target.position()) <= RedbyteConfigs.ROBO_RANGE;
     }
 
     @NotNull

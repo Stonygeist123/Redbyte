@@ -137,6 +137,7 @@ public final class Binder {
 
                 yield new BoundAssignExpr(variable, value);
             }
+            case RoboExpr ignored -> new BoundRoboExpr();
             case CallExpr callExpr -> {
                 String name = callExpr.name.lexeme.toLowerCase();
                 FunctionSymbol function = Miscellaneous.getFunction(name);

@@ -23,7 +23,7 @@ public class RunButton extends Button {
 
     @Override
     public @NotNull Component getMessage() {
-        return isDisabled.get() || roboEntity.getRedbyteID().isPresent() ? Component.translatable("screen.redbyte.robo_terminal.run_disabled") : Component.translatable("screen.redbyte.robo_terminal.run");
+        return isDisabled.get() || roboEntity.getRedbyteID().isEmpty() ? Component.translatable("screen.redbyte.robo_terminal.run_disabled") : Component.translatable("screen.redbyte.robo_terminal.run");
     }
 
     @Override

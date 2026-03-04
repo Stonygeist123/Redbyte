@@ -1,7 +1,7 @@
 package net.stonygeist.redbyte.goals;
 
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.manager.PseudoRobo;
@@ -10,7 +10,7 @@ import net.stonygeist.redbyte.manager.RoboRegistry;
 public class FollowPlayerGoal extends Goal {
     private final RoboEntity roboEntity;
     private PseudoRobo robo;
-    private ServerPlayer property;
+    private LivingEntity property;
 
     public FollowPlayerGoal(RoboEntity roboEntity) {
         this.roboEntity = roboEntity;
