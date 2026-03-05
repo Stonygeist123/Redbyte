@@ -96,8 +96,9 @@ public class PseudoRobo {
 
     private void updateEntity() {
         RoboEntity roboEntity = resolveEntity(serverLevel);
-        if (roboEntity != null)
+        if (roboEntity != null) {
             currentPos = roboEntity.position();
+        }
     }
 
     public void tick(ServerLevel serverLevel) {
@@ -156,7 +157,7 @@ public class PseudoRobo {
             evaluator = new Evaluator(buildResult.stream().map(Lowerer::lower).collect(ImmutableList.toImmutableList()), this);
             getEntity().setIsRuntime(true);
         }
-        
+
         getEntity().clearPrint();
     }
 

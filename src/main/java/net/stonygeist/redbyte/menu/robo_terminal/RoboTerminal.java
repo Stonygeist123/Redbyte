@@ -4,11 +4,12 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.items.IItemHandler;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.index.RedbyteMenus;
 import net.stonygeist.redbyte.menu.robo_terminal.screen.TerminalText;
@@ -21,23 +22,13 @@ import java.util.UUID;
 public class RoboTerminal extends AbstractContainerMenu {
     private final Level level;
     private final Inventory inventory;
+    private IItemHandler itemHandler;
     private UUID redbyteID;
     private TerminalText terminalText;
     private RoboEntity roboEntity;
 
     public RoboTerminal(int containerId, Inventory inventory, FriendlyByteBuf data) {
         this(containerId, inventory);
-        addDataSlot(new DataSlot() {
-            @Override
-            public int get() {
-                return 0;
-            }
-
-            @Override
-            public void set(int pValue) {
-
-            }
-        });
         redbyteID = data.readUUID();
     }
 
@@ -79,9 +70,16 @@ public class RoboTerminal extends AbstractContainerMenu {
         return ItemStack.EMPTY;
     }
 
-    // Fix this
+    // TODO: Fix this
     @Override
     public boolean stillValid(@NotNull Player player) {
         return true;
+    }
+
+    public IItemHandler getItemHandler() {
+        if (itemHandler == null)
+            itemHandler = roboEntity.getCapability(ForgeCapabilities.ITEM_HANDLER)
+                    .orElseThrow(() -> new IllegalStateException("No inventory."));
+        return itemHandler;
     }
 }

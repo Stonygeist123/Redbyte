@@ -1,5 +1,6 @@
 package net.stonygeist.redbyte.entity.robo;
 
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -14,16 +15,24 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.ItemStackHandler;
 import net.stonygeist.redbyte.goals.FollowPlayerGoal;
 import net.stonygeist.redbyte.goals.WalkGoal;
 import net.stonygeist.redbyte.goals.WalkToGoal;
@@ -56,6 +65,8 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             = SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.COMPOUND_TAG);
     private static final EntityDataAccessor<Boolean> isRuntime
             = SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.BOOLEAN);
+    private final ItemStackHandler inventory = new ItemStackHandler(9);
+    private final LazyOptional<IItemHandler> inventoryCapability = LazyOptional.of(() -> inventory);
 
     public RoboEntity(EntityType<? extends RoboEntity> type, Level level) {
         super(type, level);
@@ -136,6 +147,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         if (code != null) tag.putString("code", getCode());
         if (buildDone != null) tag.putBoolean("buildDone", getBuildDone());
         if (diagnostics != null) tag.put("diagnostics", getDiagnosticsTag());
+        tag.put("Inventory", inventory.serializeNBT(level().registryAccess()));
     }
 
     @Override
@@ -145,6 +157,8 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         if (tag.contains("code")) setCode(tag.getString("code"));
         if (tag.contains("buildDone")) setBuildDone(tag.getBoolean("buildDone"));
         if (tag.contains("diagnostics")) entityData.set(diagnostics, tag.getCompound("diagnostics"));
+        if (tag.contains("inventory"))
+            inventory.deserializeNBT(level().registryAccess(), tag.getCompound("Inventory"));
     }
 
     @Override
@@ -158,7 +172,77 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             registry.ensureExists(getRedbyteID().get(), this);
         }
 
+        inventory.setSize(inventory.getSlots()); // optional reset
+        for (int i = 0; i < inventory.getSlots(); i++) {
+            inventory.setStackInSlot(i, ItemStack.EMPTY);
+        }
         setBuildDone(false);
+    }
+
+    @Override
+    public <T> @NotNull LazyOptional<T> getCapability(@NotNull Capability<T> capability, Direction direction) {
+        if (capability == ForgeCapabilities.ITEM_HANDLER)
+            return inventoryCapability.cast();
+        return super.getCapability(capability, direction);
+    }
+
+    @Override
+    public void invalidateCaps() {
+        super.invalidateCaps();
+        inventoryCapability.invalidate();
+    }
+
+    @Override
+    public void die(@NotNull DamageSource source) {
+        if (!level().isClientSide)
+            dropInventory();
+        super.die(source);
+    }
+
+    private void dropInventory() {
+        for (int i = 0; i < inventory.getSlots(); ++i) {
+            ItemStack itemStack = inventory.getStackInSlot(i);
+            if (!itemStack.isEmpty()) {
+                spawnAtLocation(itemStack);
+                inventory.setStackInSlot(i, ItemStack.EMPTY);
+            }
+        }
+    }
+
+    @Override
+    protected void pickUpItem(ItemEntity itemEntity) {
+        ItemStack itemStack = itemEntity.getItem();
+        for (int i = 0; i < inventory.getSlots(); i++) {
+            itemStack = insertItem(i, itemStack, false);
+            if (itemStack.isEmpty())
+                break;
+        }
+
+        if (itemStack.isEmpty())
+            itemEntity.discard();
+        else
+            itemEntity.setItem(itemStack);
+    }
+
+    @Override
+    public boolean canPickUpLoot() {
+        return true;
+    }
+
+    public ItemStack getItem(int slot) {
+        return inventory.getStackInSlot(slot);
+    }
+
+    public void setItem(int slot, ItemStack stack) {
+        inventory.setStackInSlot(slot, stack);
+    }
+
+    public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+        return inventory.insertItem(slot, stack, simulate);
+    }
+
+    public ItemStack extractItem(int slot, int amount, boolean simulate) {
+        return inventory.extractItem(slot, amount, simulate);
     }
 
     public boolean isInRange(@NotNull LivingEntity target) {
