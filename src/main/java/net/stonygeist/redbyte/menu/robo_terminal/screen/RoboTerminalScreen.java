@@ -13,6 +13,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraftforge.network.PacketDistributor;
 import net.stonygeist.redbyte.Redbyte;
+import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
@@ -32,7 +33,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     private static final int TEXT_PADDING_X = 14;
     private static final int TEXT_PADDING_Y = 20;
 
-    private static final int RESULT_PANEL_GAP = 12;
+    private static final int RESULT_PANEL_GAP = 20;
     private static final int RESULT_PANEL_TOP_PADDING = 40;
     private static final int DIAGNOSTIC_HIGHLIGHT_COLOR = 0x66ff0000;
 
@@ -73,15 +74,15 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     protected void init() {
         super.init();
         if (getMenu().getRoboEntity() != null && getMenu().getTerminalText() != null) {
-            addRenderableWidget(new RunButton(
-                    width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2, 100, 20,
-                    getMenu().getRoboEntity(),
-                    this::runIsDisabled)
-            );
             addRenderableWidget(new BuildButton(
-                    width - (width - TERMINAL_WIDTH) / 2 - 100, (height - TERMINAL_HEIGHT) / 2 + 25, 100, 20,
+                    width - (width - TERMINAL_WIDTH) / 2 - 250, (height - TERMINAL_HEIGHT) / 2, 100, 20,
                     () -> getMenu().getTerminalText().toString(),
                     getMenu().getRoboEntity().getRedbyteID().orElse(null))
+            );
+            addRenderableWidget(new RunButton(
+                    width - (width - TERMINAL_WIDTH) / 2 - 125, (height - TERMINAL_HEIGHT) / 2, 100, 20,
+                    getMenu().getRoboEntity(),
+                    this::runIsDisabled)
             );
         }
     }
@@ -118,11 +119,12 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         } else {
             if (getMenu().getRoboEntity() != null) {
                 CompoundTag currentDiagnosticsTag = getMenu().getRoboEntity().getDiagnosticsTag();
-                if (!currentDiagnosticsTag.equals(lastDiagnosticsTag) || (lastDiagnosticsTag.isEmpty() && currentDiagnosticsTag.isEmpty())) {
+                if (!currentDiagnosticsTag.equals(lastDiagnosticsTag)) {
                     errorHighlightingDisabled = false;
                     runDisabledUntilBuild = false;
                     lastDiagnosticsTag = currentDiagnosticsTag.copy();
-                }
+                } else if (lastDiagnosticsTag.isEmpty() && currentDiagnosticsTag.isEmpty())
+                    runDisabledUntilBuild = false;
             }
 
             clampEditorState();
@@ -364,7 +366,6 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
                 // Clamp scroll offset
                 horizontalScrollOffset = Mth.clamp(horizontalScrollOffset, 0, maxScrollX);
 
-                // Move cursor position based on scroll amount
                 int scrollChars = (int) Math.abs(scrollY) * 4; // Move 4 characters per scroll unit
                 if (scrollY > 0) {
                     // Scrolling right - move cursor left
@@ -434,19 +435,36 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         int codePanelWidth = Math.min(MAX_TEXT_LINE_WIDTH, TERMINAL_WIDTH - (TEXT_PADDING_X * 2));
         int panelX = screenX + TEXT_PADDING_X + codePanelWidth + RESULT_PANEL_GAP;
         int panelY = screenY + RESULT_PANEL_TOP_PADDING;
-        int panelRight = screenX + TERMINAL_WIDTH - TEXT_PADDING_X - SCROLLBAR_HEIGHT - 2;
-        int panelWidth = panelRight - panelX;
+        int panelEndX = screenX + TERMINAL_WIDTH - TEXT_PADDING_X - SCROLLBAR_HEIGHT - 2;
+        int panelWidth = panelEndX - panelX;
         guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.result"), panelX, panelY, 0x00ff00);
+        guiGraphics.vLine(panelX - RESULT_PANEL_GAP / 2, screenY - 2, screenY + TERMINAL_HEIGHT, 0xff7c7c7c);
 
-        if (getMenu().getRoboEntity() == null)
+        RoboEntity roboEntity = getMenu().getRoboEntity();
+        if (roboEntity == null)
             return;
 
         int contentY = panelY + font.lineHeight + 4;
         int maxBottom = screenY + TERMINAL_HEIGHT - SCROLLBAR_BOTTOM_PADDING;
-        DiagnosticBag diagnostics = getMenu().getRoboEntity().getDiagnostics();
-        if (diagnostics.isEmpty() && getMenu().getRoboEntity().getBuildDone()) {
+        boolean runtime = roboEntity.getRuntimeError() != null || !roboEntity.getPrintOutput().isEmpty() || roboEntity.getIsRuntime();
+        DiagnosticBag diagnostics = roboEntity.getDiagnostics();
+        if (roboEntity.getRuntimeError() != null)
+            diagnostics.add(roboEntity.getRuntimeError());
+
+        if (diagnostics.isEmpty() && roboEntity.getBuildDone() && !runtime) {
             guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.no_errors"), panelX, contentY, 0xffaaaaaa);
             return;
+        }
+
+        if (!roboEntity.getPrintOutput().isEmpty()) {
+            for (String output : roboEntity.getPrintOutput()) {
+                List<FormattedCharSequence> wrappedLines = font.split(FormattedText.of(output), panelWidth);
+                for (FormattedCharSequence wrappedLine : wrappedLines) {
+                    if (contentY + font.lineHeight > maxBottom) return;
+                    guiGraphics.drawString(font, wrappedLine, panelX, contentY, 0xffffffff);
+                    contentY += font.lineHeight;
+                }
+            }
         }
 
         for (Diagnostic diagnostic : diagnostics) {
@@ -457,7 +475,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
                 contentY += font.lineHeight;
             }
 
-            List<FormattedCharSequence> wrappedLines = font.split(FormattedText.of(diagnostic.message()), panelWidth);
+            List<FormattedCharSequence> wrappedLines = font.split(FormattedText.of((roboEntity.getRuntimeError() != null ? Component.translatable("runtime.redbyte.error.runtime").getString() + ": " : "") + diagnostic.message()), panelWidth);
             for (FormattedCharSequence wrappedLine : wrappedLines) {
                 if (contentY + font.lineHeight > maxBottom) return;
                 guiGraphics.drawString(font, wrappedLine, panelX, contentY, 0xffff5555);
