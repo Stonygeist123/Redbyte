@@ -4,6 +4,7 @@ import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class DataType {
+    public static final TypeSymbol TYPE = new TypeSymbol("any");
     @NotNull
     private final TypeSymbol type;
 
