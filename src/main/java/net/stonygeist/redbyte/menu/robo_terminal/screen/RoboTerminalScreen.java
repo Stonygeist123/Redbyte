@@ -119,11 +119,12 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         } else {
             if (getMenu().getRoboEntity() != null) {
                 CompoundTag currentDiagnosticsTag = getMenu().getRoboEntity().getDiagnosticsTag();
-                if (!currentDiagnosticsTag.equals(lastDiagnosticsTag) || (lastDiagnosticsTag.isEmpty() && currentDiagnosticsTag.isEmpty())) {
+                if (!currentDiagnosticsTag.equals(lastDiagnosticsTag)) {
                     errorHighlightingDisabled = false;
                     runDisabledUntilBuild = false;
                     lastDiagnosticsTag = currentDiagnosticsTag.copy();
-                }
+                } else if (lastDiagnosticsTag.isEmpty() && currentDiagnosticsTag.isEmpty())
+                    runDisabledUntilBuild = false;
             }
 
             clampEditorState();

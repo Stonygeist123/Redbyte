@@ -67,6 +67,8 @@ public enum Miscellaneous {
                         robo.getEntity().addPrintOutput(args[0]);
                         return new NothingDataType();
                     }))
+            .add(new FunctionSymbol("is_nothing", ImmutableList.of(DataType.TYPE), TypeSymbol.Boolean,
+                    (ev, robo, args) -> args[0] instanceof NothingDataType))
             .add(new FunctionSymbol("walk", ImmutableList.of(TypeSymbol.Number), TypeSymbol.Void, (ev, robo, args) -> {
                 robo.setWalkGoalProp((float) args[0]);
                 return new NothingDataType();
@@ -89,6 +91,8 @@ public enum Miscellaneous {
                     (ev, robo, args) -> ((VectorDataType) args[0]).getVector().y))
             .add(new FunctionSymbol("z", ImmutableList.of(VectorDataType.TYPE), TypeSymbol.Number,
                     (ev, robo, args) -> ((VectorDataType) args[0]).getVector().z))
+            .add(new FunctionSymbol("distance", ImmutableList.of(VectorDataType.TYPE, VectorDataType.TYPE), TypeSymbol.Number,
+                    (ev, robo, args) -> ((VectorDataType) args[0]).getVector().distance(((VectorDataType) args[1]).getVector())))
             .add(new FunctionSymbol("follow", ImmutableList.of(EntityDataType.TYPE), TypeSymbol.Void, (ev, robo, args) -> {
                 CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
                 robo.setFollowEntityGoalProp(entity.getEntity());
@@ -114,7 +118,8 @@ public enum Miscellaneous {
                 RoboEntity roboEntity = robo.getEntity();
                 return roboEntity.canAttack(entity.getEntity()) && roboEntity.isInRange(entity.getEntity()) && roboEntity.hasLineOfSight(entity.getEntity());
             }))
-            .add(new FunctionSymbol("health", ImmutableList.of(), TypeSymbol.Number, (ev, robo, args) -> robo.getEntity().getHealth()))
+            .add(new FunctionSymbol("health", ImmutableList.of(CreatureDataType.TYPE), TypeSymbol.Number,
+                    (ev, robo, args) -> ((CreatureDataType<?>) args[0]).getEntity().getHealth()))
             .add(new FunctionSymbol("player", ImmutableList.of(TypeSymbol.Text), PlayerDataType.TYPE,
                     (ev, robo, args) -> {
                         List<ServerPlayer> players = robo.getServerLevel().getPlayers(p -> p.getName().getString().equals(args[0]));
@@ -128,7 +133,10 @@ public enum Miscellaneous {
                         RoboEntity roboEntity = robo.getEntity();
                         Vec3 pos = roboEntity.position();
                         AABB searchArea = robo.getEntity().getBoundingBox().inflate((float) args[0]);
-                        return new MonsterDataType(robo.getServerLevel().getNearestEntity(Monster.class, TargetingConditions.forCombat(), roboEntity, pos.x, pos.y, pos.z, searchArea));
+                        Monster monster = robo.getServerLevel().getNearestEntity(Monster.class, TargetingConditions.forCombat(), roboEntity, pos.x, pos.y, pos.z, searchArea);
+                        if (monster == null)
+                            return new NothingDataType();
+                        return new MonsterDataType(monster);
                     }))
             .build();
 

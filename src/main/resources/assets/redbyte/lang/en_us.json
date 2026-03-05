@@ -10,7 +10,7 @@
   "screen.redbyte.robo_terminal.no_errors": "No errors",
   "interpreter.redbyte.diagnostics.invalid_character": "Invalid character: '%1$s'.",
   "interpreter.redbyte.diagnostics.invalid_string": "Invalid string.",
-  "interpreter.redbyte.diagnostics.invalid_unary_operator": "Invalid unary operator '%1$s' for type '%1$s'.",
+  "interpreter.redbyte.diagnostics.invalid_unary_operator": "Invalid unary operator '%1$s' for type '%2$s'.",
   "interpreter.redbyte.diagnostics.invalid_binary_operator": "Invalid binary operator '%1$s' for types '%2$s' and '%3$s'.",
   "interpreter.redbyte.diagnostics.expected_character": "Expected character: %1$s. Got: %2$s.",
   "interpreter.redbyte.diagnostics.expected_expression": "Expected expression.",

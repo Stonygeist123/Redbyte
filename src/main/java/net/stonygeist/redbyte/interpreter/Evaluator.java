@@ -161,12 +161,7 @@ public final class Evaluator {
                 }
             }
             case BoundGroupExpr groupExpr -> evaluateExpr(groupExpr.expr(), robo);
-            case BoundNameExpr nameExpr -> {
-                Object value = variables.get(nameExpr.symbol());
-                if (value instanceof NothingDataType)
-                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.variable_no_value", nameExpr.symbol().name), nameExpr.span());
-                yield value;
-            }
+            case BoundNameExpr nameExpr -> variables.get(nameExpr.symbol());
             case BoundAssignExpr assignExpr -> {
                 Object value = evaluateExpr(assignExpr.value(), robo);
                 variables.put(assignExpr.symbol(), value);
