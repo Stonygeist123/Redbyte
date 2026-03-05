@@ -10,12 +10,19 @@
   "screen.redbyte.robo_terminal.no_errors": "No errors",
   "interpreter.redbyte.diagnostics.invalid_character": "Invalid character: '%1$s'.",
   "interpreter.redbyte.diagnostics.invalid_string": "Invalid string.",
-  "interpreter.redbyte.diagnostics.invalid_unary_operator": "Invalid unary operator '%1$s' for type '%1$s'.",
+  "interpreter.redbyte.diagnostics.invalid_unary_operator": "Invalid unary operator '%1$s' for type '%2$s'.",
   "interpreter.redbyte.diagnostics.invalid_binary_operator": "Invalid binary operator '%1$s' for types '%2$s' and '%3$s'.",
   "interpreter.redbyte.diagnostics.expected_character": "Expected character: %1$s. Got: %2$s.",
   "interpreter.redbyte.diagnostics.expected_expression": "Expected expression.",
   "interpreter.redbyte.diagnostics.expected_type": "Expected type: '%1$s'. Got: '%2$s'.",
   "interpreter.redbyte.diagnostics.expected_arguments": "Expected arguments: '%1$s'. Got: '%2$s'.",
-  "interpreter.redbyte.diagnostics.variable_not_found": "Could not find variable: '%1$s'.",
-  "interpreter.redbyte.diagnostics.function_not_found": "Could not find function: '%1$s'."
+  "interpreter.redbyte.diagnostics.variable_not_found": "Could not find variable '%1$s'.",
+  "interpreter.redbyte.diagnostics.function_not_found": "Could not find function '%1$s'.",
+  "interpreter.redbyte.diagnostics.function_not_found_multiple": "Could not find function '%1$s' with given arguments.",
+  "runtime.redbyte.error.runtime": "Runtime",
+  "runtime.redbyte.error.unsupported_expression": "This expression is not supported yet.",
+  "runtime.redbyte.error.unsupported_binary_operation": "This binary operation is not supported yet.",
+  "runtime.redbyte.error.unsupported_unary_operation": "This unary expresion is not supported yet.",
+  "runtime.redbyte.error.value_not_existing": "Value does not exist.",
+  "runtime.redbyte.error.variable_no_value": "Variable '%1$s' does not have a value."
 }

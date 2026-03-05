@@ -5,7 +5,7 @@ import net.minecraft.network.chat.Component;
 import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
 import org.jetbrains.annotations.NotNull;
 
-public record Diagnostic(@NotNull String message, TextSpan span) {
+public record Diagnostic(@NotNull String message, @NotNull TextSpan span) {
     public Diagnostic(Component message, TextSpan span) {
         this(message.getString(), span);
     }

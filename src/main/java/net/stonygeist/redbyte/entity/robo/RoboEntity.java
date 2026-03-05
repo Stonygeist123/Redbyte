@@ -1,6 +1,9 @@
 package net.stonygeist.redbyte.entity.robo;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -25,12 +28,16 @@ import net.stonygeist.redbyte.goals.FollowPlayerGoal;
 import net.stonygeist.redbyte.goals.WalkGoal;
 import net.stonygeist.redbyte.goals.WalkToGoal;
 import net.stonygeist.redbyte.index.RedbyteConfigs;
+import net.stonygeist.redbyte.interpreter.Evaluator;
+import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.manager.RoboRegistry;
 import net.stonygeist.redbyte.menu.robo_terminal.RoboTerminal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,6 +50,12 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<CompoundTag> diagnostics =
             SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.COMPOUND_TAG);
+    private static final EntityDataAccessor<CompoundTag> runtimeError
+            = SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.COMPOUND_TAG);
+    private static final EntityDataAccessor<CompoundTag> printOutput
+            = SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.COMPOUND_TAG);
+    private static final EntityDataAccessor<Boolean> isRuntime
+            = SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.BOOLEAN);
 
     public RoboEntity(EntityType<? extends RoboEntity> type, Level level) {
         super(type, level);
@@ -111,6 +124,9 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         builder.define(redbyteID, Optional.empty());
         builder.define(buildDone, false);
         builder.define(diagnostics, new DiagnosticBag().serializeNBT());
+        builder.define(runtimeError, new CompoundTag());
+        builder.define(printOutput, new CompoundTag());
+        builder.define(isRuntime, false);
     }
 
     @Override
@@ -119,7 +135,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         if (redbyteID != null && getRedbyteID().isPresent()) tag.putUUID("redbyteID", getRedbyteID().get());
         if (code != null) tag.putString("code", getCode());
         if (buildDone != null) tag.putBoolean("buildDone", getBuildDone());
-        if (diagnostics != null) tag.put("errors", getDiagnosticsTag());
+        if (diagnostics != null) tag.put("diagnostics", getDiagnosticsTag());
     }
 
     @Override
@@ -171,7 +187,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
     }
 
     public CompoundTag getDiagnosticsTag() {
-        return entityData.get(diagnostics);
+        return entityData.get(diagnostics).getCompound("diagnostics");
     }
 
     public void setDiagnostics(DiagnosticBag diagnostics) {
@@ -184,5 +200,50 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
 
     public void setBuildDone(boolean buildDone) {
         entityData.set(RoboEntity.buildDone, buildDone);
+    }
+
+    public @Nullable Diagnostic getRuntimeError() {
+        if (entityData.get(runtimeError).isEmpty())
+            return null;
+        return Diagnostic.deserializeNBT(entityData.get(runtimeError), 0);
+    }
+
+    public void setRuntimeError(@Nullable Evaluator.EvaluationError runtimeError) {
+        entityData.set(RoboEntity.runtimeError, runtimeError == null ? new CompoundTag() : runtimeError.getDiagnostic().serializeNBT(0));
+    }
+
+    public @NotNull List<String> getPrintOutput() {
+        ListTag listTag = entityData.get(printOutput).getList("print_output", Tag.TAG_STRING);
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < listTag.size(); ++i) {
+            String output = listTag.getString(i);
+            result.add(output);
+        }
+
+        return result;
+    }
+
+    public void addPrintOutput(Object printOutput) {
+        CompoundTag tag = new CompoundTag();
+        List<String> output = getPrintOutput();
+        output.add(String.valueOf(printOutput));
+        ListTag listTag = new ListTag();
+        for (String o : output)
+            listTag.add(StringTag.valueOf(o));
+
+        tag.put("print_output", listTag);
+        entityData.set(RoboEntity.printOutput, tag);
+    }
+
+    public void clearPrint() {
+        entityData.set(printOutput, new CompoundTag());
+    }
+
+    public boolean getIsRuntime() {
+        return entityData.get(isRuntime);
+    }
+
+    public void setIsRuntime(boolean isRuntime) {
+        entityData.set(RoboEntity.isRuntime, isRuntime);
     }
 }

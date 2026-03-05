@@ -1,5 +1,6 @@
 package net.stonygeist.redbyte.interpreter.symbols;
 
+import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import org.jetbrains.annotations.Nullable;
 
 public final class TypeSymbol extends Symbol {
@@ -11,7 +12,7 @@ public final class TypeSymbol extends Symbol {
     private final @Nullable TypeSymbol superType;
 
     public TypeSymbol(String name) {
-        this(name, null);
+        this(name, DataType.TYPE);
     }
 
     public TypeSymbol(String name, @Nullable TypeSymbol superType) {

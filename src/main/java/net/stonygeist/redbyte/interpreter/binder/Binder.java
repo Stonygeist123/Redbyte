@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.Map;
 
 public final class Binder {
     private final ImmutableList<Stmt> stmts;
@@ -89,17 +90,17 @@ public final class Binder {
                     value = literalExpr.token.lexeme.substring(1, literalExpr.token.lexeme.length() - 1);
                 else
                     throw new RuntimeException("Unexpected token.");
-                yield new BoundLiteralExpr(value);
+                yield new BoundLiteralExpr(value, literalExpr.span());
             }
             case UnaryExpr unaryExpr -> {
                 BoundExpr operand = bindExpr(unaryExpr.operand);
                 BoundOperator.BoundUnaryOperator operator = BoundOperator.BoundUnaryOperator.bind(unaryExpr.op.kind, operand.getType());
                 if (operator == null) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_unary_operator", unaryExpr.op.lexeme, operand.getType().toString()), unaryExpr.span()));
-                    yield new BoundErrorExpr();
+                    yield new BoundErrorExpr(unaryExpr.span());
                 }
 
-                yield new BoundUnaryExpr(operand, operator);
+                yield new BoundUnaryExpr(operand, operator, unaryExpr.span());
             }
             case BinaryExpr binaryExpr -> {
                 BoundExpr left = bindExpr(binaryExpr.left);
@@ -107,21 +108,21 @@ public final class Binder {
                 BoundOperator.BoundBinaryOperator operator = BoundOperator.BoundBinaryOperator.bind(binaryExpr.op.kind, left.getType(), right.getType());
                 if (operator == null) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_binary_operator", binaryExpr.op.lexeme, left.getType().toString(), right.getType().toString()), binaryExpr.span()));
-                    yield new BoundErrorExpr();
+                    yield new BoundErrorExpr(binaryExpr.span());
                 }
 
-                yield new BoundBinaryExpr(left, operator, right);
+                yield new BoundBinaryExpr(left, operator, right, binaryExpr.span());
             }
-            case GroupExpr groupExpr -> new BoundGroupExpr(bindExpr(groupExpr.expr));
+            case GroupExpr groupExpr -> new BoundGroupExpr(bindExpr(groupExpr.expr), groupExpr.span());
             case NameExpr nameExpr -> {
                 String name = nameExpr.name.lexeme.toLowerCase();
                 VariableSymbol variable = symbolTable.get(name);
                 if (variable == null) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.variable_not_found", name), nameExpr.name.span()));
-                    yield new BoundErrorExpr();
+                    yield new BoundErrorExpr(nameExpr.span());
                 }
 
-                yield new BoundNameExpr(variable);
+                yield new BoundNameExpr(variable, nameExpr.span());
             }
             case AssignExpr assignExpr -> {
                 BoundExpr value = bindExpr(assignExpr.value);
@@ -132,18 +133,23 @@ public final class Binder {
                     tryDeclareVar(variable);
                 } else if (!variable.type.equals(value.getType())) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", variable.type.toString(), value.getType()), assignExpr.value.span()));
-                    yield new BoundErrorExpr();
+                    yield new BoundErrorExpr(assignExpr.value.span());
                 }
 
-                yield new BoundAssignExpr(variable, value);
+                yield new BoundAssignExpr(variable, value, assignExpr.span());
             }
-            case RoboExpr ignored -> new BoundRoboExpr();
+            case RoboExpr roboExpr -> new BoundRoboExpr(roboExpr.span());
             case CallExpr callExpr -> {
                 String name = callExpr.name.lexeme.toLowerCase();
-                FunctionSymbol function = Miscellaneous.getFunction(name);
+                ImmutableList<BoundExpr> args = Arrays.stream(callExpr.args).map(this::bindExpr).collect(ImmutableList.toImmutableList());
+                Map.Entry<FunctionSymbol, Boolean> functionResult = Miscellaneous.getFunction(name, args.stream().map(BoundExpr::getType).toList());
+                FunctionSymbol function = functionResult.getKey();
                 if (function == null) {
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.function_not_found", name), callExpr.name.span()));
-                    yield new BoundErrorExpr();
+                    if (functionResult.getValue())
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.function_not_found_multiple", name), callExpr.name.span()));
+                    else
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.function_not_found", name), callExpr.name.span()));
+                    yield new BoundErrorExpr(callExpr.name.span());
                 }
 
                 if (function.parameters.size() != callExpr.args.length) {
@@ -152,12 +158,11 @@ public final class Binder {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", function.parameters.size(), callExpr.args.length), new TextSpan(firstSpan.startColumn(), lastSpan.endColumn(), firstSpan.lineStart(), lastSpan.lineEnd())));
                 }
 
-                ImmutableList<BoundExpr> args = Arrays.stream(callExpr.args).map(this::bindExpr).collect(ImmutableList.toImmutableList());
                 for (int i = 0; i < Math.min(args.size(), function.parameters.size()); i++)
                     if (!args.get(i).getType().equals(function.parameters.get(i)))
                         diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", function.parameters.get(i), args.get(i).getType()), callExpr.args[i].span()));
 
-                yield new BoundCallExpr(function, args);
+                yield new BoundCallExpr(function, args, callExpr.span());
             }
             default -> throw new RuntimeException("Unexpected expression.");
         };
