@@ -24,7 +24,7 @@ public final class DiagnosticBag extends ArrayList<Diagnostic> {
     public CompoundTag serializeNBT() {
         CompoundTag tag = new CompoundTag();
         ListTag diagnosticsList = new ListTag();
-        for (int i = 0; i < size(); i++)
+        for (int i = 0; i < size(); ++i)
             diagnosticsList.add(get(i).serializeNBT(i));
 
         tag.put("diagnostics", diagnosticsList);
@@ -33,7 +33,7 @@ public final class DiagnosticBag extends ArrayList<Diagnostic> {
 
     public void serializeNBTToTag(CompoundTag tag) {
         ListTag diagnosticsList = new ListTag();
-        for (int i = 0; i < size(); i++)
+        for (int i = 0; i < size(); ++i)
             diagnosticsList.add(get(i).serializeNBT(i));
 
         tag.put("diagnostics", diagnosticsList);

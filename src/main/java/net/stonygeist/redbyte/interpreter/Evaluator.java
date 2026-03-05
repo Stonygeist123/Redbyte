@@ -1,15 +1,20 @@
 package net.stonygeist.redbyte.interpreter;
 
 import com.google.common.collect.ImmutableList;
+import net.minecraft.network.chat.Component;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
+import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.binder.expr.*;
 import net.stonygeist.redbyte.interpreter.binder.stmt.*;
+import net.stonygeist.redbyte.interpreter.data_types.NothingDataType;
 import net.stonygeist.redbyte.interpreter.data_types.RoboDataType;
+import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.LabelSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import net.stonygeist.redbyte.manager.PseudoRobo;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Dictionary;
@@ -28,17 +33,22 @@ public final class Evaluator {
         this.globalStmts.addAll(globalStmts.reverse());
     }
 
-    public void tick(PseudoRobo robo) {
-        if (globalStmts.isEmpty())
-            return;
-
-        BoundBlockStmt current = globalStmts.peek();
-        evaluate(current, robo);
-        if (index >= current.stmts().size()) {
-            index = 0;
-            labelToIndex = null;
-            globalStmts.pop();
+    public @Nullable EvaluationError tick(PseudoRobo robo) {
+        try {
+            if (!globalStmts.isEmpty()) {
+                BoundBlockStmt current = globalStmts.peek();
+                evaluate(current, robo);
+                if (index >= current.stmts().size()) {
+                    index = 0;
+                    labelToIndex = null;
+                    globalStmts.pop();
+                }
+            }
+        } catch (Evaluator.EvaluationError error) {
+            return error;
         }
+
+        return null;
     }
 
     public boolean getFinished() {
@@ -49,20 +59,17 @@ public final class Evaluator {
         return robo.getEntity();
     }
 
-    private void evaluate(BoundBlockStmt stmt, PseudoRobo robo) {
+    private void evaluate(BoundBlockStmt blockStmt, PseudoRobo robo) {
         labelToIndex = new Hashtable<>();
-        for (int i = 0; i < stmt.stmts().size(); ++i)
-            if (stmt.stmts().get(i) instanceof BoundLabelStmt(LabelSymbol label))
+        for (int i = 0; i < blockStmt.stmts().size(); ++i)
+            if (blockStmt.stmts().get(i) instanceof BoundLabelStmt(LabelSymbol label))
                 labelToIndex.put(label, i + 1);
 
-        switch (stmt.stmts().get(index)) {
+        BoundStmt stmt = blockStmt.stmts().get(index);
+        switch (stmt) {
             case BoundExprStmt exprStmt:
-                try {
-                    evaluateExpr(exprStmt.expr(), robo);
-                    ++index;
-                } catch (PendingEvaluation e) {
-                    break;
-                }
+                evaluateExpr(exprStmt.expr(), robo);
+                ++index;
                 break;
             case BoundLabelStmt ignored:
                 ++index;
@@ -72,8 +79,8 @@ public final class Evaluator {
                 break;
             case BoundConditionalGotoStmt conditionalGotoStmt:
                 Object condition = evaluateExpr(conditionalGotoStmt.condition(), robo);
-                if (condition == null)
-                    throw new RuntimeException();
+                if (condition instanceof NothingDataType)
+                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), conditionalGotoStmt.condition().span());
 
                 if ((boolean) condition == conditionalGotoStmt.jumpIfTrue())
                     index = labelToIndex.get(conditionalGotoStmt.label());
@@ -85,26 +92,30 @@ public final class Evaluator {
         }
     }
 
-    private @Nullable Object evaluateExpr(BoundExpr expr, PseudoRobo robo) {
+    private @NotNull Object evaluateExpr(BoundExpr expr, PseudoRobo robo) throws EvaluationError {
         return switch (expr) {
             case BoundLiteralExpr literalExpr -> literalExpr.value;
             case BoundUnaryExpr unaryExpr -> {
                 Object operand = evaluateExpr(unaryExpr.operand(), robo);
-                if (operand == null)
-                    throw new RuntimeException();
+                if (operand instanceof NothingDataType)
+                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), unaryExpr.operand().span());
                 if (unaryExpr.operator().operatorKind() == TokenKind.Bang)
                     yield !(boolean) operand;
                 else if (unaryExpr.operator().operatorKind() == TokenKind.Minus)
                     yield -(float) operand;
                 else if (unaryExpr.operator().operatorKind() == TokenKind.Plus)
                     yield -(float) operand;
-                throw new RuntimeException();
+                throw new EvaluationError(Component.translatable("runtime.redbyte.error.unsupported_unary_operation"), unaryExpr.span());
             }
             case BoundBinaryExpr binaryExpr -> {
                 Object left = evaluateExpr(binaryExpr.left(), robo);
                 Object right = evaluateExpr(binaryExpr.right(), robo);
-                if (left == null || right == null)
-                    throw new RuntimeException();
+                if (left instanceof NothingDataType && right instanceof NothingDataType)
+                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), binaryExpr.span());
+                else if (left instanceof NothingDataType)
+                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), binaryExpr.left().span());
+                else if (right instanceof NothingDataType)
+                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), binaryExpr.right().span());
 
                 switch (binaryExpr.operator().operatorKind()) {
                     case Plus: {
@@ -146,14 +157,14 @@ public final class Evaluator {
                         yield (boolean) left || (boolean) right;
                     }
                     default:
-                        throw new RuntimeException();
+                        throw new EvaluationError(Component.translatable("runtime.redbyte.error.unsupported_binary_operation"), binaryExpr.span());
                 }
             }
             case BoundGroupExpr groupExpr -> evaluateExpr(groupExpr.expr(), robo);
             case BoundNameExpr nameExpr -> {
                 Object value = variables.get(nameExpr.symbol());
-                if (value == null)
-                    throw new RuntimeException();
+                if (value instanceof NothingDataType)
+                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.variable_no_value", nameExpr.symbol().name), nameExpr.span());
                 yield value;
             }
             case BoundAssignExpr assignExpr -> {
@@ -167,11 +178,30 @@ public final class Evaluator {
                 FunctionSymbol function = callExpr.symbol();
                 yield function.callback.apply(this, robo, args);
             }
-            default -> throw new RuntimeException();
+            default ->
+                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.unsupported_expression"), expr.span());
         };
     }
 
-    public static final class PendingEvaluation extends RuntimeException {
+    public static final class EvaluationError extends RuntimeException {
+        private final TextSpan span;
+
+        public EvaluationError(Component message, TextSpan span) {
+            this(message.getString(), span);
+        }
+
+        public EvaluationError(String message, TextSpan span) {
+            super(message);
+            this.span = span;
+        }
+
+        public Diagnostic getDiagnostic() {
+            return new Diagnostic(getMessage(), span);
+        }
+
+        public TextSpan getSpan() {
+            return span;
+        }
     }
 
     public static boolean equalsPrimitives(Object a, Object b) {

@@ -113,9 +113,15 @@ public class PseudoRobo {
 
         updateEntity();
         if (evaluator != null) {
-            evaluator.tick(this);
-            if (evaluator.getFinished())
+            @Nullable Evaluator.EvaluationError error = evaluator.tick(this);
+            if (error != null) {
+                getEntity().setRuntimeError(error);
+                getEntity().setIsRuntime(false);
                 evaluator = null;
+            } else if (evaluator.getFinished()) {
+                evaluator = null;
+                getEntity().setIsRuntime(false);
+            }
         }
     }
 
@@ -140,11 +146,18 @@ public class PseudoRobo {
             Redbyte.CHANNEL.send(new C2SBuildResultPacket(redbyteID, true, DiagnosticBag.EMPTY), PacketDistributor.SERVER.noArg());
         else
             Redbyte.CHANNEL.send(new C2SBuildResultPacket(redbyteID, true, diagnostics.serializeNBT()), PacketDistributor.SERVER.noArg());
+        getEntity().setRuntimeError(null);
+        getEntity().clearPrint();
     }
 
     public void evaluate() {
-        if (diagnostics.isEmpty() && !buildResult.isEmpty())
+        getEntity().setRuntimeError(null);
+        if (diagnostics.isEmpty() && !buildResult.isEmpty()) {
             evaluator = new Evaluator(buildResult.stream().map(Lowerer::lower).collect(ImmutableList.toImmutableList()), this);
+            getEntity().setIsRuntime(true);
+        }
+        
+        getEntity().clearPrint();
     }
 
     private void despawnEntity() {
