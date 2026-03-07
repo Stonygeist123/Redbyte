@@ -8,6 +8,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraftforge.items.ItemStackHandler;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import org.jetbrains.annotations.NotNull;
@@ -65,7 +66,7 @@ public final class RoboRegistry extends SavedData {
 
     public void newRobo(ServerLevel level, BlockPos spawnPos) {
         UUID id = UUID.randomUUID();
-        PseudoRobo robo = new PseudoRobo(level, id, spawnPos, "", false, new DiagnosticBag());
+        PseudoRobo robo = new PseudoRobo(level, id, spawnPos, "", new ItemStackHandler(9), false, new DiagnosticBag());
         add(robo);
         setDirty();
     }
@@ -76,7 +77,7 @@ public final class RoboRegistry extends SavedData {
     }
 
     public void ensureExists(UUID redbyteID, RoboEntity entity) {
-        PseudoRobo robo = robos.computeIfAbsent(redbyteID, (id) -> new PseudoRobo((ServerLevel) entity.level(), id, entity.blockPosition(), entity.getCode(), entity.getBuildDone(), entity.getDiagnostics()));
+        PseudoRobo robo = robos.computeIfAbsent(redbyteID, (id) -> new PseudoRobo((ServerLevel) entity.level(), id, entity.blockPosition(), entity.getCode(), entity.getInventory(), entity.getBuildDone(), entity.getDiagnostics()));
         RoboEntity trackedEntity = robo.getEntity();
         if (trackedEntity != null && trackedEntity != entity && !trackedEntity.isRemoved())
             trackedEntity.discard();

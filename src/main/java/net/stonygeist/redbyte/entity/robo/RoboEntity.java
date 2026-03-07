@@ -14,16 +14,20 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.items.ItemStackHandler;
 import net.stonygeist.redbyte.goals.FollowPlayerGoal;
 import net.stonygeist.redbyte.goals.WalkGoal;
 import net.stonygeist.redbyte.goals.WalkToGoal;
@@ -56,6 +60,8 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             = SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.COMPOUND_TAG);
     private static final EntityDataAccessor<Boolean> isRuntime
             = SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<CompoundTag> inventory
+            = SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.COMPOUND_TAG);
 
     public RoboEntity(EntityType<? extends RoboEntity> type, Level level) {
         super(type, level);
@@ -127,6 +133,13 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         builder.define(runtimeError, new CompoundTag());
         builder.define(printOutput, new CompoundTag());
         builder.define(isRuntime, false);
+        CompoundTag inventoryTag = new CompoundTag();
+        ListTag listTag = new ListTag();
+        ItemStackHandler itemHandler = new ItemStackHandler(9);
+        for (int i = 0; i < itemHandler.getSlots(); ++i)
+            listTag.add(new CompoundTag());
+        inventoryTag.put("slots", listTag);
+        builder.define(inventory, inventoryTag);
     }
 
     @Override
@@ -136,6 +149,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         if (code != null) tag.putString("code", getCode());
         if (buildDone != null) tag.putBoolean("buildDone", getBuildDone());
         if (diagnostics != null) tag.put("diagnostics", getDiagnosticsTag());
+        if (inventory != null) tag.put("inventory", getInventoryTag());
     }
 
     @Override
@@ -145,6 +159,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         if (tag.contains("code")) setCode(tag.getString("code"));
         if (tag.contains("buildDone")) setBuildDone(tag.getBoolean("buildDone"));
         if (tag.contains("diagnostics")) entityData.set(diagnostics, tag.getCompound("diagnostics"));
+        if (tag.contains("inventory")) entityData.set(inventory, tag.getCompound("inventory"));
     }
 
     @Override
@@ -158,7 +173,63 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             registry.ensureExists(getRedbyteID().get(), this);
         }
 
+        ItemStackHandler inventory = getInventory();
+        setInventory(inventory);
+
         setBuildDone(false);
+    }
+
+    @Override
+    public void die(@NotNull DamageSource source) {
+        if (!level().isClientSide)
+            dropInventory();
+        super.die(source);
+    }
+
+    private void dropInventory() {
+        ItemStackHandler inventory = getInventory();
+        for (int i = 0; i < inventory.getSlots(); ++i) {
+            ItemStack itemStack = inventory.getStackInSlot(i);
+            if (!itemStack.isEmpty()) {
+                spawnAtLocation(itemStack);
+                inventory.setStackInSlot(i, ItemStack.EMPTY);
+                setInventory(inventory);
+            }
+        }
+    }
+
+    @Override
+    protected void pickUpItem(ItemEntity itemEntity) {
+        ItemStack itemStack = itemEntity.getItem();
+        for (int i = 0; i < getInventory().getSlots(); i++) {
+            itemStack = insertItem(i, itemStack, false);
+            if (itemStack.isEmpty())
+                break;
+        }
+
+        if (itemStack.isEmpty())
+            itemEntity.discard();
+        else
+            itemEntity.setItem(itemStack);
+    }
+
+    @Override
+    public boolean canPickUpLoot() {
+        return true;
+    }
+
+    public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+        ItemStackHandler inventory = getInventory();
+        ItemStack result = inventory.insertItem(slot, stack, simulate);
+        setInventory(inventory);
+        return result;
+    }
+
+    public ItemStack extractItem(int slot, int amount, boolean simulate) {
+        ItemStackHandler inventory = getInventory();
+        ItemStack result = inventory.extractItem(slot, amount, simulate);
+        setInventory(inventory);
+        return result;
     }
 
     public boolean isInRange(@NotNull LivingEntity target) {
@@ -245,5 +316,43 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
 
     public void setIsRuntime(boolean isRuntime) {
         entityData.set(RoboEntity.isRuntime, isRuntime);
+    }
+
+    public CompoundTag getInventoryTag() {
+        return entityData.get(inventory);
+    }
+
+    public @NotNull ItemStackHandler getInventory() {
+        CompoundTag tag = getInventoryTag();
+        if (tag == null || !tag.contains("slots"))
+            return new ItemStackHandler(9);
+
+        ListTag listTag = tag.getList("slots", Tag.TAG_COMPOUND);
+        ItemStackHandler inventory = new ItemStackHandler(listTag.size());
+        for (int i = 0; i < listTag.size(); ++i) {
+            Optional<ItemStack> itemStack;
+            if (listTag.get(i) instanceof CompoundTag ct && ct.isEmpty())
+                itemStack = Optional.of(ItemStack.EMPTY);
+            else
+                itemStack = ItemStack.parse(registryAccess(), listTag.get(i));
+            inventory.setStackInSlot(i, itemStack.orElse(ItemStack.EMPTY));
+        }
+
+        return inventory;
+    }
+
+    public void setInventory(@NotNull ItemStackHandler inventory) {
+        CompoundTag tag = getInventoryTag();
+        ListTag listTag = new ListTag();
+        for (int i = 0; i < inventory.getSlots(); ++i) {
+            ItemStack itemStack = inventory.getStackInSlot(i);
+            if (itemStack.isEmpty())
+                listTag.add(new CompoundTag());
+            else
+                listTag.add(itemStack.save(registryAccess()));
+        }
+
+        tag.put("slots", listTag);
+        entityData.set(RoboEntity.inventory, tag);
     }
 }

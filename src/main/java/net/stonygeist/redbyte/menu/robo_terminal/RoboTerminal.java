@@ -4,7 +4,6 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -27,17 +26,6 @@ public class RoboTerminal extends AbstractContainerMenu {
 
     public RoboTerminal(int containerId, Inventory inventory, FriendlyByteBuf data) {
         this(containerId, inventory);
-        addDataSlot(new DataSlot() {
-            @Override
-            public int get() {
-                return 0;
-            }
-
-            @Override
-            public void set(int pValue) {
-
-            }
-        });
         redbyteID = data.readUUID();
     }
 
@@ -79,7 +67,7 @@ public class RoboTerminal extends AbstractContainerMenu {
         return ItemStack.EMPTY;
     }
 
-    // Fix this
+    // TODO: Fix this
     @Override
     public boolean stillValid(@NotNull Player player) {
         return true;
