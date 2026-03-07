@@ -74,6 +74,14 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     protected void init() {
         super.init();
         if (getMenu().getRoboEntity() != null && getMenu().getTerminalText() != null) {
+            addRenderableWidget(new InventoryButton(
+                    (width - TERMINAL_WIDTH) / 2 + 25, (height - TERMINAL_HEIGHT) / 2, 100, 20,
+                    getMenu().getRoboEntity())
+            );
+            addRenderableWidget(new DocsButton(
+                    (width - TERMINAL_WIDTH) / 2 + 150, (height - TERMINAL_HEIGHT) / 2, 100, 20,
+                    getMenu().getRoboEntity())
+            );
             addRenderableWidget(new BuildButton(
                     width - (width - TERMINAL_WIDTH) / 2 - 250, (height - TERMINAL_HEIGHT) / 2, 100, 20,
                     () -> getMenu().getTerminalText().toString(),
@@ -83,10 +91,6 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
                     width - (width - TERMINAL_WIDTH) / 2 - 125, (height - TERMINAL_HEIGHT) / 2, 100, 20,
                     getMenu().getRoboEntity(),
                     this::runIsDisabled)
-            );
-            addRenderableWidget(new InventoryButton(
-                    (width - TERMINAL_WIDTH) / 2 + 25, (height - TERMINAL_HEIGHT) / 2, 100, 20,
-                    getMenu().getRoboEntity())
             );
         }
     }

@@ -20,17 +20,17 @@ import java.util.UUID;
 public class RoboTerminal extends AbstractContainerMenu {
     private final Level level;
     private final Inventory inventory;
-    private UUID redbyteID;
+    private final UUID redbyteID;
     private TerminalText terminalText;
     private RoboEntity roboEntity;
 
     public RoboTerminal(int containerId, Inventory inventory, FriendlyByteBuf data) {
-        this(containerId, inventory);
-        redbyteID = data.readUUID();
+        this(containerId, inventory, data.readUUID());
     }
 
-    public RoboTerminal(int containerId, Inventory inventory) {
+    public RoboTerminal(int containerId, Inventory inventory, UUID redbyteID) {
         super(RedbyteMenus.ROBO_TERMINAL.get(), containerId);
+        this.redbyteID = redbyteID;
         level = inventory.player.level();
         this.inventory = inventory;
     }

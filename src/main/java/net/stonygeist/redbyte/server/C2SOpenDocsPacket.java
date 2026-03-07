@@ -7,20 +7,18 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 import net.stonygeist.redbyte.manager.RoboRegistry;
-import net.stonygeist.redbyte.menu.robo_inventory.RoboInventory;
+import net.stonygeist.redbyte.menu.robo_docs.RoboDocs;
 
 import java.util.UUID;
 
-public class C2SOpenInventoryPacket {
+public class C2SOpenDocsPacket {
     private final UUID redbyteID;
-    private final int entityID;
 
-    public C2SOpenInventoryPacket(UUID redbyteID, int entityID) {
+    public C2SOpenDocsPacket(UUID redbyteID) {
         this.redbyteID = redbyteID;
-        this.entityID = entityID;
     }
 
-    public static void handle(C2SOpenInventoryPacket msg, CustomPayloadEvent.Context ctx) {
+    public static void handle(C2SOpenDocsPacket msg, CustomPayloadEvent.Context ctx) {
         ctx.enqueueWork(() -> {
             ServerPlayer sender = ctx.getSender();
             if (sender != null) {
@@ -29,13 +27,10 @@ public class C2SOpenInventoryPacket {
                 if (robo != null && robo.getEntity() != null)
                     sender.openMenu(
                             new SimpleMenuProvider(
-                                    (containerID, inventory, ignored) -> new RoboInventory(containerID, inventory, msg.redbyteID, msg.entityID),
+                                    (containerID, inventory, ignored) -> new RoboDocs(containerID, inventory, msg.redbyteID),
                                     Component.literal("")
                             ),
-                            (buffer) -> {
-                                buffer.writeUUID(msg.redbyteID);
-                                buffer.writeInt(msg.entityID);
-                            });
+                            (buffer) -> buffer.writeUUID(msg.redbyteID));
             }
         });
 
@@ -44,10 +39,9 @@ public class C2SOpenInventoryPacket {
 
     public void encode(FriendlyByteBuf buffer) {
         buffer.writeUUID(redbyteID);
-        buffer.writeInt(entityID);
     }
 
-    public static C2SOpenInventoryPacket decode(FriendlyByteBuf buffer) {
-        return new C2SOpenInventoryPacket(buffer.readUUID(), buffer.readInt());
+    public static C2SOpenDocsPacket decode(FriendlyByteBuf buffer) {
+        return new C2SOpenDocsPacket(buffer.readUUID());
     }
 }
