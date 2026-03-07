@@ -29,12 +29,12 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
 
     private static final int TERMINAL_WIDTH = 800;
     private static final int TERMINAL_HEIGHT = 400;
+    private static final int NAV_BAR_HEIGHT = 40;
 
     private static final int TEXT_PADDING_X = 14;
     private static final int TEXT_PADDING_Y = 20;
 
     private static final int RESULT_PANEL_GAP = 20;
-    private static final int RESULT_PANEL_TOP_PADDING = 40;
     private static final int DIAGNOSTIC_HIGHLIGHT_COLOR = 0x66ff0000;
 
     // Scrollbar
@@ -84,6 +84,10 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
                     getMenu().getRoboEntity(),
                     this::runIsDisabled)
             );
+            addRenderableWidget(new InventoryButton(
+                    (width - TERMINAL_WIDTH) / 2 + 25, (height - TERMINAL_HEIGHT) / 2, 100, 20,
+                    getMenu().getRoboEntity())
+            );
         }
     }
 
@@ -110,7 +114,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     protected void renderBg(@NotNull GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         int x = (width - TERMINAL_WIDTH) / 2;
         int y = (height - TERMINAL_HEIGHT) / 2;
-        guiGraphics.drawString(font, getTitle(), x + 6, y + 6, 0x00ff00);
+        guiGraphics.drawString(font, getTitle(), x + 6, y + NAV_BAR_HEIGHT, 0x00ff00);
         guiGraphics.fill(x - 4, y - 4, x + TERMINAL_WIDTH + 4, y + TERMINAL_HEIGHT + 4, BORDER_COLOR);
         guiGraphics.fill(x, y, x + TERMINAL_WIDTH, y + TERMINAL_HEIGHT, SCREEN_COLOR);
 
@@ -128,11 +132,10 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             }
 
             clampEditorState();
-
             int textX = x + TEXT_PADDING_X;
-            int textY = y + TEXT_PADDING_Y;
+            int textY = y + TEXT_PADDING_Y + NAV_BAR_HEIGHT;
             int visibleTextWidth = Math.min(MAX_TEXT_LINE_WIDTH, TERMINAL_WIDTH - (TEXT_PADDING_X * 2));
-            int visibleTextHeight = TERMINAL_HEIGHT - TEXT_PADDING_Y - 4;
+            int visibleTextHeight = getvisibleTextHeight();
             String[] lines = getMenu().getTerminalText().getLines();
             String currentLine = lines[curLine];
             adjustHorizontalScroll(currentLine, Mth.clamp(textFieldHelper.getCursorPos(), 0, currentLine.length()), visibleTextWidth);
@@ -232,7 +235,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             }
 
             drawHorizontalScrollbar(guiGraphics, currentLine, textX, y + TERMINAL_HEIGHT - SCROLLBAR_BOTTOM_PADDING, visibleTextWidth);
-            drawVerticalScrollbar(guiGraphics, x + TERMINAL_WIDTH - TEXT_PADDING_X, y + TEXT_PADDING_Y, visibleTextHeight);
+            drawVerticalScrollbar(guiGraphics, x + MAX_TEXT_LINE_WIDTH + RESULT_PANEL_GAP, y + TEXT_PADDING_Y + NAV_BAR_HEIGHT, visibleTextHeight);
         }
 
         drawResultPanel(guiGraphics, x, y);
@@ -346,8 +349,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (textFieldHelper == null) return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
-
-        int visibleTextHeight = TERMINAL_HEIGHT - TEXT_PADDING_Y - 4;
+        int visibleTextHeight = getvisibleTextHeight();
         int totalContentHeight = getMenu().getTerminalText().getLines().length * font.lineHeight;
 
         // Check if Shift is held for horizontal scrolling
@@ -362,47 +364,17 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
                 // Calculate scroll amount based on font width and scrollY (using scrollY for horizontal since scrollX is usually 0)
                 int scrollAmount = (int) (font.width("W") * -scrollY);
                 horizontalScrollOffset += scrollAmount;
-
                 // Clamp scroll offset
                 horizontalScrollOffset = Mth.clamp(horizontalScrollOffset, 0, maxScrollX);
-
-                int scrollChars = (int) Math.abs(scrollY) * 4; // Move 4 characters per scroll unit
-                if (scrollY > 0) {
-                    // Scrolling right - move cursor left
-                    int newCursorPos = Math.max(0, textFieldHelper.getCursorPos() - scrollChars);
-                    textFieldHelper.setCursorPos(newCursorPos, false);
-                } else if (scrollY < 0) {
-                    // Scrolling left - move cursor right
-                    int newCursorPos = Math.min(currentLine.length(), textFieldHelper.getCursorPos() + scrollChars);
-                    textFieldHelper.setCursorPos(newCursorPos, false);
-                }
-
                 return true;
             }
         } else {
             if (totalContentHeight > visibleTextHeight) {
                 followCursorOnRender = false;
-
                 int scrollAmount = (int) (font.lineHeight * -scrollY);
-                verticalScrollOffset += scrollAmount;
-
                 int maxScrollY = Math.max(0, totalContentHeight - visibleTextHeight);
+                verticalScrollOffset += scrollAmount;
                 verticalScrollOffset = Mth.clamp(verticalScrollOffset, 0, maxScrollY);
-
-                int firstVisibleLine = Math.max(0, verticalScrollOffset / font.lineHeight);
-                int lastVisibleLine = Math.min(getMenu().getTerminalText().getLines().length - 1, firstVisibleLine + (visibleTextHeight / font.lineHeight));
-
-                if (scrollY > 0) {
-                    if (curLine <= firstVisibleLine && curLine > 0) {
-                        --curLine;
-                        textFieldHelper.setCursorToEnd();
-                    }
-                } else if (scrollY < 0)
-                    if (curLine >= lastVisibleLine && curLine + 1 < getMenu().getTerminalText().getLines().length) {
-                        ++curLine;
-                        textFieldHelper.setCursorToStart();
-                    }
-
                 return true;
             }
         }
@@ -415,6 +387,10 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         super.onClose();
         if (getMenu().getRoboEntity() != null)
             Redbyte.CHANNEL.send(new C2SStoreRoboCodePacket(getMenu().getRoboEntity().getRedbyteID().orElse(null), getMenu().getTerminalText().toString()), PacketDistributor.SERVER.noArg());
+    }
+
+    private int getvisibleTextHeight() {
+        return TERMINAL_HEIGHT - NAV_BAR_HEIGHT - TEXT_PADDING_Y * 2;
     }
 
     private void setText(String text) {
@@ -432,9 +408,8 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     }
 
     private void drawResultPanel(GuiGraphics guiGraphics, int screenX, int screenY) {
-        int codePanelWidth = Math.min(MAX_TEXT_LINE_WIDTH, TERMINAL_WIDTH - (TEXT_PADDING_X * 2));
-        int panelX = screenX + TEXT_PADDING_X + codePanelWidth + RESULT_PANEL_GAP;
-        int panelY = screenY + RESULT_PANEL_TOP_PADDING;
+        int panelX = screenX + TEXT_PADDING_X + MAX_TEXT_LINE_WIDTH + RESULT_PANEL_GAP;
+        int panelY = screenY + NAV_BAR_HEIGHT;
         int panelEndX = screenX + TERMINAL_WIDTH - TEXT_PADDING_X - SCROLLBAR_HEIGHT - 2;
         int panelWidth = panelEndX - panelX;
         guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.result"), panelX, panelY, 0x00ff00);
@@ -609,7 +584,6 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         int totalContentHeight = getMenu().getTerminalText().getLines().length * font.lineHeight;
         int maxScrollY = Math.max(0, totalContentHeight - visibleHeight);
         verticalScrollOffset = Mth.clamp(verticalScrollOffset, 0, maxScrollY);
-
         if (!followCursor)
             return;
 
@@ -620,7 +594,6 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             verticalScrollOffset = currentLineTop;
         else if (currentLineBottom > verticalScrollOffset + visibleHeight)
             verticalScrollOffset = currentLineBottom - visibleHeight;
-
         verticalScrollOffset = Mth.clamp(verticalScrollOffset, 0, maxScrollY);
     }
 
@@ -636,7 +609,6 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         int maxThumbTravel = Math.max(0, visibleTextWidth - MIN_SCROLLBAR_THUMB_WIDTH);
         int thumbOffset = (int) ((cursorPx / (double) lineWidth) * maxThumbTravel);
         int thumbX = x + Mth.clamp(thumbOffset, 0, maxThumbTravel);
-
         guiGraphics.fill(thumbX, y, thumbX + MIN_SCROLLBAR_THUMB_WIDTH, y + SCROLLBAR_HEIGHT, SCROLLBAR_THUMB_COLOR);
     }
 
@@ -660,7 +632,6 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
 
         int maxThumbTravel = visibleTextHeight - thumbHeight;
         int thumbY = y + (int) (scrollRatio * maxThumbTravel);
-
         guiGraphics.fill(x, thumbY, x + SCROLLBAR_HEIGHT, thumbY + thumbHeight, SCROLLBAR_THUMB_COLOR);
     }
 

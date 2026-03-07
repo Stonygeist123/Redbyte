@@ -7,6 +7,7 @@
   "screen.redbyte.robo_terminal.loading": "Loading...",
   "screen.redbyte.robo_terminal.build": "Build",
   "screen.redbyte.robo_terminal.result": "Result",
+  "screen.redbyte.robo_terminal.inventory": "Inventory",
   "screen.redbyte.robo_terminal.no_errors": "No errors",
   "interpreter.redbyte.diagnostics.invalid_character": "Invalid character: '%1$s'.",
   "interpreter.redbyte.diagnostics.invalid_string": "Invalid string.",

@@ -20,11 +20,9 @@ import net.stonygeist.redbyte.index.RedbyteCreativeTabs;
 import net.stonygeist.redbyte.index.RedbyteEntities;
 import net.stonygeist.redbyte.index.RedbyteItems;
 import net.stonygeist.redbyte.index.RedbyteMenus;
+import net.stonygeist.redbyte.menu.robo_inventory.screen.RoboInventoryScreen;
 import net.stonygeist.redbyte.menu.robo_terminal.screen.RoboTerminalScreen;
-import net.stonygeist.redbyte.server.C2SBuildCodePacket;
-import net.stonygeist.redbyte.server.C2SBuildResultPacket;
-import net.stonygeist.redbyte.server.C2SEvaluateCodePacket;
-import net.stonygeist.redbyte.server.C2SStoreRoboCodePacket;
+import net.stonygeist.redbyte.server.*;
 import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -70,6 +68,11 @@ public class Redbyte {
                 .decoder(C2SBuildResultPacket::decode)
                 .consumerMainThread(C2SBuildResultPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(C2SOpenInventoryPacket.class, networkID++)
+                .encoder(C2SOpenInventoryPacket::encode)
+                .decoder(C2SOpenInventoryPacket::decode)
+                .consumerMainThread(C2SOpenInventoryPacket::handle)
+                .add();
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
@@ -93,6 +96,7 @@ public class Redbyte {
         public static void onClientSetup(FMLClientSetupEvent event) {
             EntityRenderers.register(RedbyteEntities.ROBO.get(), RoboEntityRenderer::new);
             MenuScreens.register(RedbyteMenus.ROBO_TERMINAL.get(), RoboTerminalScreen::new);
+            MenuScreens.register(RedbyteMenus.ROBO_INVENTORY.get(), RoboInventoryScreen::new);
         }
     }
 
