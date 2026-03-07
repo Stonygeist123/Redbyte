@@ -8,7 +8,9 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.items.ItemStackHandler;
 import net.minecraftforge.network.PacketDistributor;
 import net.stonygeist.redbyte.Redbyte;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
@@ -29,9 +31,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-public class PseudoRobo {
+public final class PseudoRobo {
     private final UUID redbyteID;
     private WeakReference<RoboEntity> entityRef = new WeakReference<>(null);
     private ServerLevel serverLevel;
@@ -45,12 +48,14 @@ public class PseudoRobo {
     private @Nullable Vec3 walkToGoalProp;
     private ImmutableList<BoundStmt> buildResult = ImmutableList.of();
     private float speed;
+    private ItemStackHandler inventory;
 
-    public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code, boolean buildDone, DiagnosticBag diagnostics) {
+    public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code, ItemStackHandler inventory, boolean buildDone, DiagnosticBag diagnostics) {
         this.redbyteID = redbyteID;
         this.serverLevel = serverLevel;
         this.currentPos = currentPos.getCenter().subtract(0, 0.5, 0);
         this.code = code;
+        this.inventory = inventory;
         this.buildDone = buildDone;
         this.diagnostics = diagnostics;
         speed = RedbyteConfigs.ROBO_DEFAULT_SPEED;
@@ -69,7 +74,25 @@ public class PseudoRobo {
             diagnostics.add(diagnostic);
         }
 
-        return new PseudoRobo(level, redbyteID, BlockPos.containing(pos), code, buildDone, diagnostics);
+
+        CompoundTag inventoryTag = tag.getCompound("inventory");
+        ListTag listTag = inventoryTag.getList("slots", Tag.TAG_COMPOUND);
+        ItemStackHandler inventory;
+        if (!inventoryTag.contains("slots"))
+            inventory = new ItemStackHandler(9);
+        else {
+            inventory = new ItemStackHandler(listTag.size());
+            for (int i = 0; i < listTag.size(); ++i) {
+                Optional<ItemStack> itemStack;
+                if (listTag.get(i) instanceof CompoundTag ct && ct.isEmpty())
+                    itemStack = Optional.of(ItemStack.EMPTY);
+                else
+                    itemStack = ItemStack.parse(level.registryAccess(), listTag.get(i));
+                inventory.setStackInSlot(i, itemStack.orElse(ItemStack.EMPTY));
+            }
+        }
+
+        return new PseudoRobo(level, redbyteID, BlockPos.containing(pos), code, inventory, buildDone, diagnostics);
     }
 
     public CompoundTag serializeNBT() {
@@ -79,6 +102,18 @@ public class PseudoRobo {
         tag.putString("code", code);
         tag.putBoolean("buildDone", buildDone);
         diagnostics.serializeNBTToTag(tag);
+
+        CompoundTag inventoryTag = new CompoundTag();
+        ListTag listTag = new ListTag();
+        for (int i = 0; i < inventory.getSlots(); ++i) {
+            ItemStack itemStack = getItem(i);
+            if (itemStack.isEmpty())
+                listTag.add(new CompoundTag());
+            else
+                listTag.add(itemStack.save(serverLevel.registryAccess()));
+        }
+        inventoryTag.put("slots", listTag);
+        tag.put("inventory", inventoryTag);
         return tag;
     }
 
@@ -98,6 +133,8 @@ public class PseudoRobo {
         RoboEntity roboEntity = resolveEntity(serverLevel);
         if (roboEntity != null) {
             currentPos = roboEntity.position();
+            inventory = roboEntity.getInventory();
+            RoboRegistry.get(serverLevel).setDirty();
         }
     }
 
@@ -187,6 +224,10 @@ public class PseudoRobo {
         tag.putDouble(key + "X", vec.x);
         tag.putDouble(key + "Y", vec.y);
         tag.putDouble(key + "Z", vec.z);
+    }
+
+    public ItemStack getItem(int slot) {
+        return inventory.getStackInSlot(slot);
     }
 
     public ServerLevel getServerLevel() {

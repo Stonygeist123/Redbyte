@@ -8,8 +8,6 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.items.IItemHandler;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.index.RedbyteMenus;
 import net.stonygeist.redbyte.menu.robo_terminal.screen.TerminalText;
@@ -22,7 +20,6 @@ import java.util.UUID;
 public class RoboTerminal extends AbstractContainerMenu {
     private final Level level;
     private final Inventory inventory;
-    private IItemHandler itemHandler;
     private UUID redbyteID;
     private TerminalText terminalText;
     private RoboEntity roboEntity;
@@ -74,12 +71,5 @@ public class RoboTerminal extends AbstractContainerMenu {
     @Override
     public boolean stillValid(@NotNull Player player) {
         return true;
-    }
-
-    public IItemHandler getItemHandler() {
-        if (itemHandler == null)
-            itemHandler = roboEntity.getCapability(ForgeCapabilities.ITEM_HANDLER)
-                    .orElseThrow(() -> new IllegalStateException("No inventory."));
-        return itemHandler;
     }
 }
