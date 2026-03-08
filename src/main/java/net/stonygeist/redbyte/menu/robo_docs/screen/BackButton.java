@@ -9,11 +9,11 @@ import net.stonygeist.redbyte.server.C2SOpenTerminalPacket;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-public class BackButton extends Button {
+public final class BackButton extends Button {
     private final UUID redbyteID;
 
     public BackButton(int x, int y, int width, int height, UUID redbyteID) {
-        super(x, y, width, height, Component.translatable("screen.redbyte.general.back"), b -> {
+        super(x, y, width, height, Component.translatable("menu.redbyte.general.back"), b -> {
         }, Supplier::get);
         this.redbyteID = redbyteID;
     }

@@ -11,14 +11,11 @@ import net.minecraft.network.chat.FormattedText;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraftforge.network.PacketDistributor;
-import net.stonygeist.redbyte.Redbyte;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.menu.robo_terminal.RoboTerminal;
-import net.stonygeist.redbyte.server.C2SStoreRoboCodePacket;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -123,7 +120,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         guiGraphics.fill(x, y, x + TERMINAL_WIDTH, y + TERMINAL_HEIGHT, SCREEN_COLOR);
 
         if (getMenu().getTerminalText() == null || textFieldHelper == null) {
-            guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.loading"), width / 2, height / 2, 0xffffffff);
+            guiGraphics.drawString(font, Component.translatable("menu.redbyte.robo_terminal.loading"), width / 2, height / 2, 0xffffffff);
         } else {
             if (getMenu().getRoboEntity() != null) {
                 CompoundTag currentDiagnosticsTag = getMenu().getRoboEntity().getDiagnosticsTag();
@@ -386,13 +383,6 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
-    @Override
-    public void onClose() {
-        super.onClose();
-        if (getMenu().getRoboEntity() != null)
-            Redbyte.CHANNEL.send(new C2SStoreRoboCodePacket(getMenu().getRoboEntity().getRedbyteID().orElse(null), getMenu().getTerminalText().toString()), PacketDistributor.SERVER.noArg());
-    }
-
     private int getvisibleTextHeight() {
         return TERMINAL_HEIGHT - NAV_BAR_HEIGHT - TEXT_PADDING_Y * 2;
     }
@@ -416,7 +406,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         int panelY = screenY + NAV_BAR_HEIGHT;
         int panelEndX = screenX + TERMINAL_WIDTH - TEXT_PADDING_X - SCROLLBAR_HEIGHT - 2;
         int panelWidth = panelEndX - panelX;
-        guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.result"), panelX, panelY, 0x00ff00);
+        guiGraphics.drawString(font, Component.translatable("menu.redbyte.robo_terminal.result"), panelX, panelY, 0x00ff00);
         guiGraphics.vLine(panelX - RESULT_PANEL_GAP / 2, screenY - 2, screenY + TERMINAL_HEIGHT, 0xff7c7c7c);
 
         RoboEntity roboEntity = getMenu().getRoboEntity();
@@ -431,7 +421,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             diagnostics.add(roboEntity.getRuntimeError());
 
         if (diagnostics.isEmpty() && roboEntity.getBuildDone() && !runtime) {
-            guiGraphics.drawString(font, Component.translatable("screen.redbyte.robo_terminal.no_errors"), panelX, contentY, 0xffaaaaaa);
+            guiGraphics.drawString(font, Component.translatable("menu.redbyte.robo_terminal.no_errors"), panelX, contentY, 0xffaaaaaa);
             return;
         }
 

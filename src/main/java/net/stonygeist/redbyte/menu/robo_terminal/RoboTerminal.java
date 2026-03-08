@@ -8,9 +8,12 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraftforge.network.PacketDistributor;
+import net.stonygeist.redbyte.Redbyte;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.index.RedbyteMenus;
 import net.stonygeist.redbyte.menu.robo_terminal.screen.TerminalText;
+import net.stonygeist.redbyte.server.C2SStoreRoboCodePacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -71,5 +74,12 @@ public class RoboTerminal extends AbstractContainerMenu {
     @Override
     public boolean stillValid(@NotNull Player player) {
         return true;
+    }
+
+    @Override
+    public void removed(@NotNull Player player) {
+        if (getRoboEntity() != null)
+            Redbyte.CHANNEL.send(new C2SStoreRoboCodePacket(getRoboEntity().getRedbyteID().orElse(null), terminalText.toString()), PacketDistributor.SERVER.noArg());
+        super.removed(player);
     }
 }

@@ -6,14 +6,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 import net.stonygeist.redbyte.index.RedbyteMenus;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
 public class RoboDocs extends AbstractContainerMenu {
-    private final Level level;
     private final UUID redbyteID;
 
     public RoboDocs(int containerId, Inventory inventory, FriendlyByteBuf data) {
@@ -22,7 +20,6 @@ public class RoboDocs extends AbstractContainerMenu {
 
     public RoboDocs(int containerId, Inventory inventory, UUID redbyteID) {
         super(RedbyteMenus.ROBO_TERMINAL.get(), containerId);
-        level = inventory.player.level();
         this.redbyteID = redbyteID;
     }
 

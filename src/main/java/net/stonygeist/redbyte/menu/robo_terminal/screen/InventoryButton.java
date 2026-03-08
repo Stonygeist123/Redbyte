@@ -13,7 +13,7 @@ public class InventoryButton extends Button {
     private final RoboEntity roboEntity;
 
     protected InventoryButton(int x, int y, int width, int height, RoboEntity roboEntity) {
-        super(x, y, width, height, Component.translatable("screen.redbyte.robo_terminal.inventory"), b -> {
+        super(x, y, width, height, Component.translatable("menu.redbyte.robo_terminal.inventory"), b -> {
         }, Supplier::get);
         this.roboEntity = roboEntity;
     }

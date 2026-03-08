@@ -15,7 +15,7 @@ public class RunButton extends Button {
     private final Supplier<Boolean> isDisabled;
 
     protected RunButton(int x, int y, int width, int height, RoboEntity roboEntity, Supplier<Boolean> isDisabled) {
-        super(x, y, width, height, Component.translatable("screen.redbyte.robo_terminal.run_disabled"), b -> {
+        super(x, y, width, height, Component.translatable("menu.redbyte.robo_terminal.run_disabled"), b -> {
         }, Supplier::get);
         this.roboEntity = roboEntity;
         this.isDisabled = isDisabled;
@@ -23,7 +23,7 @@ public class RunButton extends Button {
 
     @Override
     public @NotNull Component getMessage() {
-        return isDisabled.get() || roboEntity.getRedbyteID().isEmpty() ? Component.translatable("screen.redbyte.robo_terminal.run_disabled") : Component.translatable("screen.redbyte.robo_terminal.run");
+        return isDisabled.get() || roboEntity.getRedbyteID().isEmpty() ? Component.translatable("menu.redbyte.robo_terminal.run_disabled") : Component.translatable("menu.redbyte.robo_terminal.run");
     }
 
     @Override

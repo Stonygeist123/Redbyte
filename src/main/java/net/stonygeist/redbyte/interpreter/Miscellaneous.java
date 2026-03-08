@@ -2,6 +2,7 @@ package net.stonygeist.redbyte.interpreter;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.monster.Monster;
@@ -61,48 +62,53 @@ public enum Miscellaneous {
                     (ev, robo, args) -> {
                         robo.getEntity().addPrintOutput(args[0]);
                         return new NothingDataType();
-                    }))
-            .add(new FunctionSymbol("print", ImmutableList.of(TypeSymbol.Number), NothingDataType.TYPE,
+                    }, Component.translatable("functions.redbyte.description.print")))
+            .add(new FunctionSymbol("print", ImmutableList.of(TypeSymbol.Text), NothingDataType.TYPE,
                     (ev, robo, args) -> {
                         robo.getEntity().addPrintOutput(args[0]);
                         return new NothingDataType();
-                    }))
+                    }, Component.translatable("functions.redbyte.description.print")))
             .add(new FunctionSymbol("is_nothing", ImmutableList.of(DataType.TYPE), TypeSymbol.Boolean,
-                    (ev, robo, args) -> args[0] instanceof NothingDataType))
-            .add(new FunctionSymbol("walk", ImmutableList.of(TypeSymbol.Number), TypeSymbol.Void, (ev, robo, args) -> {
+                    (ev, robo, args) -> args[0] instanceof NothingDataType, Component.translatable("functions.redbyte.description.is_nothing")))
+            .add(new FunctionSymbol("walk", ImmutableList.of(TypeSymbol.Number), NothingDataType.TYPE, (ev, robo, args) -> {
                 robo.setWalkGoalProp((float) args[0]);
                 return new NothingDataType();
-            }))
-            .add(new FunctionSymbol("walkto", ImmutableList.of(TypeSymbol.Number, TypeSymbol.Number, TypeSymbol.Number), TypeSymbol.Void, (ev, robo, args) -> {
+            }, Component.translatable("functions.redbyte.description.walk")))
+            .add(new FunctionSymbol("walk_to", ImmutableList.of(TypeSymbol.Number, TypeSymbol.Number, TypeSymbol.Number), NothingDataType.TYPE, (ev, robo, args) -> {
                 robo.setWalkToGoalProp(new Vec3((float) args[0], (float) args[1], (float) args[2]));
                 return new NothingDataType();
-            }))
-            .add(new FunctionSymbol("jump", ImmutableList.of(), TypeSymbol.Void, (ev, robo, args) -> {
+            }, Component.translatable("functions.redbyte.description.walk_to")))
+            .add(new FunctionSymbol("walk_to", ImmutableList.of(VectorDataType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
+                robo.setWalkToGoalProp(new Vec3(((VectorDataType) args[0]).getVector()));
+                return new NothingDataType();
+            }, Component.translatable("functions.redbyte.description.walk_to")))
+            .add(new FunctionSymbol("jump", ImmutableList.of(), NothingDataType.TYPE, (ev, robo, args) -> {
                 robo.getEntity().jumpFromGround();
                 return new NothingDataType();
-            }))
+            }, Component.translatable("functions.redbyte.description.jump")))
             .add(new FunctionSymbol("position", ImmutableList.of(EntityDataType.TYPE), VectorDataType.TYPE, (ev, robo, args) -> {
                 EntityDataType<?> entity = (EntityDataType<?>) args[0];
                 return new VectorDataType(entity.getEntity().position());
-            }))
+            }, Component.translatable("functions.redbyte.description.position")))
             .add(new FunctionSymbol("x", ImmutableList.of(VectorDataType.TYPE), TypeSymbol.Number,
-                    (ev, robo, args) -> ((VectorDataType) args[0]).getVector().x))
+                    (ev, robo, args) -> ((VectorDataType) args[0]).getVector().x, Component.translatable("functions.redbyte.description.x")))
             .add(new FunctionSymbol("y", ImmutableList.of(VectorDataType.TYPE), TypeSymbol.Number,
-                    (ev, robo, args) -> ((VectorDataType) args[0]).getVector().y))
+                    (ev, robo, args) -> ((VectorDataType) args[0]).getVector().y, Component.translatable("functions.redbyte.description.y")))
             .add(new FunctionSymbol("z", ImmutableList.of(VectorDataType.TYPE), TypeSymbol.Number,
-                    (ev, robo, args) -> ((VectorDataType) args[0]).getVector().z))
+                    (ev, robo, args) -> ((VectorDataType) args[0]).getVector().z, Component.translatable("functions.redbyte.description.z")))
             .add(new FunctionSymbol("distance", ImmutableList.of(VectorDataType.TYPE, VectorDataType.TYPE), TypeSymbol.Number,
-                    (ev, robo, args) -> ((VectorDataType) args[0]).getVector().distance(((VectorDataType) args[1]).getVector())))
-            .add(new FunctionSymbol("follow", ImmutableList.of(EntityDataType.TYPE), TypeSymbol.Void, (ev, robo, args) -> {
+                    (ev, robo, args) -> ((VectorDataType) args[0]).getVector().distance(((VectorDataType) args[1]).getVector()),
+                    Component.translatable("functions.redbyte.description.distance")))
+            .add(new FunctionSymbol("follow", ImmutableList.of(EntityDataType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
                 CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
                 robo.setFollowEntityGoalProp(entity.getEntity());
                 return new NothingDataType();
-            }))
-            .add(new FunctionSymbol("stop_follow", ImmutableList.of(), TypeSymbol.Void, (ev, robo, args) -> {
+            }, Component.translatable("functions.redbyte.description.follow")))
+            .add(new FunctionSymbol("stop_follow", ImmutableList.of(), NothingDataType.TYPE, (ev, robo, args) -> {
                 robo.setFollowEntityGoalProp(null);
                 return new NothingDataType();
-            }))
-            .add(new FunctionSymbol("attack", ImmutableList.of(EntityDataType.TYPE), TypeSymbol.Void, (ev, robo, args) -> {
+            }, Component.translatable("functions.redbyte.description.stop_follow")))
+            .add(new FunctionSymbol("try_attack", ImmutableList.of(CreatureDataType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
                 CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
                 if (entity.isNull())
                     return new NothingDataType();
@@ -111,24 +117,26 @@ public enum Miscellaneous {
                 if (roboEntity.canAttack(entity.getEntity()) && roboEntity.isInRange(entity.getEntity()) && roboEntity.hasLineOfSight(entity.getEntity()))
                     roboEntity.doHurtTarget(entity.getEntity());
                 return new NothingDataType();
-            }))
-            .add(new FunctionSymbol("can_attack", ImmutableList.of(EntityDataType.TYPE), TypeSymbol.Boolean, (ev, robo, args) -> {
+            }, Component.translatable("functions.redbyte.description.try_attack")))
+            .add(new FunctionSymbol("can_attack", ImmutableList.of(CreatureDataType.TYPE), TypeSymbol.Boolean, (ev, robo, args) -> {
                 CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
                 if (entity.isNull()) return false;
                 RoboEntity roboEntity = robo.getEntity();
                 return roboEntity.canAttack(entity.getEntity()) && roboEntity.isInRange(entity.getEntity()) && roboEntity.hasLineOfSight(entity.getEntity());
-            }))
+            }, Component.translatable("functions.redbyte.description.can_attack")))
             .add(new FunctionSymbol("health", ImmutableList.of(CreatureDataType.TYPE), TypeSymbol.Number,
-                    (ev, robo, args) -> ((CreatureDataType<?>) args[0]).getEntity().getHealth()))
-            .add(new FunctionSymbol("player", ImmutableList.of(TypeSymbol.Text), PlayerDataType.TYPE,
+                    (ev, robo, args) -> ((CreatureDataType<?>) args[0]).getEntity().getHealth(),
+                    Component.translatable("functions.redbyte.description.health")))
+            .add(new FunctionSymbol("get_player", ImmutableList.of(TypeSymbol.Text), PlayerDataType.TYPE,
                     (ev, robo, args) -> {
                         List<ServerPlayer> players = robo.getServerLevel().getPlayers(p -> p.getName().getString().equals(args[0]));
                         return players.isEmpty() ? new NothingDataType() : new PlayerDataType(players.getFirst());
-                    })
+                    }, Component.translatable("functions.redbyte.description.get_player"))
             )
-            .add(new FunctionSymbol("nearest_player", ImmutableList.of(TypeSymbol.Number), PlayerDataType.TYPE,
-                    (ev, robo, args) -> Objects.requireNonNullElseGet(robo.getEntity().level().getNearestPlayer(robo.getEntity(), (float) args[0]), NothingDataType::new)))
-            .add(new FunctionSymbol("nearest_monster", ImmutableList.of(TypeSymbol.Number), MonsterDataType.TYPE,
+            .add(new FunctionSymbol("get_nearest_player", ImmutableList.of(TypeSymbol.Number), PlayerDataType.TYPE,
+                    (ev, robo, args) -> Objects.requireNonNullElseGet(robo.getEntity().level().getNearestPlayer(robo.getEntity(), (float) args[0]), NothingDataType::new),
+                    Component.translatable("functions.redbyte.description.get_nearest_player")))
+            .add(new FunctionSymbol("get_nearest_monster", ImmutableList.of(TypeSymbol.Number), MonsterDataType.TYPE,
                     (ev, robo, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
                         Vec3 pos = roboEntity.position();
@@ -137,7 +145,7 @@ public enum Miscellaneous {
                         if (monster == null)
                             return new NothingDataType();
                         return new MonsterDataType(monster);
-                    }))
+                    }, Component.translatable("functions.redbyte.description.get_nearest_monster")))
             .build();
 
     public static final ImmutableMap<String, TokenKind> keywords = new ImmutableMap.Builder<String, TokenKind>()

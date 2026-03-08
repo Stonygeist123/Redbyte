@@ -101,7 +101,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             serverPlayer.openMenu(
                     new SimpleMenuProvider(
                             this,
-                            Component.translatable("screen.redbyte.robo_terminal.title")
+                            Component.translatable("menu.redbyte.robo_terminal.title")
                     ),
                     (buffer) -> buffer.writeUUID(getRedbyteID().get())
             );
