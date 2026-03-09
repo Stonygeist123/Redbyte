@@ -4,14 +4,19 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.stonygeist.redbyte.interpreter.Miscellaneous;
+import net.stonygeist.redbyte.interpreter.analysis.nodes.Node;
+import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.Expr;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.menu.robo_docs.RoboDocs;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 
 public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
@@ -85,10 +90,22 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
     protected void renderLabels(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY) {
     }
 
-    private static final int NAME_COLOR = 0xffffff;
-    private static final int PUNCTUATION_COLOR = 0xa9a9a9;
-    private static final int PARAM_TYPE_COLOR = 0x0834eb;
-    private static final int RETURN_TYPE_COLOR = 0x4c00b0;
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (category != Category.None) {
+            int visibleTextHeight = getVisibleTextHeight();
+            int totalContentHeight = getTotalContentHeight();
+            if (totalContentHeight > visibleTextHeight) {
+                int scrollAmount = (int) (font.lineHeight * -scrollY);
+                int maxScrollY = Math.max(0, totalContentHeight - visibleTextHeight);
+                verticalScrollOffset += scrollAmount;
+                verticalScrollOffset = Mth.clamp(verticalScrollOffset, 0, maxScrollY);
+                return true;
+            }
+        }
+
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
 
     private int getVisibleTextHeight() {
         return TERMINAL_HEIGHT - NAV_BAR_HEIGHT - TEXT_PADDING_Y * 2 - BORDER_WIDTH * 2;
@@ -127,8 +144,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
             case Statements -> renderStatementsContent(guiGraphics, x, y);
             case Expressions -> renderExpressionsContent(guiGraphics, x, y);
             case Functions -> renderFunctionsContent(guiGraphics, x, y);
-            case None -> {
-            }
+            case None -> renderDefaultContent(guiGraphics, x);
         }
         guiGraphics.disableScissor();
 
@@ -139,6 +155,11 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
     }
 
     private void renderExpressionsContent(@NotNull GuiGraphics guiGraphics, int x, int y) {
+        int textY = -verticalScrollOffset;
+        int startX = x + TEXT_PADDING_X;
+        int startY = y + NAV_BAR_HEIGHT + TEXT_PADDING_Y;
+        for (Class<? extends Expr> expr : Node.allExpressions)
+            textY += drawExpression(guiGraphics, startX, startY + textY, expr);
     }
 
     private void renderFunctionsContent(@NotNull GuiGraphics guiGraphics, int x, int y) {
@@ -149,10 +170,39 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
             textY += drawFunction(guiGraphics, startX, startY + textY, function);
     }
 
+    private void renderDefaultContent(@NotNull GuiGraphics guiGraphics, int x) {
+        MutableComponent title = Component.translatable("docs.redbyte.title.docs1").withStyle(style -> style.withBold(true));
+        MutableComponent subtitle = Component.translatable("docs.redbyte.title.docs2");
+        guiGraphics.drawString(font, title, x + TERMINAL_WIDTH / 2 - font.width(title) / 2, height / 2, 0xffffffff);
+        guiGraphics.drawString(font, subtitle, x + TERMINAL_WIDTH / 2 - font.width(subtitle) / 2, height / 2 + font.lineHeight, 0xffffffff);
+    }
+
+    public static final int GENERAL_COLOR = 0xffffff;
+    public static final int PUNCTUATION_COLOR = 0xa9a9a9;
+    public static final int PARAM_TYPE_COLOR = 0x0834eb;
+    public static final int RETURN_TYPE_COLOR = 0x4c00b0;
+    public static final int NAME_COLOR = 0xfc0060;
+    public static final int VALUE_COLOR = 0x0834eb;
+
+    private int drawExpression(@NotNull GuiGraphics guiGraphics, int x, int y, Class<? extends Expr> expr) {
+        try {
+            Method titleMethod = expr.getMethod("title");
+            Method docsMethod = expr.getMethod("docs");
+            Method exampleMethod = expr.getMethod("example");
+            Component title = ((Component) titleMethod.invoke(null)).copy().append(Component.literal(": "));
+            Component docs = (Component) docsMethod.invoke(null);
+            Component example = (Component) exampleMethod.invoke(null);
+            guiGraphics.drawString(font, title, x, y, GENERAL_COLOR);
+            guiGraphics.drawString(font, docs, x + 80, y + font.lineHeight * 2, GENERAL_COLOR);
+            guiGraphics.drawString(font, example, x + (int) (TERMINAL_WIDTH / 1.5f), y + font.lineHeight * 2, GENERAL_COLOR);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+        }
+        return font.lineHeight * 4;
+    }
 
     public int drawFunction(@NotNull GuiGraphics guiGraphics, int x, int y, FunctionSymbol function) {
         int textX = 0;
-        guiGraphics.drawString(font, function.name, x, y, NAME_COLOR);
+        guiGraphics.drawString(font, function.name, x, y, GENERAL_COLOR);
         textX += font.width(function.name);
         guiGraphics.drawString(font, "(", x + textX, y, PUNCTUATION_COLOR);
         textX += font.width("(");
@@ -198,21 +248,5 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         int maxThumbTravel = visibleTextHeight - thumbHeight;
         int thumbY = y + (int) (scrollRatio * maxThumbTravel);
         guiGraphics.fill(x, thumbY, x + SCROLLBAR_WIDTH, thumbY + thumbHeight, SCROLLBAR_THUMB_COLOR);
-    }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (category != Category.None) {
-            int visibleTextHeight = getVisibleTextHeight();
-            int totalContentHeight = getTotalContentHeight();
-            if (totalContentHeight > visibleTextHeight) {
-                int scrollAmount = (int) (font.lineHeight * -scrollY);
-                int maxScrollY = Math.max(0, totalContentHeight - visibleTextHeight);
-                verticalScrollOffset += scrollAmount;
-                verticalScrollOffset = Mth.clamp(verticalScrollOffset, 0, maxScrollY);
-                return true;
-            }
-        }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 }

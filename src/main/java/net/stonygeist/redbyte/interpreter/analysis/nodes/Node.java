@@ -1,6 +1,7 @@
 package net.stonygeist.redbyte.interpreter.analysis.nodes;
 
 import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
+import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.*;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -65,4 +66,6 @@ public abstract class Node {
 
         return result;
     }
+
+    public static final List<Class<? extends Expr>> allExpressions = List.of(LiteralExpr.class, BinaryExpr.class, UnaryExpr.class, NameExpr.class, AssignExpr.class, CallExpr.class, GroupExpr.class, RoboExpr.class);
 }

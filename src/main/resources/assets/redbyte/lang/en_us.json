@@ -61,5 +61,20 @@
   "functions.redbyte.description.health": "Returns the current health of given creature.",
   "functions.redbyte.description.get_player": "Returns the player with given name if existing. Return nothing otherwise.",
   "functions.redbyte.description.get_nearest_player": "Returns the nearest player in given distance.",
-  "functions.redbyte.description.get_nearest_monster": "Returns the nearest monster in given distance."
+  "functions.redbyte.description.get_nearest_monster": "Returns the nearest monster in given distance.",
+  "docs.redbyte.title.docs1": "These are the documentations of the Redbyte language.",
+  "docs.redbyte.title.docs2": "At the top right corner you can select what topic you want to do research on.",
+  "docs.redbyte.title.assignment": "Assignment",
+  "docs.redbyte.title.binary": "Binary",
+  "docs.redbyte.title.call": "Call",
+  "docs.redbyte.title.group": "Group",
+  "docs.redbyte.title.literal": "Literal",
+  "docs.redbyte.title.name": "Variable",
+  "docs.redbyte.title.robo": "Robo",
+  "docs.redbyte.title.unary": "Unary",
+  "docs.redbyte.general.name": "<name>",
+  "docs.redbyte.general.value": "<value>",
+  "docs.redbyte.general.binary_operator": "<+ | - | * | / | == | != | < | <= | > | >= | and | or>",
+  "docs.redbyte.general.unary_operator": "<+ | - | !>",
+  "docs.redbyte.general.expression": "<expression>"
 }
