@@ -21,11 +21,11 @@ public final class BinaryExpr extends Expr {
 
     public static Component docs() {
         return DocsBuilder.start()
-                .value("docs.redbyte.general.value")
+                .valueTranslate("syntax.redbyte.general.value")
                 .punct(" ")
-                .general("docs.redbyte.general.binary_operator")
+                .generalTranslate("syntax.redbyte.general.binary_operator")
                 .punct(" ")
-                .value("docs.redbyte.general.value")
+                .valueTranslate("syntax.redbyte.general.value")
                 .build();
     }
 

@@ -16,7 +16,7 @@ public final class NameExpr extends Expr {
     }
 
     public static Component docs() {
-        return DocsBuilder.start().name("docs.redbyte.general.name").build();
+        return DocsBuilder.start().nameTranslate("syntax.redbyte.general.name").build();
     }
 
     public static Component example() {

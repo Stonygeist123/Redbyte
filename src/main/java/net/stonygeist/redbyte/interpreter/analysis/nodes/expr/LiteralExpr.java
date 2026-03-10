@@ -16,7 +16,7 @@ public final class LiteralExpr extends Expr {
     }
 
     public static Component docs() {
-        return DocsBuilder.start().value("docs.redbyte.general.value").build();
+        return DocsBuilder.start().valueTranslate("syntax.redbyte.general.value").build();
     }
 
     public static Component example() {

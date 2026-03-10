@@ -11,6 +11,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.stonygeist.redbyte.interpreter.Miscellaneous;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Node;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.Expr;
+import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.Stmt;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.menu.robo_docs.RoboDocs;
 import org.jetbrains.annotations.NotNull;
@@ -121,18 +122,35 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
     }
 
     private int calculateStatementsHeight() {
-        return 0;
+        int totalHeight = 0;
+        for (Class<? extends Stmt> stmt : Node.allStatements) {
+            int textY = font.lineHeight * 4;
+            try {
+                Method docsMethod = stmt.getMethod("docs");
+                Component docs = (Component) docsMethod.invoke(null);
+                List<FormattedCharSequence> wrappedDocs = font.split(docs, (int) (TERMINAL_WIDTH / 2f));
+                textY += font.lineHeight * (2 + wrappedDocs.size());
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+            }
+
+            totalHeight += textY;
+        }
+
+        return totalHeight;
     }
 
     private int calculateExpressionsHeight() {
-        return 0;
+        return Node.allExpressions.size() * font.lineHeight * 4;
     }
 
     private int calculateFunctionsHeight() {
         int totalHeight = 0;
         for (FunctionSymbol function : Miscellaneous.functions) {
-            List<FormattedCharSequence> wrappedLines = font.split(FormattedText.of(function.description.getString()), TERMINAL_WIDTH / 2 - TEXT_PADDING_X * 2);
-            totalHeight += (wrappedLines.size() + 1) * font.lineHeight;
+            List<FormattedCharSequence> wrappedDescriptionLines = font.split(
+                    FormattedText.of(function.description.getString()),
+                    (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f)
+            );
+            totalHeight += (wrappedDescriptionLines.size() + 1) * font.lineHeight;
         }
 
         return totalHeight;
@@ -146,12 +164,17 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
             case Functions -> renderFunctionsContent(guiGraphics, x, y);
             case None -> renderDefaultContent(guiGraphics, x);
         }
-        guiGraphics.disableScissor();
 
+        guiGraphics.disableScissor();
         drawVerticalScrollbar(guiGraphics, x + TERMINAL_WIDTH - 10, y + TEXT_PADDING_Y + NAV_BAR_HEIGHT, visibleTextHeight);
     }
 
     private void renderStatementsContent(@NotNull GuiGraphics guiGraphics, int x, int y) {
+        int textY = -verticalScrollOffset;
+        int startX = x + TEXT_PADDING_X;
+        int startY = y + NAV_BAR_HEIGHT + TEXT_PADDING_Y;
+        for (Class<? extends Stmt> stmt : Node.allStatements)
+            textY += drawStatement(guiGraphics, startX, startY + textY, stmt);
     }
 
     private void renderExpressionsContent(@NotNull GuiGraphics guiGraphics, int x, int y) {
@@ -183,6 +206,41 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
     public static final int RETURN_TYPE_COLOR = 0x4c00b0;
     public static final int NAME_COLOR = 0xfc0060;
     public static final int VALUE_COLOR = 0x0834eb;
+
+    private int drawStatement(@NotNull GuiGraphics guiGraphics, int x, int y, Class<? extends Stmt> stmt) {
+        int textY = 0;
+        try {
+            Method titleMethod = stmt.getMethod("title");
+            Method syntaxMethod = stmt.getMethod("syntax");
+            Method docsMethod = stmt.getMethod("docs");
+            Method exampleMethod = stmt.getMethod("example");
+            Component title = ((Component) titleMethod.invoke(null)).copy().append(Component.literal(": "));
+            Component syntax = (Component) syntaxMethod.invoke(null);
+            Component docs = (Component) docsMethod.invoke(null);
+            MutableComponent example = ((Component) exampleMethod.invoke(null)).copy();
+            List<FormattedCharSequence> exampleLines = font.split(example, TERMINAL_WIDTH / 3);
+            guiGraphics.drawString(font, title, x, y, GENERAL_COLOR);
+            textY += font.lineHeight * 2;
+            guiGraphics.drawString(font, syntax, x, y + textY, GENERAL_COLOR);
+            int exampleY = 0;
+            for (FormattedCharSequence exampleLine : exampleLines) {
+                guiGraphics.drawString(font, exampleLine, x + (int) (TERMINAL_WIDTH / 1.5f), y + textY + exampleY * font.lineHeight, GENERAL_COLOR);
+                ++exampleY;
+            }
+
+            textY += font.lineHeight * 2;
+            List<FormattedCharSequence> wrappedDocs = font.split(docs, (int) (TERMINAL_WIDTH / 2f));
+            int docY = 0;
+            for (FormattedCharSequence docLine : wrappedDocs) {
+                guiGraphics.drawString(font, docLine, x + 80, y + textY + docY * font.lineHeight, GENERAL_COLOR);
+                ++docY;
+            }
+
+            textY += font.lineHeight * (2 + docY);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+        }
+        return textY;
+    }
 
     private int drawExpression(@NotNull GuiGraphics guiGraphics, int x, int y, Class<? extends Expr> expr) {
         try {
@@ -222,7 +280,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         List<FormattedCharSequence> wrappedDescriptionLines = font.split(FormattedText.of(function.description.getString()), (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f));
         for (int i = 0; i < wrappedDescriptionLines.size(); ++i) {
             FormattedCharSequence line = wrappedDescriptionLines.get(i);
-            guiGraphics.drawString(font, line, (int) (x + (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.5f), y + i * font.lineHeight, PARAM_TYPE_COLOR);
+            guiGraphics.drawString(font, line, (int) (x + (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.5f), y + i * font.lineHeight, GENERAL_COLOR);
         }
 
         return (wrappedDescriptionLines.size() + 1) * font.lineHeight;

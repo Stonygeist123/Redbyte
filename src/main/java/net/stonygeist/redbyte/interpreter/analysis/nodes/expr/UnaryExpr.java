@@ -19,8 +19,8 @@ public final class UnaryExpr extends Expr {
 
     public static Component docs() {
         return DocsBuilder.start()
-                .general("docs.redbyte.general.unary_operator")
-                .value("docs.redbyte.general.expression")
+                .generalTranslate("syntax.redbyte.general.unary_operator")
+                .valueTranslate("syntax.redbyte.general.expression")
                 .build();
     }
 

@@ -23,11 +23,11 @@ public final class CallExpr extends Expr {
 
     public static Component docs() {
         return DocsBuilder.start()
-                .name("docs.redbyte.general.name")
+                .nameTranslate("syntax.redbyte.general.name")
                 .punct("(")
-                .value("docs.redbyte.general.expression")
+                .valueTranslate("syntax.redbyte.general.expression")
                 .punct(", ")
-                .value("docs.redbyte.general.expression")
+                .valueTranslate("syntax.redbyte.general.expression")
                 .punct("...")
                 .punct(")")
                 .build();

@@ -21,9 +21,9 @@ public final class AssignExpr extends Expr {
 
     public static Component docs() {
         return DocsBuilder.start()
-                .name("docs.redbyte.general.name")
+                .nameTranslate("syntax.redbyte.general.name")
                 .punct(" = ")
-                .value("docs.redbyte.general.value")
+                .valueTranslate("syntax.redbyte.general.value")
                 .build();
     }
 

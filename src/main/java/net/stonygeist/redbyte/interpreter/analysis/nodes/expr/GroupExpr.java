@@ -22,7 +22,7 @@ public final class GroupExpr extends Expr {
     public static Component docs() {
         return DocsBuilder.start()
                 .punct("(")
-                .value("docs.redbyte.general.expression")
+                .valueTranslate("syntax.redbyte.general.expression")
                 .punct(")")
                 .build();
     }
