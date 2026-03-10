@@ -20,6 +20,7 @@ import net.stonygeist.redbyte.index.RedbyteCreativeTabs;
 import net.stonygeist.redbyte.index.RedbyteEntities;
 import net.stonygeist.redbyte.index.RedbyteItems;
 import net.stonygeist.redbyte.index.RedbyteMenus;
+import net.stonygeist.redbyte.menu.robo_docs.screen.RoboDocsScreen;
 import net.stonygeist.redbyte.menu.robo_inventory.screen.RoboInventoryScreen;
 import net.stonygeist.redbyte.menu.robo_terminal.screen.RoboTerminalScreen;
 import net.stonygeist.redbyte.server.*;
@@ -73,6 +74,16 @@ public class Redbyte {
                 .decoder(C2SOpenInventoryPacket::decode)
                 .consumerMainThread(C2SOpenInventoryPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(C2SOpenDocsPacket.class, networkID++)
+                .encoder(C2SOpenDocsPacket::encode)
+                .decoder(C2SOpenDocsPacket::decode)
+                .consumerMainThread(C2SOpenDocsPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SOpenTerminalPacket.class, networkID++)
+                .encoder(C2SOpenTerminalPacket::encode)
+                .decoder(C2SOpenTerminalPacket::decode)
+                .consumerMainThread(C2SOpenTerminalPacket::handle)
+                .add();
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
@@ -97,6 +108,7 @@ public class Redbyte {
             EntityRenderers.register(RedbyteEntities.ROBO.get(), RoboEntityRenderer::new);
             MenuScreens.register(RedbyteMenus.ROBO_TERMINAL.get(), RoboTerminalScreen::new);
             MenuScreens.register(RedbyteMenus.ROBO_INVENTORY.get(), RoboInventoryScreen::new);
+            MenuScreens.register(RedbyteMenus.ROBO_DOCS.get(), RoboDocsScreen::new);
         }
     }
 

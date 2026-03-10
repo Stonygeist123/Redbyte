@@ -1,10 +1,11 @@
 package net.stonygeist.redbyte.interpreter.data_types;
 
+import net.minecraft.network.chat.Component;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class DataType {
-    public static final TypeSymbol TYPE = new TypeSymbol("any");
+    public static final TypeSymbol TYPE = new TypeSymbol("any", Component.translatable("interpreter.redbyte.types.any"));
     @NotNull
     private final TypeSymbol type;
 

@@ -8,6 +8,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.stonygeist.redbyte.Redbyte;
+import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.menu.robo_inventory.RoboInventory;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,6 +30,17 @@ public class RoboInventoryScreen extends AbstractContainerScreen<RoboInventory> 
         int y = (height - imageHeight) / 2;
 
         guiGraphics.blit(GUI_TEXTURE, x, y, 0, 0, imageWidth, imageHeight);
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        RoboEntity roboEntity = getMenu().getRoboEntity();
+        if (roboEntity != null && roboEntity.getRedbyteID().isPresent())
+            addRenderableWidget(new BackButton(
+                    (width - imageWidth) / 2 + 5, (height - imageHeight) / 2 + 5, 12, 12,
+                    roboEntity.getRedbyteID().get())
+            );
     }
 
     @Override

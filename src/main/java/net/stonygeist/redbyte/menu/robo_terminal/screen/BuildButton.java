@@ -14,7 +14,7 @@ public class BuildButton extends Button {
     private final UUID redbyteID;
 
     protected BuildButton(int x, int y, int width, int height, Supplier<String> getText, UUID redbyteID) {
-        super(x, y, width, height, Component.translatable("screen.redbyte.robo_terminal.build"), b -> {
+        super(x, y, width, height, Component.translatable("menu.redbyte.robo_terminal.build"), b -> {
         }, Supplier::get);
         this.getText = getText;
         this.redbyteID = redbyteID;
