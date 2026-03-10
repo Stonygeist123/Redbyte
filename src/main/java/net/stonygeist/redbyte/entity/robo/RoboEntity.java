@@ -101,7 +101,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             serverPlayer.openMenu(
                     new SimpleMenuProvider(
                             this,
-                            Component.translatable("screen.redbyte.robo_terminal.title")
+                            Component.translatable("menu.redbyte.robo_terminal.title")
                     ),
                     (buffer) -> buffer.writeUUID(getRedbyteID().get())
             );
@@ -113,7 +113,9 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
 
     @Override
     public @Nullable AbstractContainerMenu createMenu(int containerId, @NotNull Inventory inventory, @NotNull Player player) {
-        return new RoboTerminal(containerId, inventory);
+        if (getRedbyteID().isPresent())
+            return new RoboTerminal(containerId, inventory, getRedbyteID().get());
+        return null;
     }
 
     @Override

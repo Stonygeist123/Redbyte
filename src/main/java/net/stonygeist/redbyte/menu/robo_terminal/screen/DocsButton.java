@@ -5,15 +5,15 @@ import net.minecraft.network.chat.Component;
 import net.minecraftforge.network.PacketDistributor;
 import net.stonygeist.redbyte.Redbyte;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
-import net.stonygeist.redbyte.server.C2SOpenInventoryPacket;
+import net.stonygeist.redbyte.server.C2SOpenDocsPacket;
 
 import java.util.function.Supplier;
 
-public class InventoryButton extends Button {
+public class DocsButton extends Button {
     private final RoboEntity roboEntity;
 
-    protected InventoryButton(int x, int y, int width, int height, RoboEntity roboEntity) {
-        super(x, y, width, height, Component.translatable("menu.redbyte.robo_terminal.inventory"), b -> {
+    protected DocsButton(int x, int y, int width, int height, RoboEntity roboEntity) {
+        super(x, y, width, height, Component.translatable("menu.redbyte.robo_terminal.docs"), b -> {
         }, Supplier::get);
         this.roboEntity = roboEntity;
     }
@@ -21,7 +21,7 @@ public class InventoryButton extends Button {
     @Override
     public void onPress() {
         if (roboEntity.getRedbyteID().isPresent())
-            Redbyte.CHANNEL.send(new C2SOpenInventoryPacket(roboEntity.getRedbyteID().get(), roboEntity.getId()), PacketDistributor.SERVER.noArg());
+            Redbyte.CHANNEL.send(new C2SOpenDocsPacket(roboEntity.getRedbyteID().get()), PacketDistributor.SERVER.noArg());
     }
 
     @Override
