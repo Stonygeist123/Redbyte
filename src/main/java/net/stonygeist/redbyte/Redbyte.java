@@ -36,8 +36,8 @@ public class Redbyte {
     public static final SimpleChannel CHANNEL = ChannelBuilder.named(
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "main")).simpleChannel();
 
-    public Redbyte() {
-        IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+    public Redbyte(FMLJavaModLoadingContext context) {
+        IEventBus bus = context.getModEventBus();
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
 

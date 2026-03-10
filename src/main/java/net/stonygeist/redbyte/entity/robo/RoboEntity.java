@@ -137,7 +137,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         builder.define(isRuntime, false);
         CompoundTag inventoryTag = new CompoundTag();
         ListTag listTag = new ListTag();
-        ItemStackHandler itemHandler = new ItemStackHandler(9);
+        ItemStackHandler itemHandler = new ItemStackHandler(RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS + RedbyteConfigs.ROBO_TOOL_SLOTS);
         for (int i = 0; i < itemHandler.getSlots(); ++i)
             listTag.add(new CompoundTag());
         inventoryTag.put("slots", listTag);
@@ -327,7 +327,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
     public @NotNull ItemStackHandler getInventory() {
         CompoundTag tag = getInventoryTag();
         if (tag == null || !tag.contains("slots"))
-            return new ItemStackHandler(9);
+            return new ItemStackHandler(RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS + RedbyteConfigs.ROBO_TOOL_SLOTS);
 
         ListTag listTag = tag.getList("slots", Tag.TAG_COMPOUND);
         ItemStackHandler inventory = new ItemStackHandler(listTag.size());
