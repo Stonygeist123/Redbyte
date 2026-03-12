@@ -43,12 +43,14 @@ public final class PseudoRobo {
     private String code;
     private boolean buildDone;
     private DiagnosticBag diagnostics;
-    private @Nullable LivingEntity followPlayerGoalProp;
-    private @Nullable Float walkGoalProp;
-    private @Nullable Vec3 walkToGoalProp;
     private ImmutableList<BoundStmt> buildResult = ImmutableList.of();
     private float speed;
     private ItemStackHandler inventory;
+    private @Nullable LivingEntity followPlayerGoalProp;
+    private @Nullable Float walkGoalProp;
+    private @Nullable Vec3 walkToGoalProp;
+    private @Nullable BlockPos destroyBlockGoalProp;
+    private @Nullable LivingEntity attackGoalProp;
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code, ItemStackHandler inventory, boolean buildDone, DiagnosticBag diagnostics) {
         this.redbyteID = redbyteID;
@@ -294,5 +296,21 @@ public final class PseudoRobo {
 
     public void setWalkToGoalProp(@Nullable Vec3 walkToGoalProp) {
         this.walkToGoalProp = walkToGoalProp;
+    }
+
+    public @Nullable BlockPos getDestroyBlockGoalProp() {
+        return destroyBlockGoalProp;
+    }
+
+    public void setDestroyBlockGoalProp(@Nullable BlockPos destroyBlockGoalProp) {
+        this.destroyBlockGoalProp = destroyBlockGoalProp;
+    }
+
+    public @Nullable LivingEntity getAttackGoalProp() {
+        return attackGoalProp;
+    }
+
+    public void setAttackGoalProp(@Nullable LivingEntity attackGoalProp) {
+        this.attackGoalProp = attackGoalProp;
     }
 }

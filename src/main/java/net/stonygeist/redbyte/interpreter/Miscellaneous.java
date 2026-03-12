@@ -2,6 +2,7 @@ package net.stonygeist.redbyte.interpreter;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
@@ -63,7 +64,7 @@ public enum Miscellaneous {
                         robo.getEntity().addPrintOutput(args[0]);
                         return new NothingDataType();
                     }, Component.translatable("functions.redbyte.description.print")))
-            .add(new FunctionSymbol("print", ImmutableList.of(TypeSymbol.Text), NothingDataType.TYPE,
+            .add(new FunctionSymbol("print", ImmutableList.of(TypeSymbol.Number), NothingDataType.TYPE,
                     (ev, robo, args) -> {
                         robo.getEntity().addPrintOutput(args[0]);
                         return new NothingDataType();
@@ -109,13 +110,11 @@ public enum Miscellaneous {
                 return new NothingDataType();
             }, Component.translatable("functions.redbyte.description.stop_follow")))
             .add(new FunctionSymbol("try_attack", ImmutableList.of(CreatureDataType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
-                CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
-                if (entity.isNull())
+                if (args[0] instanceof NothingDataType)
                     return new NothingDataType();
 
-                RoboEntity roboEntity = robo.getEntity();
-                if (roboEntity.canAttack(entity.getEntity()) && roboEntity.isInRange(entity.getEntity()) && roboEntity.hasLineOfSight(entity.getEntity()))
-                    roboEntity.doHurtTarget(entity.getEntity());
+                CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
+                robo.setAttackGoalProp(entity.getEntity());
                 return new NothingDataType();
             }, Component.translatable("functions.redbyte.description.try_attack")))
             .add(new FunctionSymbol("can_attack", ImmutableList.of(CreatureDataType.TYPE), TypeSymbol.Boolean, (ev, robo, args) -> {
@@ -146,6 +145,23 @@ public enum Miscellaneous {
                             return new NothingDataType();
                         return new MonsterDataType(monster);
                     }, Component.translatable("functions.redbyte.description.get_nearest_monster")))
+            .add(new FunctionSymbol("try_destroy", ImmutableList.of(VectorDataType.TYPE), NothingDataType.TYPE,
+                    (ev, robo, args) -> {
+                        RoboEntity roboEntity = robo.getEntity();
+                        VectorDataType vec = (VectorDataType) args[0];
+                        BlockPos blockPos = BlockPos.containing(new Vec3(vec.getVector()));
+                        if (!roboEntity.level().isEmptyBlock(blockPos))
+                            robo.setDestroyBlockGoalProp(blockPos);
+                        return new NothingDataType();
+                    }, Component.translatable("functions.redbyte.description.try_destroy")))
+            .add(new FunctionSymbol("try_destroy", ImmutableList.of(TypeSymbol.Number, TypeSymbol.Number, TypeSymbol.Number), NothingDataType.TYPE,
+                    (ev, robo, args) -> {
+                        RoboEntity roboEntity = robo.getEntity();
+                        BlockPos blockPos = BlockPos.containing((float) args[0], (float) args[1], (float) args[2]);
+                        if (!roboEntity.level().isEmptyBlock(blockPos))
+                            robo.setDestroyBlockGoalProp(blockPos);
+                        return new NothingDataType();
+                    }, Component.translatable("functions.redbyte.description.try_destroy")))
             .build();
 
     public static final ImmutableMap<String, TokenKind> keywords = new ImmutableMap.Builder<String, TokenKind>()

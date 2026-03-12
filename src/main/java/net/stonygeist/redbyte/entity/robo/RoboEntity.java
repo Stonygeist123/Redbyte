@@ -28,9 +28,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.items.ItemStackHandler;
-import net.stonygeist.redbyte.goals.FollowPlayerGoal;
-import net.stonygeist.redbyte.goals.WalkGoal;
-import net.stonygeist.redbyte.goals.WalkToGoal;
+import net.stonygeist.redbyte.goals.*;
 import net.stonygeist.redbyte.index.RedbyteConfigs;
 import net.stonygeist.redbyte.interpreter.Evaluator;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
@@ -75,19 +73,22 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         goalSelector.addGoal(1, new FollowPlayerGoal(this));
         goalSelector.addGoal(2, new WalkGoal(this));
         goalSelector.addGoal(3, new WalkToGoal(this));
+        goalSelector.addGoal(3, new DestroyBlockGoal(this));
+        goalSelector.addGoal(3, new AttackGoal(this));
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return createLivingAttributes()
                 .add(Attributes.MAX_HEALTH, RedbyteConfigs.ROBO_DEFAULT_HEALTH)
                 .add(Attributes.MOVEMENT_SPEED, RedbyteConfigs.ROBO_DEFAULT_SPEED)
-                .add(Attributes.ATTACK_DAMAGE, 5f)
+                .add(Attributes.ATTACK_DAMAGE, 1f)
                 .add(Attributes.FOLLOW_RANGE, 10f)
                 .add(Attributes.KNOCKBACK_RESISTANCE, .6f)
                 .add(Attributes.ARMOR, 12f)
                 .add(Attributes.ARMOR_TOUGHNESS, 6f)
                 .add(Attributes.SCALE, 2.25f)
-                .add(Attributes.STEP_HEIGHT, 1f);
+                .add(Attributes.STEP_HEIGHT, 1f)
+                .add(Attributes.BLOCK_BREAK_SPEED, 1f);
     }
 
     @Override
@@ -234,8 +235,28 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         return result;
     }
 
+    public ItemStack getSword() {
+        ItemStackHandler inventory = getInventory();
+        return inventory.getStackInSlot(inventory.getSlots() - 4);
+    }
+
+    public ItemStack getPickaxe() {
+        ItemStackHandler inventory = getInventory();
+        return inventory.getStackInSlot(inventory.getSlots() - 3);
+    }
+
+    public ItemStack getAxe() {
+        ItemStackHandler inventory = getInventory();
+        return inventory.getStackInSlot(inventory.getSlots() - 2);
+    }
+
+    public ItemStack getShovel() {
+        ItemStackHandler inventory = getInventory();
+        return inventory.getStackInSlot(inventory.getSlots() - 1);
+    }
+
     public boolean isInRange(@NotNull LivingEntity target) {
-        return distanceToSqr(target.position()) <= RedbyteConfigs.ROBO_RANGE;
+        return distanceTo(target) <= (RedbyteConfigs.ROBO_RANGE * 2);
     }
 
     @NotNull

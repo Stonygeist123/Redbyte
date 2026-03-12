@@ -61,8 +61,6 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     private boolean runDisabledUntilBuild = true;
     private CompoundTag lastDiagnosticsTag = new CompoundTag();
 
-    // TODO: Add documentations in-game
-
     public RoboTerminalScreen(RoboTerminal menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
     }
