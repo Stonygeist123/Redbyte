@@ -55,7 +55,7 @@ public enum Miscellaneous {
                 return new AbstractMap.SimpleEntry<>(function, true);
         }
 
-        return new AbstractMap.SimpleEntry<>(null, true);
+        return new AbstractMap.SimpleEntry<>(null, result.size() > 1);
     }
 
     public static final ImmutableList<FunctionSymbol> functions = new ImmutableList.Builder<FunctionSymbol>()
@@ -110,9 +110,6 @@ public enum Miscellaneous {
                 return new NothingDataType();
             }, Component.translatable("functions.redbyte.description.stop_follow")))
             .add(new FunctionSymbol("try_attack", ImmutableList.of(CreatureDataType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
-                if (args[0] instanceof NothingDataType)
-                    return new NothingDataType();
-
                 CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
                 robo.setAttackGoalProp(entity.getEntity());
                 return new NothingDataType();
@@ -141,9 +138,7 @@ public enum Miscellaneous {
                         Vec3 pos = roboEntity.position();
                         AABB searchArea = robo.getEntity().getBoundingBox().inflate((float) args[0]);
                         Monster monster = robo.getServerLevel().getNearestEntity(Monster.class, TargetingConditions.forCombat(), roboEntity, pos.x, pos.y, pos.z, searchArea);
-                        if (monster == null)
-                            return new NothingDataType();
-                        return new MonsterDataType(monster);
+                        return monster == null ? new NothingDataType() : new MonsterDataType(monster);
                     }, Component.translatable("functions.redbyte.description.get_nearest_monster")))
             .add(new FunctionSymbol("try_destroy", ImmutableList.of(VectorDataType.TYPE), NothingDataType.TYPE,
                     (ev, robo, args) -> {

@@ -7,6 +7,7 @@ import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.binder.expr.*;
 import net.stonygeist.redbyte.interpreter.binder.stmt.*;
+import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.interpreter.data_types.NothingDataType;
 import net.stonygeist.redbyte.interpreter.data_types.RoboDataType;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.Objects;
 import java.util.Stack;
 
 public final class Evaluator {
@@ -171,6 +173,12 @@ public final class Evaluator {
             case BoundCallExpr callExpr -> {
                 Object[] args = callExpr.args().stream().map(a -> evaluateExpr(a, robo)).toArray(Object[]::new);
                 FunctionSymbol function = callExpr.symbol();
+                for (int i = 0; i < args.length; ++i) {
+                    Object arg = args[i];
+                    if (arg instanceof NothingDataType && !Objects.equals(function.parameters.get(i).name, DataType.TYPE.name))
+                        throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), callExpr.args().get(i).span());
+                }
+
                 yield function.callback.apply(this, robo, args);
             }
             default ->
