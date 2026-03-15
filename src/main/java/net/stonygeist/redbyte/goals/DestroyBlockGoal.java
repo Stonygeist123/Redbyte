@@ -41,23 +41,23 @@ public class DestroyBlockGoal extends Goal {
             return false;
         }
 
-        property = robo.getDestroyBlockGoalProp();
+        property = robo.popDestroyBlockGoalProp();
         if (property == null)
             return false;
 
         blockState = roboEntity.level().getBlockState(property);
         float hardness = blockState.getDestroySpeed(roboEntity.level(), property);
         if (blockState.isAir() || hardness < 0f) {
-            robo.setDestroyBlockGoalProp(null);
+            robo.popDestroyBlockGoalProp();
             return false;
         }
 
-        return hardness >= 0 && property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE);
+        return hardness >= 0 && property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE * 2);
     }
 
     @Override
     public boolean canContinueToUse() {
-        return property != null && property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE) && roboEntity.level().getBlockState(property).is(blockState.getBlock());
+        return property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE * 2) && roboEntity.level().getBlockState(property).is(blockState.getBlock());
     }
 
     @Override
@@ -101,7 +101,6 @@ public class DestroyBlockGoal extends Goal {
     public void stop() {
         roboEntity.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         roboEntity.level().destroyBlockProgress(roboEntity.getId(), property, -1);
-        robo.setDestroyBlockGoalProp(null);
     }
 
     private ItemStack getBestTool(BlockState state) {

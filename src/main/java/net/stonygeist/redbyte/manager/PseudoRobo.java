@@ -32,6 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.Optional;
+import java.util.Stack;
 import java.util.UUID;
 
 public final class PseudoRobo {
@@ -46,11 +47,11 @@ public final class PseudoRobo {
     private ImmutableList<BoundStmt> buildResult = ImmutableList.of();
     private float speed;
     private ItemStackHandler inventory;
-    private @Nullable LivingEntity followPlayerGoalProp;
-    private @Nullable Float walkGoalProp;
-    private @Nullable Vec3 walkToGoalProp;
-    private @Nullable BlockPos destroyBlockGoalProp;
-    private @Nullable LivingEntity attackGoalProp;
+    private final Stack<LivingEntity> followPlayerGoalProp = new Stack<>();
+    private final Stack<Float> walkGoalProp = new Stack<>();
+    private final Stack<Vec3> walkToGoalProp = new Stack<>();
+    private final Stack<BlockPos> destroyBlockGoalProp = new Stack<>();
+    private final Stack<LivingEntity> attackGoalProp = new Stack<>();
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code, ItemStackHandler inventory, boolean buildDone, DiagnosticBag diagnostics) {
         this.redbyteID = redbyteID;
@@ -192,6 +193,7 @@ public final class PseudoRobo {
     public void evaluate() {
         getEntity().setRuntimeError(null);
         if (diagnostics.isEmpty() && !buildResult.isEmpty()) {
+            destroyBlockGoalProp.clear();
             evaluator = new Evaluator(buildResult.stream().map(Lowerer::lower).collect(ImmutableList.toImmutableList()), this);
             getEntity().setIsRuntime(true);
         }
@@ -273,43 +275,47 @@ public final class PseudoRobo {
         this.diagnostics = diagnostics;
     }
 
-    public @Nullable LivingEntity getFollowPlayerGoalProp() {
+    public Stack<LivingEntity> getFollowPlayerGoalProp() {
         return followPlayerGoalProp;
     }
 
-    public void setFollowEntityGoalProp(@Nullable LivingEntity followPlayerGoalProp) {
-        this.followPlayerGoalProp = followPlayerGoalProp;
+    public void addFollowEntityGoalProp(LivingEntity followPlayerGoalProp) {
+        this.followPlayerGoalProp.add(followPlayerGoalProp);
     }
 
-    public @Nullable Float getWalkGoalProp() {
-        return walkGoalProp;
+    public void popFollowEntityGoalProp() {
+        followPlayerGoalProp.pop();
     }
 
-    public void setWalkGoalProp(@Nullable Float walkGoalProp) {
-        this.walkGoalProp = walkGoalProp;
+    public @Nullable Float popWalkGoalProp() {
+        return walkGoalProp.isEmpty() ? null : walkGoalProp.pop();
     }
 
-    public @Nullable Vec3 getWalkToGoalProp() {
-        return walkToGoalProp;
+    public void addWalkGoalProp(Float walkGoalProp) {
+        this.walkGoalProp.add(walkGoalProp);
     }
 
-    public void setWalkToGoalProp(@Nullable Vec3 walkToGoalProp) {
-        this.walkToGoalProp = walkToGoalProp;
+    public @Nullable Vec3 popWalkToGoalProp() {
+        return walkGoalProp.isEmpty() ? null : walkToGoalProp.pop();
     }
 
-    public @Nullable BlockPos getDestroyBlockGoalProp() {
-        return destroyBlockGoalProp;
+    public void addWalkToGoalProp(Vec3 walkToGoalProp) {
+        this.walkToGoalProp.add(walkToGoalProp);
     }
 
-    public void setDestroyBlockGoalProp(@Nullable BlockPos destroyBlockGoalProp) {
-        this.destroyBlockGoalProp = destroyBlockGoalProp;
+    public @Nullable BlockPos popDestroyBlockGoalProp() {
+        return destroyBlockGoalProp.isEmpty() ? null : destroyBlockGoalProp.pop();
     }
 
-    public @Nullable LivingEntity getAttackGoalProp() {
-        return attackGoalProp;
+    public void addDestroyBlockGoalProp(BlockPos destroyBlockGoalProp) {
+        this.destroyBlockGoalProp.add(destroyBlockGoalProp);
     }
 
-    public void setAttackGoalProp(@Nullable LivingEntity attackGoalProp) {
-        this.attackGoalProp = attackGoalProp;
+    public @Nullable LivingEntity popAttackGoalProp() {
+        return attackGoalProp.isEmpty() ? null : attackGoalProp.pop();
+    }
+
+    public void addAttackGoalProp(LivingEntity attackGoalProp) {
+        this.attackGoalProp.add(attackGoalProp);
     }
 }

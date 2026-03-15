@@ -72,15 +72,15 @@ public enum Miscellaneous {
             .add(new FunctionSymbol("is_nothing", ImmutableList.of(DataType.TYPE), TypeSymbol.Boolean,
                     (ev, robo, args) -> args[0] instanceof NothingDataType, Component.translatable("functions.redbyte.description.is_nothing")))
             .add(new FunctionSymbol("walk", ImmutableList.of(TypeSymbol.Number), NothingDataType.TYPE, (ev, robo, args) -> {
-                robo.setWalkGoalProp((float) args[0]);
+                robo.addWalkGoalProp((float) args[0]);
                 return new NothingDataType();
             }, Component.translatable("functions.redbyte.description.walk")))
             .add(new FunctionSymbol("walk_to", ImmutableList.of(TypeSymbol.Number, TypeSymbol.Number, TypeSymbol.Number), NothingDataType.TYPE, (ev, robo, args) -> {
-                robo.setWalkToGoalProp(new Vec3((float) args[0], (float) args[1], (float) args[2]));
+                robo.addWalkToGoalProp(new Vec3((float) args[0], (float) args[1], (float) args[2]));
                 return new NothingDataType();
             }, Component.translatable("functions.redbyte.description.walk_to")))
             .add(new FunctionSymbol("walk_to", ImmutableList.of(VectorDataType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
-                robo.setWalkToGoalProp(new Vec3(((VectorDataType) args[0]).getVector()));
+                robo.addWalkToGoalProp(new Vec3(((VectorDataType) args[0]).getVector()));
                 return new NothingDataType();
             }, Component.translatable("functions.redbyte.description.walk_to")))
             .add(new FunctionSymbol("jump", ImmutableList.of(), NothingDataType.TYPE, (ev, robo, args) -> {
@@ -102,16 +102,16 @@ public enum Miscellaneous {
                     Component.translatable("functions.redbyte.description.distance")))
             .add(new FunctionSymbol("follow", ImmutableList.of(EntityDataType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
                 CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
-                robo.setFollowEntityGoalProp(entity.getEntity());
+                robo.addFollowEntityGoalProp(entity.getEntity());
                 return new NothingDataType();
             }, Component.translatable("functions.redbyte.description.follow")))
             .add(new FunctionSymbol("stop_follow", ImmutableList.of(), NothingDataType.TYPE, (ev, robo, args) -> {
-                robo.setFollowEntityGoalProp(null);
+                robo.popFollowEntityGoalProp();
                 return new NothingDataType();
             }, Component.translatable("functions.redbyte.description.stop_follow")))
             .add(new FunctionSymbol("try_attack", ImmutableList.of(CreatureDataType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
                 CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
-                robo.setAttackGoalProp(entity.getEntity());
+                robo.addAttackGoalProp(entity.getEntity());
                 return new NothingDataType();
             }, Component.translatable("functions.redbyte.description.try_attack")))
             .add(new FunctionSymbol("can_attack", ImmutableList.of(CreatureDataType.TYPE), TypeSymbol.Boolean, (ev, robo, args) -> {
@@ -146,7 +146,7 @@ public enum Miscellaneous {
                         VectorDataType vec = (VectorDataType) args[0];
                         BlockPos blockPos = BlockPos.containing(new Vec3(vec.getVector()));
                         if (!roboEntity.level().isEmptyBlock(blockPos))
-                            robo.setDestroyBlockGoalProp(blockPos);
+                            robo.addDestroyBlockGoalProp(blockPos);
                         return new NothingDataType();
                     }, Component.translatable("functions.redbyte.description.try_destroy")))
             .add(new FunctionSymbol("try_destroy", ImmutableList.of(TypeSymbol.Number, TypeSymbol.Number, TypeSymbol.Number), NothingDataType.TYPE,
@@ -154,7 +154,7 @@ public enum Miscellaneous {
                         RoboEntity roboEntity = robo.getEntity();
                         BlockPos blockPos = BlockPos.containing((float) args[0], (float) args[1], (float) args[2]);
                         if (!roboEntity.level().isEmptyBlock(blockPos))
-                            robo.setDestroyBlockGoalProp(blockPos);
+                            robo.addDestroyBlockGoalProp(blockPos);
                         return new NothingDataType();
                     }, Component.translatable("functions.redbyte.description.try_destroy")))
             .build();

@@ -7,10 +7,13 @@ import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 import net.stonygeist.redbyte.manager.RoboRegistry;
 
+import java.util.Stack;
+
 public class FollowPlayerGoal extends Goal {
     private final RoboEntity roboEntity;
     private PseudoRobo robo;
-    private LivingEntity property;
+    private Stack<LivingEntity> property;
+    private LivingEntity target;
 
     public FollowPlayerGoal(RoboEntity roboEntity) {
         this.roboEntity = roboEntity;
@@ -27,18 +30,21 @@ public class FollowPlayerGoal extends Goal {
             return false;
         } else {
             property = robo.getFollowPlayerGoalProp();
-            return property != null && property.isAlive();
+            if (property.isEmpty())
+                return false;
+            target = property.peek();
+            return target.isAlive();
         }
     }
 
     @Override
     public boolean canContinueToUse() {
-        return canUse();
+        return !property.isEmpty() && target.equals(property.peek()) && target.isAlive();
     }
 
     @Override
     public void tick() {
-        roboEntity.getNavigation().moveTo(property, robo.getSpeed());
+        roboEntity.getNavigation().moveTo(target, robo.getSpeed());
     }
 
     @Override

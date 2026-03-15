@@ -37,13 +37,13 @@ public class AttackGoal extends Goal {
             return false;
         }
 
-        property = robo.getAttackGoalProp();
+        property = robo.popAttackGoalProp();
         return property != null && property.isAlive() && roboEntity.hasLineOfSight(property) && roboEntity.isInRange(property);
     }
 
     @Override
     public boolean canContinueToUse() {
-        return (property = robo.getAttackGoalProp()) != null && property.isAlive() && property.attackable() && roboEntity.isInRange(property);
+        return property.isAlive() && property.attackable() && roboEntity.isInRange(property);
     }
 
     @Override
@@ -89,7 +89,5 @@ public class AttackGoal extends Goal {
     @Override
     public void stop() {
         roboEntity.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-
-        robo.setAttackGoalProp(null);
     }
 }

@@ -124,7 +124,8 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
                     getMenu().setRunDisabledUntilBuild(false);
                     getMenu().setErrorHighlightingDisabled(false);
                     lastDiagnosticsTag = currentDiagnosticsTag;
-                }
+                } else if (lastDiagnosticsTag.isEmpty())
+                    getMenu().setRunDisabledUntilBuild(false);
             }
 
             clampEditorState();
