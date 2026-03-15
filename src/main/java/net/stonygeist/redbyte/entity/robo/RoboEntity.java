@@ -178,7 +178,6 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
 
         ItemStackHandler inventory = getInventory();
         setInventory(inventory);
-
         setBuildDone(false);
     }
 
@@ -280,8 +279,8 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         return DiagnosticBag.deserializeNBT(entityData.get(diagnostics));
     }
 
-    public CompoundTag getDiagnosticsTag() {
-        return entityData.get(diagnostics).getCompound("diagnostics");
+    public ListTag getDiagnosticsTag() {
+        return (ListTag) entityData.get(diagnostics).get("diagnostics");
     }
 
     public void setDiagnostics(DiagnosticBag diagnostics) {

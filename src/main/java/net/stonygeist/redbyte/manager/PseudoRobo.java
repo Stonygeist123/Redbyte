@@ -180,7 +180,6 @@ public final class PseudoRobo {
         }
 
         buildDone = true;
-        getEntity().setBuildDone(true);
         getEntity().setDiagnostics(diagnostics);
         if (diagnostics.isEmpty())
             Redbyte.CHANNEL.send(new C2SBuildResultPacket(redbyteID, true, DiagnosticBag.EMPTY), PacketDistributor.SERVER.noArg());
