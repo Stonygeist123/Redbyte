@@ -255,7 +255,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
     }
 
     public boolean isInRange(@NotNull LivingEntity target) {
-        return distanceTo(target) <= (RedbyteConfigs.ROBO_RANGE * 2);
+        return distanceTo(target) <= RedbyteConfigs.ROBO_RANGE;
     }
 
     @NotNull

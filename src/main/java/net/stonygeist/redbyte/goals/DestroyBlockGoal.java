@@ -52,12 +52,12 @@ public class DestroyBlockGoal extends Goal {
             return false;
         }
 
-        return hardness >= 0 && property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE * 2);
+        return hardness >= 0 && property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE);
     }
 
     @Override
     public boolean canContinueToUse() {
-        return property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE * 2) && roboEntity.level().getBlockState(property).is(blockState.getBlock());
+        return property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE) && roboEntity.level().getBlockState(property).is(blockState.getBlock());
     }
 
     @Override
