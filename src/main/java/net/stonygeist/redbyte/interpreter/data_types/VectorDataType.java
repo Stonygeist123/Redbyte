@@ -9,6 +9,10 @@ public class VectorDataType extends DataType {
     public static final TypeSymbol TYPE = new TypeSymbol("vector", Component.translatable("interpreter.redbyte.types.vector"));
     private final Vector3f vector;
 
+    public VectorDataType(float x, float y, float z) {
+        this(new Vec3(x, y, z));
+    }
+
     public VectorDataType(Vec3 vector) {
         super(TYPE);
         this.vector = vector.toVector3f();
