@@ -4,6 +4,7 @@
   "menu.redbyte.robo_terminal.title": "Edit Code",
   "menu.redbyte.robo_terminal.run": "Execute",
   "menu.redbyte.robo_terminal.run_disabled": "Build needed",
+  "menu.redbyte.robo_terminal.stop": "Stop",
   "menu.redbyte.robo_terminal.loading": "Loading...",
   "menu.redbyte.robo_terminal.build": "Build",
   "menu.redbyte.robo_terminal.result": "Result",

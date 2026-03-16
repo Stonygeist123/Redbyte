@@ -84,6 +84,11 @@ public class Redbyte {
                 .decoder(C2SOpenTerminalPacket::decode)
                 .consumerMainThread(C2SOpenTerminalPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(C2SStopEvaluationPacket.class, networkID++)
+                .encoder(C2SStopEvaluationPacket::encode)
+                .decoder(C2SStopEvaluationPacket::decode)
+                .consumerMainThread(C2SStopEvaluationPacket::handle)
+                .add();
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {

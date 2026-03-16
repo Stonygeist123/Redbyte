@@ -83,7 +83,8 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             addRenderableWidget(new RunButton(
                     width - (width - TERMINAL_WIDTH) / 2 - 125, (height - TERMINAL_HEIGHT) / 2, 100, 20,
                     getMenu().getRoboEntity(),
-                    this::runIsDisabled)
+                    this::runIsDisabled,
+                    getMenu().getRoboEntity()::getIsRuntime)
             );
         }
     }

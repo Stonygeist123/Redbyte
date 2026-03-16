@@ -157,16 +157,14 @@ public final class PseudoRobo {
             @Nullable Evaluator.EvaluationError error = evaluator.tick(this);
             if (error != null) {
                 getEntity().setRuntimeError(error);
-                getEntity().setIsRuntime(false);
-                evaluator = null;
-            } else if (evaluator.getFinished()) {
-                evaluator = null;
-                getEntity().setIsRuntime(false);
-            }
+                stopEvaluation();
+            } else if (evaluator.getFinished())
+                stopEvaluation();
         }
     }
 
     public void build() {
+        stopEvaluation();
         diagnostics = new DiagnosticBag();
         Lexer lexer = new Lexer(code);
         List<Token> tokens = lexer.lex();
@@ -317,5 +315,10 @@ public final class PseudoRobo {
 
     public void addAttackGoalProp(LivingEntity attackGoalProp) {
         this.attackGoalProp.add(attackGoalProp);
+    }
+
+    public void stopEvaluation() {
+        getEntity().setIsRuntime(false);
+        evaluator = null;
     }
 }
