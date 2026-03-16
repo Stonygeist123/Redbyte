@@ -2,6 +2,7 @@ package net.stonygeist.redbyte.interpreter;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -91,6 +92,8 @@ public enum Miscellaneous {
                 EntityDataType<?> entity = (EntityDataType<?>) args[0];
                 return new VectorDataType(entity.getEntity().position());
             }, Component.translatable("functions.redbyte.description.position")))
+            .add(new FunctionSymbol("vector", ImmutableList.of(TypeSymbol.Number, TypeSymbol.Number, TypeSymbol.Number), VectorDataType.TYPE,
+                    (ev, robo, args) -> new VectorDataType((float) args[0], (float) args[1], (float) args[2]), Component.translatable("functions.redbyte.description.vector")))
             .add(new FunctionSymbol("x", ImmutableList.of(VectorDataType.TYPE), TypeSymbol.Number,
                     (ev, robo, args) -> ((VectorDataType) args[0]).getVector().x, Component.translatable("functions.redbyte.description.x")))
             .add(new FunctionSymbol("y", ImmutableList.of(VectorDataType.TYPE), TypeSymbol.Number,
@@ -100,6 +103,18 @@ public enum Miscellaneous {
             .add(new FunctionSymbol("distance", ImmutableList.of(VectorDataType.TYPE, VectorDataType.TYPE), TypeSymbol.Number,
                     (ev, robo, args) -> ((VectorDataType) args[0]).getVector().distance(((VectorDataType) args[1]).getVector()),
                     Component.translatable("functions.redbyte.description.distance")))
+            .add(new FunctionSymbol("rotate", ImmutableList.of(TypeSymbol.Number), NothingDataType.TYPE,
+                    (ev, robo, args) -> {
+                        robo.getEntity().rotateBy((float) args[0]);
+                        return new NothingDataType();
+                    },
+                    Component.translatable("functions.redbyte.description.rotate")))
+            .add(new FunctionSymbol("look_at", ImmutableList.of(VectorDataType.TYPE), NothingDataType.TYPE,
+                    (ev, robo, args) -> {
+                        robo.getEntity().lookAt(EntityAnchorArgument.Anchor.EYES, new Vec3(((VectorDataType) args[0]).getVector()));
+                        return new NothingDataType();
+                    },
+                    Component.translatable("functions.redbyte.description.look_at")))
             .add(new FunctionSymbol("follow", ImmutableList.of(EntityDataType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
                 CreatureDataType<?> entity = (CreatureDataType<?>) args[0];
                 robo.addFollowEntityGoalProp(entity.getEntity());

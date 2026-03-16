@@ -166,6 +166,13 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
     }
 
     @Override
+    public void tick() {
+        super.tick();
+        yBodyRot = getYRot();
+        yHeadRot = getYRot();
+    }
+
+    @Override
     public void onAddedToWorld() {
         super.onAddedToWorld();
         if (level() instanceof ServerLevel serverLevel) {
@@ -218,6 +225,18 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
     @Override
     public boolean canPickUpLoot() {
         return true;
+    }
+
+    public void rotateBy(float yawOffset) {
+        float yaw = getYRot() + yawOffset;
+
+        absRotateTo(yaw, getXRot());
+        setYHeadRot(yaw);
+        setYBodyRot(yaw);
+
+        yRotO = yaw;
+        yHeadRotO = yaw;
+        yBodyRotO = yaw;
     }
 
     public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
