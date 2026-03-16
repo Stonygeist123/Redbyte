@@ -60,6 +60,14 @@ public final class Lowerer {
                     yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(gotoFalse, ifStmt.thenStmt(), gotoEndStmt, elseLabelStmt, ifStmt.elseStmt(), endLabelStmt)));
                 }
             }
+            case BoundOnceStmt onceStmt -> {
+                BoundOperator.BoundUnaryOperator conditionOperator = BoundOperator.BoundUnaryOperator.bind(TokenKind.Bang, TypeSymbol.Boolean);
+                assert conditionOperator != null;
+                BoundUnaryExpr negatedCondition = new BoundUnaryExpr(onceStmt.condition(), conditionOperator, onceStmt.condition().span());
+                BoundWhileStmt whileStmt = new BoundWhileStmt(negatedCondition, new BoundBlockStmt(ImmutableList.of()));
+                BoundIfStmt ifStmt = new BoundIfStmt(onceStmt.condition(), onceStmt.body(), null);
+                yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(whileStmt, ifStmt)));
+            }
             case BoundWhileStmt whileStmt -> {
                 LabelSymbol continueLabel = generateLabel();
                 LabelSymbol checkLabel = generateLabel();
@@ -72,13 +80,13 @@ public final class Lowerer {
                 BoundLabelStmt endLabelStmt = new BoundLabelStmt(endLabel);
                 yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(gotoCheck, continueLabelStmt, whileStmt.body(), checkLabelStmt, gotoTrue, endLabelStmt)));
             }
-            case BoundOnceStmt onceStmt -> {
-                BoundOperator.BoundUnaryOperator conditionOperator = BoundOperator.BoundUnaryOperator.bind(TokenKind.Bang, TypeSymbol.Boolean);
-                assert conditionOperator != null;
-                BoundUnaryExpr negatedCondition = new BoundUnaryExpr(onceStmt.condition(), conditionOperator, onceStmt.condition().span());
-                BoundWhileStmt whileStmt = new BoundWhileStmt(negatedCondition, new BoundBlockStmt(ImmutableList.of()));
-                BoundIfStmt ifStmt = new BoundIfStmt(onceStmt.condition(), onceStmt.body(), null);
-                yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(whileStmt, ifStmt)));
+            case BoundAlwaysStmt alwaysStmt -> {
+                BoundExpr alwaysTrue = new BoundLiteralExpr(true, null);
+                LabelSymbol endLabel = generateLabel();
+                BoundConditionalGotoStmt gotoFalse = new BoundConditionalGotoStmt(endLabel, alwaysStmt.condition(), false);
+                BoundLabelStmt endLabelStmt = new BoundLabelStmt(endLabel);
+                BoundBlockStmt body = (new BoundBlockStmt(ImmutableList.of(gotoFalse, alwaysStmt.body(), endLabelStmt)));
+                yield rewriteStmt(new BoundWhileStmt(alwaysTrue, body));
             }
             case BoundLoopStmt loopStmt -> {
                 VariableSymbol variable = new VariableSymbol("$LoopVar_" + ++loopVarCount, TypeSymbol.Number);

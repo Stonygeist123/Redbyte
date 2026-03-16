@@ -8,7 +8,7 @@ public enum TokenKind {
 
     Number, String, Identifier, Robo,
 
-    If, Else, Loop, While, Once, Or, And,
+    If, Else, Loop, Once, While, Always, Or, And,
 
     Whitespace, Bad, Eof
 }

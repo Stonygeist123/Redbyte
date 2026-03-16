@@ -67,32 +67,68 @@ public final class Evaluator {
             if (blockStmt.stmts().get(i) instanceof BoundLabelStmt(LabelSymbol label))
                 labelToIndex.put(label, i + 1);
 
-        BoundStmt stmt = blockStmt.stmts().get(index);
-        switch (stmt) {
-            case BoundExprStmt exprStmt:
-                evaluateExpr(exprStmt.expr(), robo);
-                ++index;
-                break;
-            case BoundLabelStmt ignored:
-                ++index;
-                break;
-            case BoundGotoStmt gotoStmt:
-                index = labelToIndex.get(gotoStmt.label());
-                break;
-            case BoundConditionalGotoStmt conditionalGotoStmt:
-                Object condition = evaluateExpr(conditionalGotoStmt.condition(), robo);
-                if (condition instanceof NothingDataType)
-                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), conditionalGotoStmt.condition().span());
-
-                if ((boolean) condition == conditionalGotoStmt.jumpIfTrue())
-                    index = labelToIndex.get(conditionalGotoStmt.label());
-                else
+        int remainingSteps = blockStmt.stmts().size() + 1;
+        while (remainingSteps-- > 0 && index < blockStmt.stmts().size()) {
+            BoundStmt stmt = blockStmt.stmts().get(index);
+            switch (stmt) {
+                case BoundExprStmt exprStmt:
+                    evaluateExpr(exprStmt.expr(), robo);
                     ++index;
-                break;
-            default:
-                throw new RuntimeException();
+                    return;
+                case BoundLabelStmt ignored:
+                    ++index;
+                    break;
+                case BoundGotoStmt gotoStmt:
+                    index = labelToIndex.get(gotoStmt.label());
+                    break;
+                case BoundConditionalGotoStmt conditionalGotoStmt:
+                    Object condition = evaluateExpr(conditionalGotoStmt.condition(), robo);
+                    if (condition instanceof NothingDataType)
+                        throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), conditionalGotoStmt.condition().span());
+
+                    if ((boolean) condition == conditionalGotoStmt.jumpIfTrue())
+                        index = labelToIndex.get(conditionalGotoStmt.label());
+                    else
+                        ++index;
+                    break;
+                default:
+                    throw new RuntimeException();
+            }
         }
     }
+
+//    private void evaluate(BoundBlockStmt blockStmt, PseudoRobo robo) {
+//        labelToIndex = new Hashtable<>();
+//        for (int i = 0; i < blockStmt.stmts().size(); ++i)
+//            if (blockStmt.stmts().get(i) instanceof BoundLabelStmt(LabelSymbol label))
+//                labelToIndex.put(label, i + 1);
+//
+//        BoundStmt stmt = blockStmt.stmts().get(index);
+//        switch (stmt) {
+//            case BoundExprStmt exprStmt:
+//                evaluateExpr(exprStmt.expr(), robo);
+//                ++index;
+//                break;
+//            case BoundLabelStmt ignored:
+//                ++index;
+//                break;
+//            case BoundGotoStmt gotoStmt:
+//                index = labelToIndex.get(gotoStmt.label());
+//                break;
+//            case BoundConditionalGotoStmt conditionalGotoStmt:
+//                Object condition = evaluateExpr(conditionalGotoStmt.condition(), robo);
+//                if (condition instanceof NothingDataType)
+//                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), conditionalGotoStmt.condition().span());
+//
+//                if ((boolean) condition == conditionalGotoStmt.jumpIfTrue())
+//                    index = labelToIndex.get(conditionalGotoStmt.label());
+//                else
+//                    ++index;
+//                break;
+//            default:
+//                throw new RuntimeException();
+//        }
+//    }
 
     private @NotNull Object evaluateExpr(BoundExpr expr, PseudoRobo robo) throws EvaluationError {
         return switch (expr) {

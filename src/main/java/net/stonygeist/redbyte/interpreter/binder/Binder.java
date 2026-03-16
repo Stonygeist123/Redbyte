@@ -51,6 +51,14 @@ public final class Binder {
                 @Nullable BoundStmt elseStmt = ifStmt.elseStmt == null ? null : bindStmt(ifStmt.elseStmt);
                 yield new BoundIfStmt(condition, thenStmt, elseStmt);
             }
+            case OnceStmt onceStmt -> {
+                BoundExpr condition = bindExpr(onceStmt.condition);
+                if (condition.getType() != TypeSymbol.Boolean)
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", TypeSymbol.Boolean.toString(), condition.getType().toString()), onceStmt.condition.span()));
+
+                BoundStmt thenStmt = bindStmt(onceStmt.stmt);
+                yield new BoundOnceStmt(condition, thenStmt);
+            }
             case WhileStmt whileStmt -> {
                 BoundExpr condition = bindExpr(whileStmt.condition);
                 if (condition.getType() != TypeSymbol.Boolean)
@@ -59,13 +67,13 @@ public final class Binder {
                 BoundStmt thenStmt = bindStmt(whileStmt.stmt);
                 yield new BoundWhileStmt(condition, thenStmt);
             }
-            case OnceStmt onceStmt -> {
-                BoundExpr condition = bindExpr(onceStmt.condition);
+            case AlwaysStmt alwaysStmt -> {
+                BoundExpr condition = bindExpr(alwaysStmt.condition);
                 if (condition.getType() != TypeSymbol.Boolean)
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", TypeSymbol.Boolean.toString(), condition.getType().toString()), onceStmt.condition.span()));
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", TypeSymbol.Boolean.toString(), condition.getType().toString()), alwaysStmt.condition.span()));
 
-                BoundStmt thenStmt = bindStmt(onceStmt.stmt);
-                yield new BoundOnceStmt(condition, thenStmt);
+                BoundStmt thenStmt = bindStmt(alwaysStmt.stmt);
+                yield new BoundAlwaysStmt(condition, thenStmt);
             }
             case LoopStmt loopStmt -> {
                 BoundExpr count = bindExpr(loopStmt.count);
