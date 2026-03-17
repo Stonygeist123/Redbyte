@@ -36,8 +36,9 @@ public class Parser {
         return switch (token.kind) {
             case LBrace -> parseBlockStmt(token);
             case If -> parseIfStmt(token);
-            case While -> parseWhileStmt(token);
             case Once -> parseOnceStmt(token);
+            case While -> parseWhileStmt(token);
+            case Always -> parseAlwaysStmt(token);
             case Loop -> parseLoopStmt(token);
             default -> new ExprStmt(parseExpr(0));
         };
@@ -79,6 +80,13 @@ public class Parser {
         Expr condition = parseExpr(0);
         Stmt stmt = parseStmt();
         return new WhileStmt(keyword, condition, stmt);
+    }
+
+    private Stmt parseAlwaysStmt(Token keyword) {
+        ++current;
+        Expr condition = parseExpr(0);
+        Stmt stmt = parseStmt();
+        return new AlwaysStmt(keyword, condition, stmt);
     }
 
     private Stmt parseOnceStmt(Token keyword) {

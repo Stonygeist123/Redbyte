@@ -13,8 +13,7 @@ import net.stonygeist.redbyte.menu.robo_inventory.RoboInventory;
 import org.jetbrains.annotations.NotNull;
 
 public class RoboInventoryScreen extends AbstractContainerScreen<RoboInventory> {
-    private static final ResourceLocation GUI_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(Redbyte.MOD_ID, "textures/gui/robo_inventory/robo_inventory.png");
+    private static final ResourceLocation GUI_TEXTURE = Redbyte.asResource("textures/gui/robo_inventory_with_tools.png");
 
     public RoboInventoryScreen(RoboInventory menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);

@@ -24,10 +24,10 @@ public class WalkToGoal extends Goal {
                 RoboRegistry registry = RoboRegistry.get((ServerLevel) roboEntity.level());
                 robo = registry.get(roboEntity.getRedbyteID().get());
             }
-            
+
             return false;
         } else {
-            property = robo.getWalkToGoalProp();
+            property = robo.popWalkToGoalProp();
             if (property == null)
                 return false;
 
@@ -38,7 +38,7 @@ public class WalkToGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        property = robo.getWalkToGoalProp();
+        property = robo.popWalkToGoalProp();
         return property != null;
     }
 
@@ -47,6 +47,6 @@ public class WalkToGoal extends Goal {
         if (roboEntity.getNavigation().shouldRecomputePath(BlockPos.containing(property)))
             roboEntity.getNavigation().recomputePath();
         else if (roboEntity.getNavigation().isDone())
-            robo.setWalkToGoalProp(null);
+            stop();
     }
 }

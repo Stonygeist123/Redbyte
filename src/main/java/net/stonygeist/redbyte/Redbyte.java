@@ -36,8 +36,8 @@ public class Redbyte {
     public static final SimpleChannel CHANNEL = ChannelBuilder.named(
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "main")).simpleChannel();
 
-    public Redbyte() {
-        IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+    public Redbyte(FMLJavaModLoadingContext context) {
+        IEventBus bus = context.getModEventBus();
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
 
@@ -83,6 +83,11 @@ public class Redbyte {
                 .encoder(C2SOpenTerminalPacket::encode)
                 .decoder(C2SOpenTerminalPacket::decode)
                 .consumerMainThread(C2SOpenTerminalPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(C2SStopEvaluationPacket.class, networkID++)
+                .encoder(C2SStopEvaluationPacket::encode)
+                .decoder(C2SStopEvaluationPacket::decode)
+                .consumerMainThread(C2SStopEvaluationPacket::handle)
                 .add();
     }
 

@@ -7,6 +7,7 @@ import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.binder.expr.*;
 import net.stonygeist.redbyte.interpreter.binder.stmt.*;
+import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.interpreter.data_types.NothingDataType;
 import net.stonygeist.redbyte.interpreter.data_types.RoboDataType;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.Objects;
 import java.util.Stack;
 
 public final class Evaluator {
@@ -65,30 +67,33 @@ public final class Evaluator {
             if (blockStmt.stmts().get(i) instanceof BoundLabelStmt(LabelSymbol label))
                 labelToIndex.put(label, i + 1);
 
-        BoundStmt stmt = blockStmt.stmts().get(index);
-        switch (stmt) {
-            case BoundExprStmt exprStmt:
-                evaluateExpr(exprStmt.expr(), robo);
-                ++index;
-                break;
-            case BoundLabelStmt ignored:
-                ++index;
-                break;
-            case BoundGotoStmt gotoStmt:
-                index = labelToIndex.get(gotoStmt.label());
-                break;
-            case BoundConditionalGotoStmt conditionalGotoStmt:
-                Object condition = evaluateExpr(conditionalGotoStmt.condition(), robo);
-                if (condition instanceof NothingDataType)
-                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), conditionalGotoStmt.condition().span());
-
-                if ((boolean) condition == conditionalGotoStmt.jumpIfTrue())
-                    index = labelToIndex.get(conditionalGotoStmt.label());
-                else
+        int remainingSteps = blockStmt.stmts().size() + 1;
+        while (remainingSteps-- > 0 && index < blockStmt.stmts().size()) {
+            BoundStmt stmt = blockStmt.stmts().get(index);
+            switch (stmt) {
+                case BoundExprStmt exprStmt:
+                    evaluateExpr(exprStmt.expr(), robo);
                     ++index;
-                break;
-            default:
-                throw new RuntimeException();
+                    return;
+                case BoundLabelStmt ignored:
+                    ++index;
+                    break;
+                case BoundGotoStmt gotoStmt:
+                    index = labelToIndex.get(gotoStmt.label());
+                    break;
+                case BoundConditionalGotoStmt conditionalGotoStmt:
+                    Object condition = evaluateExpr(conditionalGotoStmt.condition(), robo);
+                    if (condition instanceof NothingDataType)
+                        throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), conditionalGotoStmt.condition().span());
+
+                    if ((boolean) condition == conditionalGotoStmt.jumpIfTrue())
+                        index = labelToIndex.get(conditionalGotoStmt.label());
+                    else
+                        ++index;
+                    break;
+                default:
+                    throw new RuntimeException();
+            }
         }
     }
 
@@ -171,6 +176,12 @@ public final class Evaluator {
             case BoundCallExpr callExpr -> {
                 Object[] args = callExpr.args().stream().map(a -> evaluateExpr(a, robo)).toArray(Object[]::new);
                 FunctionSymbol function = callExpr.symbol();
+                for (int i = 0; i < args.length; ++i) {
+                    Object arg = args[i];
+                    if (arg instanceof NothingDataType && !Objects.equals(function.parameters.get(i).name, DataType.TYPE.name))
+                        throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), callExpr.args().get(i).span());
+                }
+
                 yield function.callback.apply(this, robo, args);
             }
             default ->

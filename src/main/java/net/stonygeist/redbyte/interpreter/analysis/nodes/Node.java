@@ -69,5 +69,5 @@ public abstract class Node {
     }
 
     public static final List<Class<? extends Expr>> allExpressions = List.of(LiteralExpr.class, BinaryExpr.class, UnaryExpr.class, NameExpr.class, AssignExpr.class, CallExpr.class, GroupExpr.class, RoboExpr.class);
-    public static final List<Class<? extends Stmt>> allStatements = List.of(BlockStmt.class, ExprStmt.class, IfStmt.class, LoopStmt.class, WhileStmt.class, OnceStmt.class);
+    public static final List<Class<? extends Stmt>> allStatements = List.of(BlockStmt.class, ExprStmt.class, IfStmt.class, LoopStmt.class, WhileStmt.class, AlwaysStmt.class, OnceStmt.class);
 }

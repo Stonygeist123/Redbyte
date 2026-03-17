@@ -5,7 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.font.TextFieldHelper;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.util.FormattedCharSequence;
@@ -55,13 +55,9 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     private int selectionEndChar;
     private boolean hasSelection;
 
+    private ListTag lastDiagnosticsTag = new ListTag();
     private TextFieldHelper textFieldHelper;
     private boolean followCursorOnRender = true;
-    private boolean errorHighlightingDisabled;
-    private boolean runDisabledUntilBuild = true;
-    private CompoundTag lastDiagnosticsTag = new CompoundTag();
-
-    // TODO: Add documentations in-game
 
     public RoboTerminalScreen(RoboTerminal menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -87,7 +83,8 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             addRenderableWidget(new RunButton(
                     width - (width - TERMINAL_WIDTH) / 2 - 125, (height - TERMINAL_HEIGHT) / 2, 100, 20,
                     getMenu().getRoboEntity(),
-                    this::runIsDisabled)
+                    this::runIsDisabled,
+                    getMenu().getRoboEntity()::getIsRuntime)
             );
         }
     }
@@ -123,13 +120,13 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             guiGraphics.drawString(font, Component.translatable("menu.redbyte.robo_terminal.loading"), width / 2, height / 2, 0xffffffff);
         } else {
             if (getMenu().getRoboEntity() != null) {
-                CompoundTag currentDiagnosticsTag = getMenu().getRoboEntity().getDiagnosticsTag();
-                if (!currentDiagnosticsTag.equals(lastDiagnosticsTag)) {
-                    errorHighlightingDisabled = false;
-                    runDisabledUntilBuild = false;
-                    lastDiagnosticsTag = currentDiagnosticsTag.copy();
-                } else if (lastDiagnosticsTag.isEmpty() && currentDiagnosticsTag.isEmpty())
-                    runDisabledUntilBuild = false;
+                ListTag currentDiagnosticsTag = getMenu().getRoboEntity().getDiagnosticsTag();
+                if (!lastDiagnosticsTag.equals(currentDiagnosticsTag)) {
+                    getMenu().setRunDisabledUntilBuild(false);
+                    getMenu().setErrorHighlightingDisabled(false);
+                    lastDiagnosticsTag = currentDiagnosticsTag;
+                } else if (lastDiagnosticsTag.isEmpty())
+                    getMenu().setRunDisabledUntilBuild(false);
             }
 
             clampEditorState();
@@ -389,14 +386,14 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
 
     private void setText(String text) {
         getMenu().getTerminalText().setText(text, curLine);
-        errorHighlightingDisabled = true;
-        runDisabledUntilBuild = true;
+        getMenu().setRunDisabledUntilBuild(true);
+        getMenu().setErrorHighlightingDisabled(true);
     }
 
     private boolean runIsDisabled() {
         if (getMenu().getRoboEntity() == null)
             return true;
-        if (runDisabledUntilBuild)
+        if (getMenu().isRunDisabledUntilBuild())
             return true;
         return !getMenu().getRoboEntity().getBuildDone() || !getMenu().getRoboEntity().getDiagnostics().isEmpty();
     }
@@ -420,7 +417,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         if (roboEntity.getRuntimeError() != null)
             diagnostics.add(roboEntity.getRuntimeError());
 
-        if (diagnostics.isEmpty() && roboEntity.getBuildDone() && !runtime) {
+        if (diagnostics.isEmpty() && roboEntity.getBuildDone() && !runIsDisabled() && !runtime) {
             guiGraphics.drawString(font, Component.translatable("menu.redbyte.robo_terminal.no_errors"), panelX, contentY, 0xffaaaaaa);
             return;
         }
@@ -474,10 +471,9 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             int clipStart,
             int clipEnd
     ) {
-        if (errorHighlightingDisabled)
+        if (getMenu().isErrorHighlightingDisabled())
             return;
-
-        if (getMenu().getRoboEntity() == null || getMenu().getRoboEntity().getDiagnostics().isEmpty() || !getMenu().getRoboEntity().getBuildDone())
+        if (getMenu().getRoboEntity() == null || getMenu().getRoboEntity().getDiagnostics().isEmpty())
             return;
 
         int lineNumber = lineIndex + 1;

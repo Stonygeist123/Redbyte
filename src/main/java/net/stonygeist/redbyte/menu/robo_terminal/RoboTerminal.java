@@ -26,6 +26,8 @@ public class RoboTerminal extends AbstractContainerMenu {
     private final UUID redbyteID;
     private TerminalText terminalText;
     private RoboEntity roboEntity;
+    private boolean runDisabledUntilBuild = true;
+    private boolean errorHighlightingDisabled;
 
     public RoboTerminal(int containerId, Inventory inventory, FriendlyByteBuf data) {
         this(containerId, inventory, data.readUUID());
@@ -81,5 +83,21 @@ public class RoboTerminal extends AbstractContainerMenu {
         if (getRoboEntity() != null)
             Redbyte.CHANNEL.send(new C2SStoreRoboCodePacket(getRoboEntity().getRedbyteID().orElse(null), terminalText.toString()), PacketDistributor.SERVER.noArg());
         super.removed(player);
+    }
+
+    public boolean isRunDisabledUntilBuild() {
+        return runDisabledUntilBuild;
+    }
+
+    public void setRunDisabledUntilBuild(boolean runDisabledUntilBuild) {
+        this.runDisabledUntilBuild = runDisabledUntilBuild;
+    }
+
+    public boolean isErrorHighlightingDisabled() {
+        return errorHighlightingDisabled;
+    }
+
+    public void setErrorHighlightingDisabled(boolean errorHighlightingDisabled) {
+        this.errorHighlightingDisabled = errorHighlightingDisabled;
     }
 }
