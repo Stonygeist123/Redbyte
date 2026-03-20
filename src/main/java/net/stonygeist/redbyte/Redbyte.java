@@ -16,10 +16,7 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.network.ChannelBuilder;
 import net.minecraftforge.network.SimpleChannel;
 import net.stonygeist.redbyte.entity.robo.RoboEntityRenderer;
-import net.stonygeist.redbyte.index.RedbyteCreativeTabs;
-import net.stonygeist.redbyte.index.RedbyteEntities;
-import net.stonygeist.redbyte.index.RedbyteItems;
-import net.stonygeist.redbyte.index.RedbyteMenus;
+import net.stonygeist.redbyte.index.*;
 import net.stonygeist.redbyte.menu.robo_docs.screen.RoboDocsScreen;
 import net.stonygeist.redbyte.menu.robo_inventory.screen.RoboInventoryScreen;
 import net.stonygeist.redbyte.menu.robo_terminal.screen.RoboTerminalScreen;
@@ -32,7 +29,6 @@ public class Redbyte {
     public static final String MOD_ID = "redbyte";
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    private static final String PROTOCOL_VERSION = "1";
     public static final SimpleChannel CHANNEL = ChannelBuilder.named(
             ResourceLocation.fromNamespaceAndPath(MOD_ID, "main")).simpleChannel();
 
@@ -45,6 +41,7 @@ public class Redbyte {
         RedbyteItems.register(bus);
         RedbyteEntities.register(bus);
         RedbyteMenus.register(bus);
+        RedbyteRecipes.register(bus);
 
         bus.addListener(this::addCreative);
 
