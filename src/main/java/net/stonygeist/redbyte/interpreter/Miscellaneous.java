@@ -8,6 +8,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
@@ -15,6 +18,7 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.data_types.*;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
+import org.joml.Vector3f;
 
 import java.util.AbstractMap;
 import java.util.List;
@@ -92,6 +96,10 @@ public enum Miscellaneous {
                 EntityDataType<?> entity = (EntityDataType<?>) args[0];
                 return new VectorDataType(entity.getEntity().position());
             }, Component.translatable("functions.redbyte.description.position")))
+            .add(new FunctionSymbol("position", ImmutableList.of(BlockDataType.TYPE), VectorDataType.TYPE, (ev, robo, args) -> {
+                BlockDataType block = (BlockDataType) args[0];
+                return new VectorDataType(block.getPosition().getCenter());
+            }, Component.translatable("functions.redbyte.description.position")))
             .add(new FunctionSymbol("vector", ImmutableList.of(TypeSymbol.Number, TypeSymbol.Number, TypeSymbol.Number), VectorDataType.TYPE,
                     (ev, robo, args) -> new VectorDataType((float) args[0], (float) args[1], (float) args[2]), Component.translatable("functions.redbyte.description.vector")))
             .add(new FunctionSymbol("x", ImmutableList.of(VectorDataType.TYPE), TypeSymbol.Number,
@@ -155,23 +163,57 @@ public enum Miscellaneous {
                         Monster monster = robo.getServerLevel().getNearestEntity(Monster.class, TargetingConditions.forCombat(), roboEntity, pos.x, pos.y, pos.z, searchArea);
                         return monster == null ? new NothingDataType() : new MonsterDataType(monster);
                     }, Component.translatable("functions.redbyte.description.get_nearest_monster")))
-            .add(new FunctionSymbol("try_destroy", ImmutableList.of(VectorDataType.TYPE), NothingDataType.TYPE,
+            .add(new FunctionSymbol("get_block", ImmutableList.of(VectorDataType.TYPE), BlockDataType.TYPE,
                     (ev, robo, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
-                        VectorDataType vec = (VectorDataType) args[0];
-                        BlockPos blockPos = BlockPos.containing(new Vec3(vec.getVector()));
+                        Vector3f vec = ((VectorDataType) args[0]).getVector();
+                        BlockPos blockPos = BlockPos.containing(vec.x, vec.y, vec.z);
+                        return roboEntity.level().isEmptyBlock(blockPos) ? new NothingDataType() : new BlockDataType(roboEntity.level().getBlockState(blockPos), blockPos);
+                    }, Component.translatable("functions.redbyte.description.get_block")))
+            .add(new FunctionSymbol("try_destroy", ImmutableList.of(BlockDataType.TYPE), NothingDataType.TYPE,
+                    (ev, robo, args) -> {
+                        RoboEntity roboEntity = robo.getEntity();
+                        BlockPos blockPos = ((BlockDataType) args[0]).getPosition();
                         if (!roboEntity.level().isEmptyBlock(blockPos))
                             robo.addDestroyBlockGoalProp(blockPos);
                         return new NothingDataType();
                     }, Component.translatable("functions.redbyte.description.try_destroy")))
-            .add(new FunctionSymbol("try_destroy", ImmutableList.of(TypeSymbol.Number, TypeSymbol.Number, TypeSymbol.Number), NothingDataType.TYPE,
+            .add(new FunctionSymbol("try_place", ImmutableList.of(TypeSymbol.Number, VectorDataType.TYPE), NothingDataType.TYPE,
                     (ev, robo, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
-                        BlockPos blockPos = BlockPos.containing((float) args[0], (float) args[1], (float) args[2]);
-                        if (!roboEntity.level().isEmptyBlock(blockPos))
-                            robo.addDestroyBlockGoalProp(blockPos);
+                        float slotFloat = (float) args[0];
+                        if (Math.round(slotFloat) != slotFloat)
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 0);
+
+                        int slot = Math.round(slotFloat) - 1;
+                        if (slot >= roboEntity.getInventory().getSlots() || slot < 0)
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_range", 0, roboEntity.getInventory().getSlots()), 0);
+
+                        BlockPos pos = BlockPos.containing(new Vec3(((VectorDataType) args[1]).getVector()));
+                        if (roboEntity.level().isEmptyBlock(pos)) {
+                            ItemStack itemStack = roboEntity.extractItem(slot, 1, false);
+                            if (itemStack.isEmpty())
+                                throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_item"), 0);
+                            if (!(itemStack.getItem() instanceof BlockItem blockItem)) {
+                                roboEntity.insertItem(slot, itemStack, false);
+                                throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_not_placeable"), 0);
+                            }
+
+                            robo.getServerLevel().setBlock(pos, blockItem.getBlock().defaultBlockState(), Block.UPDATE_ALL);
+                        }
+
                         return new NothingDataType();
-                    }, Component.translatable("functions.redbyte.description.try_destroy")))
+                    }, Component.translatable("functions.redbyte.description.try_place")))
+            .add(new FunctionSymbol("get_item", ImmutableList.of(TypeSymbol.Number), ItemStackDataType.TYPE,
+                    (ev, robo, args) -> {
+                        RoboEntity roboEntity = robo.getEntity();
+                        float slotFloat = (float) args[0];
+                        if (Math.round(slotFloat) != slotFloat)
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 0);
+
+                        int slot = (int) args[0];
+                        return new ItemStackDataType(roboEntity.getInventory().getStackInSlot(slot), slot);
+                    }, Component.translatable("functions.redbyte.description.get_item")))
             .build();
 
     public static final ImmutableMap<String, TokenKind> keywords = new ImmutableMap.Builder<String, TokenKind>()

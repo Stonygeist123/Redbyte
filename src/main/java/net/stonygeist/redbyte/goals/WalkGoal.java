@@ -30,16 +30,19 @@ public class WalkGoal extends Goal {
                 RoboRegistry registry = RoboRegistry.get((ServerLevel) roboEntity.level());
                 robo = registry.get(roboEntity.getRedbyteID().get());
             }
-        } else {
-            property = robo.popWalkGoalProp();
-            if (property != null) {
-                int horizontalIndex = Mth.floor((double) (robo.getEntity().getYRot() * 4.0F / 360.0F) + 0.5D) & 3;
-                Direction direction = Direction.from2DDataValue(horizontalIndex);
-                targetPos = roboEntity.position().relative(direction, property + 1);
-                roboEntity.getNavigation().moveTo(targetPos.x, targetPos.y, targetPos.z, robo.getSpeed());
-                Path path = roboEntity.getNavigation().getPath();
-                return path != null;
-            }
+        }
+
+        if (!roboEntity.getIsRuntime())
+            return false;
+
+        property = robo.popWalkGoalProp();
+        if (property != null) {
+            int horizontalIndex = Mth.floor((double) (robo.getEntity().getYRot() * 4.0F / 360.0F) + 0.5D) & 3;
+            Direction direction = Direction.from2DDataValue(horizontalIndex);
+            targetPos = roboEntity.position().relative(direction, property + 1);
+            roboEntity.getNavigation().moveTo(targetPos.x, targetPos.y, targetPos.z, robo.getSpeed());
+            Path path = roboEntity.getNavigation().getPath();
+            return path != null;
         }
 
         return false;

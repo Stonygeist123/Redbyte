@@ -26,14 +26,17 @@ public class WalkToGoal extends Goal {
             }
 
             return false;
-        } else {
-            property = robo.popWalkToGoalProp();
-            if (property == null)
-                return false;
-
-            roboEntity.getNavigation().moveTo(property.x, property.y, property.z, robo.getSpeed());
-            return roboEntity.getNavigation().getPath() != null;
         }
+
+        if (!roboEntity.getIsRuntime())
+            return false;
+
+        property = robo.popWalkToGoalProp();
+        if (property == null)
+            return false;
+
+        roboEntity.getNavigation().moveTo(property.x, property.y, property.z, robo.getSpeed());
+        return roboEntity.getNavigation().getPath() != null;
     }
 
     @Override

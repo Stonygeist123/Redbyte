@@ -28,13 +28,15 @@ public class FollowPlayerGoal extends Goal {
             }
 
             return false;
-        } else {
-            property = robo.getFollowPlayerGoalProp();
-            if (property.isEmpty())
-                return false;
-            target = property.peek();
-            return target.isAlive();
         }
+
+        if (!roboEntity.getIsRuntime())
+            return false;
+
+        property = robo.getFollowPlayerGoalProp();
+        if (property.isEmpty()) return false;
+        target = property.peek();
+        return target.isAlive();
     }
 
     @Override

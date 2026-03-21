@@ -37,6 +37,9 @@ public class AttackGoal extends Goal {
             return false;
         }
 
+        if (!roboEntity.getIsRuntime())
+            return false;
+
         property = robo.popAttackGoalProp();
         return property != null && property.isAlive() && roboEntity.hasLineOfSight(property) && roboEntity.isInRange(property);
     }
