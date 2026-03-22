@@ -161,13 +161,17 @@ public final class Binder {
                 }
 
                 if (function.parameters.size() != callExpr.args.length) {
-                    TextSpan firstSpan = callExpr.args[0].span();
-                    TextSpan lastSpan = callExpr.args[callExpr.args.length - 1].span();
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", function.parameters.size(), callExpr.args.length), new TextSpan(firstSpan.startColumn(), lastSpan.endColumn(), firstSpan.lineStart(), lastSpan.lineEnd())));
+                    if (callExpr.args.length == 0)
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", function.parameters.size(), "none"), new TextSpan(callExpr.lParen.span().startColumn(), callExpr.rParen.span().endColumn(), callExpr.lParen.span().lineStart(), callExpr.rParen.span().lineEnd())));
+                    else {
+                        TextSpan firstSpan = callExpr.args[0].span();
+                        TextSpan lastSpan = callExpr.args[callExpr.args.length - 1].span();
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", function.parameters.size(), callExpr.args.length), new TextSpan(firstSpan.startColumn(), lastSpan.endColumn(), firstSpan.lineStart(), lastSpan.lineEnd())));
+                    }
                 }
 
                 for (int i = 0; i < Math.min(args.size(), function.parameters.size()); i++)
-                    if (!args.get(i).getType().equals(function.parameters.get(i)))
+                    if (!function.parameters.get(i).equals(args.get(i).getType()))
                         diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", function.parameters.get(i), args.get(i).getType()), callExpr.args[i].span()));
 
                 yield new BoundCallExpr(function, args, callExpr.span());

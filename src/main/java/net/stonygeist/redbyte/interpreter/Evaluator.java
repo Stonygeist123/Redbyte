@@ -182,7 +182,11 @@ public final class Evaluator {
                         throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), callExpr.args().get(i).span());
                 }
 
-                yield function.callback.apply(this, robo, args);
+                try {
+                    yield function.callback.apply(this, robo, args);
+                } catch (Evaluator.CallEvaluationError e) {
+                    throw new EvaluationError(e.getMessage(), callExpr.args().get(e.getArg()).span());
+                }
             }
             default ->
                     throw new EvaluationError(Component.translatable("runtime.redbyte.error.unsupported_expression"), expr.span());
@@ -207,6 +211,19 @@ public final class Evaluator {
 
         public TextSpan getSpan() {
             return span;
+        }
+    }
+
+    public static final class CallEvaluationError extends RuntimeException {
+        private final int arg;
+
+        public CallEvaluationError(Component message, int arg) {
+            super(message.getString());
+            this.arg = arg;
+        }
+
+        public int getArg() {
+            return arg;
         }
     }
 

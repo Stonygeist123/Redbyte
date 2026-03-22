@@ -41,6 +41,9 @@ public class DestroyBlockGoal extends Goal {
             return false;
         }
 
+        if (!roboEntity.getIsRuntime())
+            return false;
+
         property = robo.popDestroyBlockGoalProp();
         if (property == null)
             return false;
