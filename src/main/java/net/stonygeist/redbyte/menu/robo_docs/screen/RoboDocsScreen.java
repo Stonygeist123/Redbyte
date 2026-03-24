@@ -13,6 +13,7 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.Node;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.Expr;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.Stmt;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import net.stonygeist.redbyte.menu.robo_docs.RoboDocs;
 import org.jetbrains.annotations.NotNull;
 
@@ -265,25 +266,34 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         guiGraphics.drawString(font, "(", x + textX, y, PUNCTUATION_COLOR);
         textX += font.width("(");
         for (int i = 0; i < function.parameters.size(); i++) {
-            Component paramTypeName = function.parameters.get(i).getDocsName();
-            guiGraphics.drawString(font, paramTypeName, x + textX, y, PARAM_TYPE_COLOR);
-            textX += font.width(paramTypeName);
-            if (i < function.parameters.size() - 1) {
-                guiGraphics.drawString(font, ", ", x + textX, y, PUNCTUATION_COLOR);
-                textX += font.width(", ");
+            try {
+                Component paramTypeName = ((TypeSymbol) function.parameters.get(i).getField("TYPE").get(null)).getDocsName();
+                guiGraphics.drawString(font, paramTypeName, x + textX, y, PARAM_TYPE_COLOR);
+                textX += font.width(paramTypeName);
+                if (i < function.parameters.size() - 1) {
+                    guiGraphics.drawString(font, ", ", x + textX, y, PUNCTUATION_COLOR);
+                    textX += font.width(", ");
+                }
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
         }
 
         guiGraphics.drawString(font, ") -> ", x + textX, y, PUNCTUATION_COLOR);
         textX += font.width(") -> ");
-        guiGraphics.drawString(font, function.type.getDocsName(), x + textX, y, RETURN_TYPE_COLOR);
-        List<FormattedCharSequence> wrappedDescriptionLines = font.split(FormattedText.of(function.description.getString()), (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f));
-        for (int i = 0; i < wrappedDescriptionLines.size(); ++i) {
-            FormattedCharSequence line = wrappedDescriptionLines.get(i);
-            guiGraphics.drawString(font, line, (int) (x + (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.5f), y + i * font.lineHeight, GENERAL_COLOR);
-        }
+        try {
+            Component typeName = ((TypeSymbol) function.type.getField("TYPE").get(null)).getDocsName();
+            guiGraphics.drawString(font, typeName, x + textX, y, RETURN_TYPE_COLOR);
+            List<FormattedCharSequence> wrappedDescriptionLines = font.split(FormattedText.of(function.description.getString()), (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f));
+            for (int i = 0; i < wrappedDescriptionLines.size(); ++i) {
+                FormattedCharSequence line = wrappedDescriptionLines.get(i);
+                guiGraphics.drawString(font, line, (int) (x + (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.5f), y + i * font.lineHeight, GENERAL_COLOR);
+            }
 
-        return (wrappedDescriptionLines.size() + 1) * font.lineHeight;
+            return (wrappedDescriptionLines.size() + 1) * font.lineHeight;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void drawVerticalScrollbar(GuiGraphics guiGraphics, int x, int y, int visibleTextHeight) {

@@ -3,17 +3,17 @@ package net.stonygeist.redbyte.interpreter.symbols;
 import com.google.common.collect.ImmutableList;
 import net.minecraft.network.chat.Component;
 import net.stonygeist.redbyte.interpreter.Evaluator;
+import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 import org.apache.commons.lang3.function.TriFunction;
-import org.jetbrains.annotations.NotNull;
 
 public final class FunctionSymbol extends Symbol {
-    public final ImmutableList<TypeSymbol> parameters;
-    public final TypeSymbol type;
-    public final TriFunction<Evaluator, PseudoRobo, Object[], ? extends @NotNull Object> callback;
+    public final ImmutableList<Class<? extends DataType>> parameters;
+    public final Class<? extends DataType> type;
+    public final TriFunction<Evaluator, PseudoRobo, DataType[], ? extends DataType> callback;
     public final Component description;
 
-    public FunctionSymbol(String name, ImmutableList<TypeSymbol> parameters, TypeSymbol type, TriFunction<Evaluator, PseudoRobo, Object[], ? extends @NotNull Object> callback, Component description) {
+    public FunctionSymbol(String name, ImmutableList<Class<? extends DataType>> parameters, Class<? extends DataType> type, TriFunction<Evaluator, PseudoRobo, DataType[], ? extends DataType> callback, Component description) {
         super(name);
         this.parameters = parameters;
         this.type = type;

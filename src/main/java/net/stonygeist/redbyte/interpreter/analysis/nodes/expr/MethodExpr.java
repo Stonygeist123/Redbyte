@@ -4,14 +4,18 @@ import net.minecraft.network.chat.Component;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.DocsBuilder;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Token;
 
-public final class CallExpr extends Expr {
-    public final Token name;
+public final class MethodExpr extends Expr {
+    public final Expr object;
+    public final Token dot;
+    public final Token method;
     public final Token lParen;
     public final Expr[] args;
     public final Token rParen;
 
-    public CallExpr(Token name, Token lParen, Expr[] args, Token rParen) {
-        this.name = name;
+    public MethodExpr(Expr object, Token dot, Token method, Token lParen, Expr[] args, Token rParen) {
+        this.object = object;
+        this.dot = dot;
+        this.method = method;
         this.lParen = lParen;
         this.args = args;
         this.rParen = rParen;
@@ -23,7 +27,9 @@ public final class CallExpr extends Expr {
 
     public static Component docs() {
         return DocsBuilder.start()
-                .valueTranslate("syntax.redbyte.general.name")
+                .nameTranslate("syntax.redbyte.general.expression")
+                .punct(".")
+                .nameTranslate("syntax.redbyte.general.name")
                 .punct("(")
                 .valueTranslate("syntax.redbyte.general.expression")
                 .punct(", ")
@@ -35,10 +41,10 @@ public final class CallExpr extends Expr {
 
     public static Component example() {
         return DocsBuilder.start()
-                .name("b")
-                .punct("(")
-                .value("\"Hello\"")
-                .punct(")")
+                .name("my_block")
+                .punct(".")
+                .name("try_destroy")
+                .punct("()")
                 .build();
     }
 }

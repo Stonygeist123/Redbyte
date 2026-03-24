@@ -4,11 +4,7 @@ import net.minecraft.network.chat.Component;
 import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import org.jetbrains.annotations.Nullable;
 
-public final class TypeSymbol extends Symbol {
-    public final static TypeSymbol Number = new TypeSymbol("number", Component.translatable("interpreter.redbyte.types.number"));
-    public final static TypeSymbol Text = new TypeSymbol("text", Component.translatable("interpreter.redbyte.types.text"));
-    public final static TypeSymbol Boolean = new TypeSymbol("boolean", Component.translatable("interpreter.redbyte.types.boolean"));
-    public final static TypeSymbol Error = new TypeSymbol("error", Component.translatable("interpreter.redbyte.types.error"));
+public class TypeSymbol extends Symbol {
     private final @Nullable TypeSymbol superType;
     private final Component docsName;
 
@@ -24,9 +20,7 @@ public final class TypeSymbol extends Symbol {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof TypeSymbol t))
-            return false;
-        return name.equals((DataType.TYPE).name) || name.equals(t.name) || equals(t.superType);
+        return obj instanceof TypeSymbol t && (name.equals((DataType.TYPE).name) || name.equals(t.name) || equals(t.superType));
     }
 
     @Override

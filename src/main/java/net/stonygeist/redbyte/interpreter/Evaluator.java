@@ -10,6 +10,9 @@ import net.stonygeist.redbyte.interpreter.binder.stmt.*;
 import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.interpreter.data_types.NothingDataType;
 import net.stonygeist.redbyte.interpreter.data_types.RoboDataType;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.BooleanType;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.LabelSymbol;
@@ -18,14 +21,12 @@ import net.stonygeist.redbyte.manager.PseudoRobo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Objects;
-import java.util.Stack;
+import java.util.*;
+import java.util.function.Function;
 
 public final class Evaluator {
     private final Stack<BoundBlockStmt> globalStmts = new Stack<>();
-    private final Dictionary<VariableSymbol, Object> variables = new Hashtable<>();
+    private final Dictionary<VariableSymbol, DataType> variables = new Hashtable<>();
     private final PseudoRobo robo;
     private int index;
     private Dictionary<LabelSymbol, Integer> labelToIndex;
@@ -97,24 +98,24 @@ public final class Evaluator {
         }
     }
 
-    private @NotNull Object evaluateExpr(BoundExpr expr, PseudoRobo robo) throws EvaluationError {
+    private @NotNull DataType evaluateExpr(BoundExpr expr, PseudoRobo robo) throws EvaluationError {
         return switch (expr) {
             case BoundLiteralExpr literalExpr -> literalExpr.value;
             case BoundUnaryExpr unaryExpr -> {
-                Object operand = evaluateExpr(unaryExpr.operand(), robo);
+                DataType operand = evaluateExpr(unaryExpr.operand(), robo);
                 if (operand instanceof NothingDataType)
                     throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), unaryExpr.operand().span());
                 if (unaryExpr.operator().operatorKind() == TokenKind.Bang)
-                    yield !(boolean) operand;
+                    yield new BooleanType(!((BooleanType) operand).getValue());
                 else if (unaryExpr.operator().operatorKind() == TokenKind.Minus)
-                    yield -(float) operand;
+                    yield new NumberType(-((NumberType) operand).getValue());
                 else if (unaryExpr.operator().operatorKind() == TokenKind.Plus)
-                    yield -(float) operand;
+                    yield new NumberType(((NumberType) operand).getValue());
                 throw new EvaluationError(Component.translatable("runtime.redbyte.error.unsupported_unary_operation"), unaryExpr.span());
             }
             case BoundBinaryExpr binaryExpr -> {
-                Object left = evaluateExpr(binaryExpr.left(), robo);
-                Object right = evaluateExpr(binaryExpr.right(), robo);
+                DataType left = evaluateExpr(binaryExpr.left(), robo);
+                DataType right = evaluateExpr(binaryExpr.right(), robo);
                 if (left instanceof NothingDataType && right instanceof NothingDataType)
                     throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), binaryExpr.span());
                 else if (left instanceof NothingDataType)
@@ -124,61 +125,70 @@ public final class Evaluator {
 
                 switch (binaryExpr.operator().operatorKind()) {
                     case Plus: {
-                        if (left instanceof Float f1 && right instanceof Float f2)
-                            yield f1 + f2;
-                        else if (left instanceof String s1 && right instanceof String s2)
-                            yield s1 + s2;
+                        if (left instanceof NumberType f1 && right instanceof NumberType f2)
+                            yield new NumberType(f1.getValue() + f2.getValue());
+                        else if (left instanceof TextType s1 && right instanceof TextType s2)
+                            yield new TextType(s1.getValue() + s2.getValue());
                     }
                     case Minus: {
-                        yield (float) left - (float) right;
+                        if (left instanceof NumberType l && right instanceof NumberType r)
+                            yield new NumberType(l.getValue() - r.getValue());
                     }
                     case Star:
-                        yield (float) left * (float) right;
+                        if (left instanceof NumberType l && right instanceof NumberType r)
+                            yield new NumberType(l.getValue() * r.getValue());
                     case Slash: {
-                        yield (float) left / (float) right;
+                        if (left instanceof NumberType l && right instanceof NumberType r)
+                            yield new NumberType(l.getValue() / r.getValue());
                     }
                     case EqualsEquals: {
-                        yield equalsPrimitives(left, right);
+                        yield new BooleanType(equalsPrimitives(left, right));
                     }
                     case NotEquals: {
-                        yield !equalsPrimitives(left, right);
+                        yield new BooleanType(!equalsPrimitives(left, right));
                     }
                     case Greater: {
-                        yield (float) left > (float) right;
+                        if (left instanceof NumberType l && right instanceof NumberType r)
+                            yield new BooleanType(l.getValue() > r.getValue());
                     }
                     case GreaterEquals: {
-                        yield (float) left >= (float) right;
+                        if (left instanceof NumberType l && right instanceof NumberType r)
+                            yield new BooleanType(l.getValue() >= r.getValue());
                     }
                     case Less: {
-                        yield (float) left < (float) right;
+                        if (left instanceof NumberType l && right instanceof NumberType r)
+                            yield new BooleanType(l.getValue() < r.getValue());
                     }
                     case LessEquals: {
-                        yield (float) left <= (float) right;
+                        if (left instanceof NumberType l && right instanceof NumberType r)
+                            yield new BooleanType(l.getValue() <= r.getValue());
                     }
                     case And: {
-                        yield (boolean) left && (boolean) right;
+                        if (left instanceof BooleanType l && right instanceof BooleanType r)
+                            yield new BooleanType(l.getValue() && r.getValue());
                     }
                     case Or: {
-                        yield (boolean) left || (boolean) right;
+                        if (left instanceof BooleanType l && right instanceof BooleanType r)
+                            yield new BooleanType(l.getValue() || r.getValue());
                     }
                     default:
                         throw new EvaluationError(Component.translatable("runtime.redbyte.error.unsupported_binary_operation"), binaryExpr.span());
                 }
             }
             case BoundGroupExpr groupExpr -> evaluateExpr(groupExpr.expr(), robo);
-            case BoundNameExpr nameExpr -> variables.get(nameExpr.symbol());
+            case BoundNameExpr nameExpr -> variables.get(nameExpr.variable());
             case BoundAssignExpr assignExpr -> {
-                Object value = evaluateExpr(assignExpr.value(), robo);
-                variables.put(assignExpr.symbol(), value);
+                DataType value = evaluateExpr(assignExpr.value(), robo);
+                variables.put(assignExpr.variable(), value);
                 yield value;
             }
             case BoundRoboExpr ignored -> new RoboDataType(getRoboEntity());
             case BoundCallExpr callExpr -> {
-                Object[] args = callExpr.args().stream().map(a -> evaluateExpr(a, robo)).toArray(Object[]::new);
-                FunctionSymbol function = callExpr.symbol();
+                DataType[] args = callExpr.args().stream().map(a -> evaluateExpr(a, robo)).toArray(DataType[]::new);
+                FunctionSymbol function = callExpr.function();
                 for (int i = 0; i < args.length; ++i) {
                     Object arg = args[i];
-                    if (arg instanceof NothingDataType && !Objects.equals(function.parameters.get(i).name, DataType.TYPE.name))
+                    if (arg instanceof NothingDataType && !function.parameters.get(i).equals(DataType.class))
                         throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), callExpr.args().get(i).span());
                 }
 
@@ -187,6 +197,13 @@ public final class Evaluator {
                 } catch (Evaluator.CallEvaluationError e) {
                     throw new EvaluationError(e.getMessage(), callExpr.args().get(e.getArg()).span());
                 }
+            }
+            case BoundPropertyExpr propertyExpr -> {
+                Optional<Function<DataType, DataType>> property = DataType.getProperty(propertyExpr.properties(), propertyExpr.property()).map(Map.Entry::getValue);
+                if (property.isEmpty())
+                    throw new RuntimeException();
+                DataType object = evaluateExpr(propertyExpr.object(), robo);
+                yield property.get().apply(object);
             }
             default ->
                     throw new EvaluationError(Component.translatable("runtime.redbyte.error.unsupported_expression"), expr.span());
@@ -227,16 +244,16 @@ public final class Evaluator {
         }
     }
 
-    public static boolean equalsPrimitives(Object a, Object b) {
+    public static boolean equalsPrimitives(DataType a, DataType b) {
         if (a == b) return true;
         if (a == null || b == null) return false;
         if (!a.getClass().equals(b.getClass()))
             throw new RuntimeException();
 
         return switch (a) {
-            case Float f1 when b instanceof Float f2 -> Float.compare(f1, f2) == 0;
-            case Boolean bo1 when b instanceof Boolean bo2 -> bo1 == bo2;
-            case String c1 when b instanceof String c2 -> c1.equals(c2);
+            case NumberType f1 when b instanceof NumberType f2 -> Float.compare(f1.getValue(), f2.getValue()) == 0;
+            case BooleanType bo1 when b instanceof BooleanType bo2 -> bo1.getValue() == bo2.getValue();
+            case TextType c1 when b instanceof TextType c2 -> c1.getValue().equals(c2.getValue());
             default -> throw new RuntimeException();
         };
     }

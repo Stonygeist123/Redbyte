@@ -1,27 +1,23 @@
 package net.stonygeist.redbyte.interpreter.binder.expr;
 
 import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
-import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
+import net.stonygeist.redbyte.interpreter.data_types.DataType;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.PrimitiveType;
 import org.jetbrains.annotations.NotNull;
 
 public final class BoundLiteralExpr implements BoundExpr {
-    public final Object value;
+    public final DataType value;
     private final TextSpan span;
-    public final TypeSymbol type;
+    public final Class<? extends DataType> type;
 
-    public BoundLiteralExpr(Object value, TextSpan span) {
+    public BoundLiteralExpr(PrimitiveType value, TextSpan span) {
         this.value = value;
         this.span = span;
-        switch (value) {
-            case Float ignored -> type = TypeSymbol.Number;
-            case Boolean ignored -> type = TypeSymbol.Boolean;
-            case String ignored -> type = TypeSymbol.Text;
-            case null, default -> throw new RuntimeException();
-        }
+        type = value.getClass();
     }
 
     @Override
-    public @NotNull TypeSymbol getType() {
+    public @NotNull Class<? extends DataType> getType() {
         return type;
     }
 

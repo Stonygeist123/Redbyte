@@ -59,6 +59,9 @@ public class Lexer {
             case ',':
                 kind = TokenKind.Comma;
                 break;
+            case '.':
+                kind = TokenKind.Dot;
+                break;
             case '{':
                 kind = TokenKind.LBrace;
                 break;
