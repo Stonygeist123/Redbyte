@@ -17,14 +17,13 @@ import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 public final class Binder {
@@ -156,7 +155,7 @@ public final class Binder {
             case CallExpr callExpr -> {
                 String name = callExpr.name.lexeme.toLowerCase();
                 ImmutableList<BoundExpr> args = Arrays.stream(callExpr.args).map(this::bindExpr).collect(ImmutableList.toImmutableList());
-                Map.Entry<FunctionSymbol, Boolean> functionResult = Miscellaneous.getFunction(name, args.stream().map(BoundExpr::getType).toList());
+                Map.Entry<FunctionSymbol, Boolean> functionResult = Miscellaneous.getFunction(Miscellaneous.functions, name, args.stream().map(BoundExpr::getType).toList());
                 FunctionSymbol function = functionResult.getKey();
                 if (function == null) {
                     if (functionResult.getValue())
@@ -182,7 +181,6 @@ public final class Binder {
                 yield new BoundCallExpr(function, args, callExpr.span());
             }
             case PropertyExpr propertyExpr -> {
-                String propertyName = propertyExpr.property.lexeme.toLowerCase();
                 BoundExpr object = bindExpr(propertyExpr.object);
                 if (PrimitiveType.class.isAssignableFrom(object.getType())) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.primitive_not_allowed"), propertyExpr.object.span()));
@@ -190,14 +188,56 @@ public final class Binder {
                 }
 
                 try {
+                    String propertyName = propertyExpr.property.lexeme.toLowerCase();
                     Field proprtiesField = object.getType().getField("properties");
                     Map<VariableSymbol, Function<DataType, DataType>> properties = (Map<VariableSymbol, Function<DataType, DataType>>) proprtiesField.get(null);
-                    if (DataType.getProperty(properties, propertyName).isEmpty()) {
+                    Optional<Map.Entry<VariableSymbol, Function<DataType, DataType>>> property = DataType.getProperty(properties, propertyName);
+                    if (property.isEmpty()) {
                         diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.property_not_existing"), propertyExpr.property.span()));
                         yield new BoundErrorExpr(propertyExpr.property.span());
                     }
 
-                    yield new BoundPropertyExpr(object, properties, propertyName, propertyExpr.span());
+                    yield new BoundPropertyExpr(object, property.map(Map.Entry::getValue), property.map(x -> x.getKey().type), propertyExpr.span());
+                } catch (NoSuchFieldException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            case MethodExpr methodExpr -> {
+                BoundExpr object = bindExpr(methodExpr.object);
+                if (PrimitiveType.class.isAssignableFrom(object.getType())) {
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.primitive_not_allowed"), methodExpr.object.span()));
+                    yield new BoundErrorExpr(methodExpr.object.span());
+                }
+
+                try {
+                    String name = methodExpr.method.lexeme.toLowerCase();
+                    Field methodsField = object.getType().getField("methods");
+                    List<MethodSymbol> methods = (List<MethodSymbol>) methodsField.get(null);
+                    ImmutableList<BoundExpr> args = Arrays.stream(methodExpr.args).map(this::bindExpr).collect(ImmutableList.toImmutableList());
+                    Map.Entry<MethodSymbol, Boolean> functionResult = Miscellaneous.getFunction(methods, name, args.stream().map(BoundExpr::getType).toList());
+                    MethodSymbol method = functionResult.getKey();
+                    if (method == null) {
+                        if (functionResult.getValue())
+                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.function_not_found_multiple", name), methodExpr.method.span()));
+                        else
+                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.function_not_found", name), methodExpr.method.span()));
+                        yield new BoundErrorExpr(methodExpr.method.span());
+                    }
+
+                    if (method.parameters.size() != methodExpr.args.length) {
+                        if (methodExpr.args.length == 0)
+                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", method.parameters.size(), "none"), new TextSpan(methodExpr.lParen.span().startColumn(), methodExpr.rParen.span().endColumn(), methodExpr.lParen.span().lineStart(), methodExpr.rParen.span().lineEnd())));
+                        else {
+                            TextSpan firstSpan = methodExpr.args[0].span();
+                            TextSpan lastSpan = methodExpr.args[methodExpr.args.length - 1].span();
+                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", method.parameters.size(), methodExpr.args.length), new TextSpan(firstSpan.startColumn(), lastSpan.endColumn(), firstSpan.lineStart(), lastSpan.lineEnd())));
+                        }
+                    }
+
+                    for (int i = 0; i < Math.min(args.size(), method.parameters.size()); i++)
+                        if (!method.parameters.get(i).isAssignableFrom(args.get(i).getType()))
+                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", method.parameters.get(i), args.get(i).getType()), methodExpr.args[i].span()));
+                    yield new BoundMethodExpr(object, method, args, methodExpr.span());
                 } catch (NoSuchFieldException | IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }

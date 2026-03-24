@@ -16,13 +16,15 @@ import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.LabelSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.function.Function;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Stack;
 
 public final class Evaluator {
     private final Stack<BoundBlockStmt> globalStmts = new Stack<>();
@@ -199,11 +201,22 @@ public final class Evaluator {
                 }
             }
             case BoundPropertyExpr propertyExpr -> {
-                Optional<Function<DataType, DataType>> property = DataType.getProperty(propertyExpr.properties(), propertyExpr.property()).map(Map.Entry::getValue);
-                if (property.isEmpty())
+                if (propertyExpr.property().isEmpty())
                     throw new RuntimeException();
                 DataType object = evaluateExpr(propertyExpr.object(), robo);
-                yield property.get().apply(object);
+                yield propertyExpr.property().get().apply(object);
+            }
+            case BoundMethodExpr methodExpr -> {
+                DataType[] args = methodExpr.args().stream().map(a -> evaluateExpr(a, robo)).toArray(DataType[]::new);
+                MethodSymbol method = methodExpr.method();
+                for (int i = 0; i < args.length; ++i) {
+                    Object arg = args[i];
+                    if (arg instanceof NothingDataType && !method.parameters.get(i).equals(DataType.class))
+                        throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), methodExpr.args().get(i).span());
+                }
+
+                DataType object = evaluateExpr(methodExpr.object(), robo);
+                yield methodExpr.method().callback.apply(this, robo, object, args);
             }
             default ->
                     throw new EvaluationError(Component.translatable("runtime.redbyte.error.unsupported_expression"), expr.span());

@@ -43,12 +43,13 @@ public enum Miscellaneous {
         };
     }
 
-
-    public static Map.Entry<FunctionSymbol, Boolean> getFunction(String name, List<? extends Class<? extends DataType>> args) {
-        List<FunctionSymbol> result = functions.stream().filter(f -> f.name.toLowerCase().equals(name)).toList();
+    // Key: the function, if found
+    // Value: True if multiple methods with given name exist. False otherwise
+    public static <T extends FunctionSymbol> Map.Entry<T, Boolean> getFunction(List<T> functions, String name, List<? extends Class<? extends DataType>> args) {
+        List<T> result = functions.stream().filter(f -> f.name.toLowerCase().equals(name)).toList();
         if (result.size() == 1)
             return new AbstractMap.SimpleEntry<>(result.getFirst(), false);
-        for (FunctionSymbol function : result) {
+        for (T function : result) {
             if (function.parameters.size() != args.size())
                 continue;
             boolean valid = true;

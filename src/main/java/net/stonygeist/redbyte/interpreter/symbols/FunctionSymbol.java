@@ -7,9 +7,10 @@ import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.manager.PseudoRobo;
 import org.apache.commons.lang3.function.TriFunction;
 
-public final class FunctionSymbol extends Symbol {
+public class FunctionSymbol extends Symbol {
     public final ImmutableList<Class<? extends DataType>> parameters;
     public final Class<? extends DataType> type;
+    // args: evaluator, robo, args
     public final TriFunction<Evaluator, PseudoRobo, DataType[], ? extends DataType> callback;
     public final Component description;
 

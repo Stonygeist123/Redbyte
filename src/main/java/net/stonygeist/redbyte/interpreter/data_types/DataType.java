@@ -1,11 +1,13 @@
 package net.stonygeist.redbyte.interpreter.data_types;
 
 import net.minecraft.network.chat.Component;
+import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -31,6 +33,8 @@ public abstract class DataType {
                 .filter(entry -> entry.getKey().name.equalsIgnoreCase(name))
                 .findFirst();
     }
+
+    public static final List<MethodSymbol> methods = List.of();
 
     @Override
     public boolean equals(Object obj) {
