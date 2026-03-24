@@ -187,20 +187,14 @@ public final class Binder {
                     yield new BoundErrorExpr(propertyExpr.object.span());
                 }
 
-                try {
-                    String propertyName = propertyExpr.property.lexeme.toLowerCase();
-                    Field proprtiesField = object.getType().getField("properties");
-                    Map<VariableSymbol, Function<DataType, DataType>> properties = (Map<VariableSymbol, Function<DataType, DataType>>) proprtiesField.get(null);
-                    Optional<Map.Entry<VariableSymbol, Function<DataType, DataType>>> property = DataType.getProperty(properties, propertyName);
-                    if (property.isEmpty()) {
-                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.property_not_existing"), propertyExpr.property.span()));
-                        yield new BoundErrorExpr(propertyExpr.property.span());
-                    }
-
-                    yield new BoundPropertyExpr(object, property.map(Map.Entry::getValue), property.map(x -> x.getKey().type), propertyExpr.span());
-                } catch (NoSuchFieldException | IllegalAccessException e) {
-                    throw new RuntimeException(e);
+                String propertyName = propertyExpr.property.lexeme.toLowerCase();
+                Optional<Map.Entry<VariableSymbol, Function<DataType, DataType>>> property = DataType.getProperty(object.getType(), propertyName);
+                if (property.isEmpty()) {
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.property_not_existing", propertyName.toLowerCase()), propertyExpr.property.span()));
+                    yield new BoundErrorExpr(propertyExpr.property.span());
                 }
+
+                yield new BoundPropertyExpr(object, property.map(Map.Entry::getValue), property.map(x -> x.getKey().type), propertyExpr.span());
             }
             case MethodExpr methodExpr -> {
                 BoundExpr object = bindExpr(methodExpr.object);

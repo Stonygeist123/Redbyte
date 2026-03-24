@@ -28,7 +28,7 @@
   "interpreter.redbyte.diagnostics.function_not_found": "Could not find function '%1$s'.",
   "interpreter.redbyte.diagnostics.function_not_found_multiple": "Could not find function '%1$s' with given arguments.",
   "interpreter.redbyte.diagnostics.primitive_not_allowed": "A primitive value is not allowed here.",
-  "interpreter.redbyte.diagnostics.property_not_existing": "Could not find property.",
+  "interpreter.redbyte.diagnostics.property_not_existing": "Could not find property '%1$s'.",
   "runtime.redbyte.error.runtime": "Runtime",
   "runtime.redbyte.error.unsupported_expression": "This expression is not supported yet.",
   "runtime.redbyte.error.unsupported_binary_operation": "This binary operation is not yet.",
