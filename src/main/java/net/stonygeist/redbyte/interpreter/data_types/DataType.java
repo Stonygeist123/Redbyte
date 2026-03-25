@@ -11,10 +11,7 @@ import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 
 public abstract class DataType {
@@ -38,9 +35,9 @@ public abstract class DataType {
             Map<VariableSymbol, Function<DataType, DataType>> properties = (Map<VariableSymbol, Function<DataType, DataType>>) proprtiesField.get(null);
 
             Class<?> superType = type.getSuperclass();
-            while (!superType.equals(DataType.class)) {
-                Field superPropertyField = superType.getField("properties");
-                Map<VariableSymbol, Function<DataType, DataType>> superProperties = (Map<VariableSymbol, Function<DataType, DataType>>) superPropertyField.get(null);
+            while (!superType.equals(Object.class)) {
+                Field superPropertiesField = superType.getField("properties");
+                Map<VariableSymbol, Function<DataType, DataType>> superProperties = (Map<VariableSymbol, Function<DataType, DataType>>) superPropertiesField.get(null);
                 properties.putAll(superProperties);
                 superType = superType.getSuperclass();
             }
@@ -54,7 +51,46 @@ public abstract class DataType {
         }
     }
 
+    public static Set<VariableSymbol> getPropertySymbols(Class<? extends DataType> type) {
+        try {
+            Field proprtiesField = type.getField("properties");
+            Map<VariableSymbol, Function<DataType, DataType>> properties = (Map<VariableSymbol, Function<DataType, DataType>>) proprtiesField.get(null);
+
+            Class<?> superType = type.getSuperclass();
+            while (!superType.equals(Object.class)) {
+                Field superPropertiesField = superType.getField("properties");
+                Map<VariableSymbol, Function<DataType, DataType>> superProperties = (Map<VariableSymbol, Function<DataType, DataType>>) superPropertiesField.get(null);
+                properties.putAll(superProperties);
+                superType = superType.getSuperclass();
+            }
+
+            return properties.keySet();
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static final List<MethodSymbol> methods = List.of();
+
+    public static List<MethodSymbol> getMethods(Class<? extends DataType> type) {
+        try {
+            Field methodsField = type.getField("methods");
+            List<MethodSymbol> methods = (List<MethodSymbol>) methodsField.get(null);
+            List<MethodSymbol> methodsResult = new ArrayList<>(methods);
+
+            Class<?> superType = type.getSuperclass();
+            while (!superType.equals(Object.class)) {
+                Field superMethodsField = superType.getField("methods");
+                List<MethodSymbol> superMethods = (List<MethodSymbol>) superMethodsField.get(null);
+                methodsResult.addAll(superMethods);
+                superType = superType.getSuperclass();
+            }
+
+            return methodsResult;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     public boolean equals(Object obj) {

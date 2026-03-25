@@ -28,7 +28,6 @@ public class CreatureDataType<T extends LivingEntity> extends EntityDataType<T> 
     public static final Map<VariableSymbol, Function<EntityDataType<? extends Entity>, DataType>> properties = new Hashtable<>(Map.of(
             new VariableSymbol("health", NumberType.class), x -> new NumberType(((CreatureDataType<?>) x).getEntity().getHealth())
     ));
-
     public static final List<MethodSymbol> methods = List.of(
             new MethodSymbol(
                     "follow", ImmutableList.of(), NothingDataType.class, (ev, robo, object, args) -> {

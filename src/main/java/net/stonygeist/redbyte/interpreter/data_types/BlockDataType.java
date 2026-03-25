@@ -38,8 +38,6 @@ public final class BlockDataType extends DataType {
     public static final Map<VariableSymbol, Function<BlockDataType, DataType>> properties = new Hashtable<>(Map.of(
             new VariableSymbol("position", VectorDataType.class), x -> new VectorDataType(x.getPosition().getCenter())
     ));
-
-
     public static final List<MethodSymbol> methods = List.of(
             new MethodSymbol("try_destroy", ImmutableList.of(), NothingDataType.class,
                     (ev, robo, object, args) -> {
