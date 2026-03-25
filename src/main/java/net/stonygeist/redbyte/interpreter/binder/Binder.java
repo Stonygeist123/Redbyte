@@ -18,6 +18,7 @@ import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -187,7 +188,7 @@ public final class Binder {
                 }
 
                 String propertyName = propertyExpr.property.lexeme.toLowerCase();
-                Optional<Map.Entry<VariableSymbol, Function<DataType, DataType>>> property = DataType.getProperty(object.getType(), propertyName);
+                Optional<Map.Entry<PropertySymbol, Function<DataType, DataType>>> property = DataType.getProperty(object.getType(), propertyName);
                 if (property.isEmpty()) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.property_not_existing", propertyName.toLowerCase()), propertyExpr.property.span()));
                     yield new BoundErrorExpr(propertyExpr.property.span());

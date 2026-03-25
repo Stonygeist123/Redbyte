@@ -9,8 +9,8 @@ import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.BooleanType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
-import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Hashtable;
@@ -25,8 +25,8 @@ public class CreatureDataType<T extends LivingEntity> extends EntityDataType<T> 
         super(type, entity);
     }
 
-    public static final Map<VariableSymbol, Function<EntityDataType<? extends Entity>, DataType>> properties = new Hashtable<>(Map.of(
-            new VariableSymbol("health", NumberType.class), x -> new NumberType(((CreatureDataType<?>) x).getEntity().getHealth())
+    public static final Map<PropertySymbol, Function<EntityDataType<? extends Entity>, DataType>> properties = new Hashtable<>(Map.of(
+            new PropertySymbol("health", NumberType.class, Component.translatable("docs.redbyte.description.properties.creature.health")), x -> new NumberType(((CreatureDataType<?>) x).getEntity().getHealth())
     ));
     public static final List<MethodSymbol> methods = List.of(
             new MethodSymbol(
@@ -34,29 +34,29 @@ public class CreatureDataType<T extends LivingEntity> extends EntityDataType<T> 
                 CreatureDataType<?> entity = (CreatureDataType<?>) object;
                 robo.addFollowEntityGoalProp(entity.getEntity());
                 return new NothingDataType();
-            }, Component.translatable("functions.redbyte.description.follow")),
+            }, Component.translatable("docs.redbyte.description.functions.creature.follow")),
             new MethodSymbol(
                     "stop_follow", ImmutableList.of(), NothingDataType.class, (ev, robo, object, args) -> {
                 robo.popFollowEntityGoalProp();
                 return new NothingDataType();
-            }, Component.translatable("functions.redbyte.description.follow")),
+            }, Component.translatable("docs.redbyte.description.functions.creature.stop_follow")),
             new MethodSymbol(
                     "try_attack", ImmutableList.of(), NothingDataType.class, (ev, robo, object, args) -> {
                 CreatureDataType<?> entity = (CreatureDataType<?>) object;
                 robo.addAttackGoalProp(entity.getEntity());
                 return new NothingDataType();
-            }, Component.translatable("functions.redbyte.description.follow")),
+            }, Component.translatable("docs.redbyte.description.functions.creature.try_attack")),
             new MethodSymbol("can_attack", ImmutableList.of(), BooleanType.class, (ev, robo, object, args) -> {
                 CreatureDataType<?> entity = (CreatureDataType<?>) object;
                 if (entity.getEntity() == null) return new BooleanType(false);
                 RoboEntity roboEntity = robo.getEntity();
                 return new BooleanType(roboEntity.canAttack(entity.getEntity()) && roboEntity.isInRange(entity.getEntity()) && roboEntity.hasLineOfSight(entity.getEntity()));
-            }, Component.translatable("functions.redbyte.description.can_attack")),
+            }, Component.translatable("docs.redbyte.description.functions.creature.can_attack")),
             new MethodSymbol("look_at", ImmutableList.of(), NothingDataType.class,
                     (ev, robo, object, args) -> {
                         robo.getEntity().lookAt(EntityAnchorArgument.Anchor.EYES, ((CreatureDataType<?>) object).getEntity().position());
                         return new NothingDataType();
                     },
-                    Component.translatable("functions.redbyte.description.look_at"))
+                    Component.translatable("docs.redbyte.description.functions.creature.look_at"))
     );
 }

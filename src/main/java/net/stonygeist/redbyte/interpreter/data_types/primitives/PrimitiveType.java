@@ -3,8 +3,8 @@ package net.stonygeist.redbyte.interpreter.data_types.primitives;
 import net.stonygeist.redbyte.interpreter.data_types.BlockDataType;
 import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
-import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 
 import java.util.Hashtable;
 import java.util.List;
@@ -16,6 +16,6 @@ public abstract class PrimitiveType extends DataType {
         super(type);
     }
 
-    public static final Map<VariableSymbol, Function<BlockDataType, DataType>> properties = new Hashtable<>();
+    public static final Map<PropertySymbol, Function<BlockDataType, DataType>> properties = new Hashtable<>();
     public static final List<MethodSymbol> methods = List.of();
 }

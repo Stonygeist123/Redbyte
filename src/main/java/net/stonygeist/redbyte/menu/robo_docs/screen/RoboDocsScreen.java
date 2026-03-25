@@ -16,8 +16,8 @@ import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.interpreter.data_types.NothingDataType;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
-import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import net.stonygeist.redbyte.menu.robo_docs.RoboDocs;
 import org.jetbrains.annotations.NotNull;
 
@@ -162,7 +162,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
 
         for (Class<? extends DataType> type : DataType.dataTypes) {
             List<MethodSymbol> methods = DataType.getMethods(type);
-            Set<VariableSymbol> properties = DataType.getPropertySymbols(type);
+            Set<PropertySymbol> properties = DataType.getPropertySymbols(type);
             if (methods.isEmpty() && properties.isEmpty())
                 continue;
             totalHeight += 6 * font.lineHeight;
@@ -173,7 +173,10 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
                 );
                 return wrappedDescriptionLines.size();
             }).sum() + 1) * font.lineHeight;
-            totalHeight += (properties.size() * 2) * font.lineHeight;
+            totalHeight += (properties.stream().mapToInt(p -> {
+                List<FormattedCharSequence> wrappedDescriptionLines = font.split(FormattedText.of(p.description.getString()), (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f));
+                return wrappedDescriptionLines.size();
+            }).sum() + 1) * font.lineHeight;
         }
 
         return totalHeight;
@@ -220,7 +223,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         for (Class<? extends DataType> type : DataType.dataTypes) {
             try {
                 List<MethodSymbol> methods = DataType.getMethods(type);
-                Set<VariableSymbol> properties = DataType.getPropertySymbols(type);
+                Set<PropertySymbol> properties = DataType.getPropertySymbols(type);
                 if (methods.isEmpty() && properties.isEmpty())
                     continue;
                 textY += font.lineHeight * 3;
@@ -230,7 +233,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
                 textY += font.lineHeight * 3;
                 for (MethodSymbol method : methods)
                     textY += drawLibraryFunction(guiGraphics, startX, textY, method);
-                for (VariableSymbol property : properties)
+                for (PropertySymbol property : properties)
                     textY += drawLibraryProperty(guiGraphics, startX, textY, property);
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 throw new RuntimeException(e);
@@ -346,7 +349,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         }
     }
 
-    public int drawLibraryProperty(@NotNull GuiGraphics guiGraphics, int x, int y, VariableSymbol property) {
+    public int drawLibraryProperty(@NotNull GuiGraphics guiGraphics, int x, int y, PropertySymbol property) {
         int textX = 0;
         guiGraphics.drawString(font, property.name, x, y, GENERAL_COLOR);
         textX += font.width(property.name);
@@ -356,7 +359,13 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         try {
             Component typeName = ((TypeSymbol) property.type.getField("TYPE").get(null)).getDocsName();
             guiGraphics.drawString(font, typeName, x + textX, y, RETURN_TYPE_COLOR);
-            return 2 * font.lineHeight;
+            List<FormattedCharSequence> wrappedDescriptionLines = font.split(FormattedText.of(property.description.getString()), (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f));
+            for (int i = 0; i < wrappedDescriptionLines.size(); ++i) {
+                FormattedCharSequence line = wrappedDescriptionLines.get(i);
+                guiGraphics.drawString(font, line, (int) (x + (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.5f), y + i * font.lineHeight, GENERAL_COLOR);
+            }
+
+            return (wrappedDescriptionLines.size() + 1) * font.lineHeight;
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }

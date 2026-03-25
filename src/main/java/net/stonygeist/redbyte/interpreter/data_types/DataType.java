@@ -6,8 +6,8 @@ import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.PrimitiveType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
-import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
@@ -27,10 +27,10 @@ public abstract class DataType {
         return type;
     }
 
-    public static final Map<VariableSymbol, Function<DataType, DataType>> properties = new Hashtable<>();
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>();
     public static final List<MethodSymbol> methods = List.of();
 
-    public static final Map<Class<? extends DataType>, Map<VariableSymbol, Function<DataType, DataType>>> propertiesCache = new Hashtable<>();
+    public static final Map<Class<? extends DataType>, Map<PropertySymbol, Function<DataType, DataType>>> propertiesCache = new Hashtable<>();
     public static final Map<Class<? extends DataType>, List<MethodSymbol>> methodsCache = new Hashtable<>();
     public static final List<Class<? extends DataType>> dataTypes = List.of(DataType.class, PrimitiveType.class, NumberType.class, TextType.class, BooleanType.class, BlockDataType.class, CreatureDataType.class, EntityDataType.class, MonsterDataType.class, PlayerDataType.class, RoboDataType.class, VectorDataType.class);
 
@@ -39,13 +39,13 @@ public abstract class DataType {
             for (Class<? extends DataType> type : dataTypes) {
                 Field proprtiesField = type.getField("properties");
                 Field methodsField = type.getField("methods");
-                Map<VariableSymbol, Function<DataType, DataType>> properties = (Map<VariableSymbol, Function<DataType, DataType>>) proprtiesField.get(null);
+                Map<PropertySymbol, Function<DataType, DataType>> properties = (Map<PropertySymbol, Function<DataType, DataType>>) proprtiesField.get(null);
                 List<MethodSymbol> methods = new ArrayList<>((List<MethodSymbol>) methodsField.get(null));
 
                 Class<?> superType = type.getSuperclass();
                 while (!superType.equals(Object.class)) {
                     Field superPropertiesField = superType.getField("properties");
-                    Map<VariableSymbol, Function<DataType, DataType>> superProperties = (Map<VariableSymbol, Function<DataType, DataType>>) superPropertiesField.get(null);
+                    Map<PropertySymbol, Function<DataType, DataType>> superProperties = (Map<PropertySymbol, Function<DataType, DataType>>) superPropertiesField.get(null);
                     properties.putAll(superProperties);
 
                     Field superMethodsField = superType.getField("methods");
@@ -62,14 +62,14 @@ public abstract class DataType {
         }
     }
 
-    public static Optional<Map.Entry<VariableSymbol, Function<DataType, DataType>>> getProperty(Class<? extends DataType> type, String name) {
+    public static Optional<Map.Entry<PropertySymbol, Function<DataType, DataType>>> getProperty(Class<? extends DataType> type, String name) {
         return propertiesCache.get(type).entrySet()
                 .stream()
                 .filter(entry -> entry.getKey().name.equalsIgnoreCase(name))
                 .findFirst();
     }
 
-    public static Set<VariableSymbol> getPropertySymbols(Class<? extends DataType> type) {
+    public static Set<PropertySymbol> getPropertySymbols(Class<? extends DataType> type) {
         return propertiesCache.get(type).keySet();
     }
 

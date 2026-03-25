@@ -7,8 +7,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.state.BlockState;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
-import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Hashtable;
@@ -35,8 +35,8 @@ public final class BlockDataType extends DataType {
         return position;
     }
 
-    public static final Map<VariableSymbol, Function<BlockDataType, DataType>> properties = new Hashtable<>(Map.of(
-            new VariableSymbol("position", VectorDataType.class), x -> new VectorDataType(x.getPosition().getCenter())
+    public static final Map<PropertySymbol, Function<BlockDataType, DataType>> properties = new Hashtable<>(Map.of(
+            new PropertySymbol("position", VectorDataType.class, Component.translatable("docs.redbyte.description.properties.block.position")), x -> new VectorDataType(x.getPosition().getCenter())
     ));
     public static final List<MethodSymbol> methods = List.of(
             new MethodSymbol("try_destroy", ImmutableList.of(), NothingDataType.class,
@@ -46,12 +46,12 @@ public final class BlockDataType extends DataType {
                         if (!roboEntity.level().isEmptyBlock(blockPos))
                             robo.addDestroyBlockGoalProp(blockPos);
                         return new NothingDataType();
-                    }, Component.translatable("functions.redbyte.description.try_destroy")),
+                    }, Component.translatable("docs.redbyte.description.functions.block.try_destroy")),
             new MethodSymbol("look_at", ImmutableList.of(), NothingDataType.class,
                     (ev, robo, object, args) -> {
                         robo.getEntity().lookAt(EntityAnchorArgument.Anchor.EYES, ((BlockDataType) object).position.getCenter());
                         return new NothingDataType();
                     },
-                    Component.translatable("functions.redbyte.description.look_at"))
+                    Component.translatable("docs.redbyte.description.functions.block.look_at"))
     );
 }

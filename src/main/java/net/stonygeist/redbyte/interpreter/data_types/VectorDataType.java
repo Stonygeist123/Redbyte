@@ -6,8 +6,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
-import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 
 import java.util.Hashtable;
 import java.util.List;
@@ -31,20 +31,20 @@ public class VectorDataType extends DataType {
         return vector;
     }
 
-    public static final Map<VariableSymbol, Function<VectorDataType, ? extends DataType>> properties = new Hashtable<>(Map.of(
-            new VariableSymbol("x", NumberType.class), x -> new NumberType((float) x.getVector().x),
-            new VariableSymbol("y", NumberType.class), x -> new NumberType((float) x.getVector().y),
-            new VariableSymbol("z", NumberType.class), x -> new NumberType((float) x.getVector().z)
+    public static final Map<PropertySymbol, Function<VectorDataType, ? extends DataType>> properties = new Hashtable<>(Map.of(
+            new PropertySymbol("x", NumberType.class, Component.translatable("docs.redbyte.description.properties.vector.x")), x -> new NumberType((float) x.getVector().x),
+            new PropertySymbol("y", NumberType.class, Component.translatable("docs.redbyte.description.properties.vector.y")), x -> new NumberType((float) x.getVector().y),
+            new PropertySymbol("z", NumberType.class, Component.translatable("docs.redbyte.description.properties.vector.z")), x -> new NumberType((float) x.getVector().z)
     ));
     public static final List<MethodSymbol> methods = List.of(
             new MethodSymbol("distance", ImmutableList.of(VectorDataType.class), NumberType.class,
                     (ev, robo, object, args) -> new NumberType((float) ((VectorDataType) object).getVector().distanceTo(((VectorDataType) args[0]).getVector())),
-                    Component.translatable("functions.redbyte.description.distance")),
+                    Component.translatable("docs.redbyte.description.functions.vector.distance")),
             new MethodSymbol("look_at", ImmutableList.of(), NothingDataType.class,
                     (ev, robo, object, args) -> {
                         robo.getEntity().lookAt(EntityAnchorArgument.Anchor.EYES, ((VectorDataType) object).getVector());
                         return new NothingDataType();
                     },
-                    Component.translatable("functions.redbyte.description.look_at"))
+                    Component.translatable("docs.redbyte.description.functions.vector.look_at"))
     );
 }
