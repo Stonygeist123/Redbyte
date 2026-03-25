@@ -22,7 +22,6 @@ import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Function;
 
@@ -203,38 +202,33 @@ public final class Binder {
                     yield new BoundErrorExpr(methodExpr.object.span());
                 }
 
-                try {
-                    String name = methodExpr.method.lexeme.toLowerCase();
-                    Field methodsField = object.getType().getField("methods");
-                    List<MethodSymbol> methods = (List<MethodSymbol>) methodsField.get(null);
-                    ImmutableList<BoundExpr> args = Arrays.stream(methodExpr.args).map(this::bindExpr).collect(ImmutableList.toImmutableList());
-                    Map.Entry<MethodSymbol, Boolean> functionResult = Miscellaneous.getFunction(methods, name, args.stream().map(BoundExpr::getType).toList());
-                    MethodSymbol method = functionResult.getKey();
-                    if (method == null) {
-                        if (functionResult.getValue())
-                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.function_not_found_multiple", name), methodExpr.method.span()));
-                        else
-                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.function_not_found", name), methodExpr.method.span()));
-                        yield new BoundErrorExpr(methodExpr.method.span());
-                    }
-
-                    if (method.parameters.size() != methodExpr.args.length) {
-                        if (methodExpr.args.length == 0)
-                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", method.parameters.size(), "none"), new TextSpan(methodExpr.lParen.span().startColumn(), methodExpr.rParen.span().endColumn(), methodExpr.lParen.span().lineStart(), methodExpr.rParen.span().lineEnd())));
-                        else {
-                            TextSpan firstSpan = methodExpr.args[0].span();
-                            TextSpan lastSpan = methodExpr.args[methodExpr.args.length - 1].span();
-                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", method.parameters.size(), methodExpr.args.length), new TextSpan(firstSpan.startColumn(), lastSpan.endColumn(), firstSpan.lineStart(), lastSpan.lineEnd())));
-                        }
-                    }
-
-                    for (int i = 0; i < Math.min(args.size(), method.parameters.size()); i++)
-                        if (!method.parameters.get(i).isAssignableFrom(args.get(i).getType()))
-                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", method.parameters.get(i), args.get(i).getType()), methodExpr.args[i].span()));
-                    yield new BoundMethodExpr(object, method, args, methodExpr.span());
-                } catch (NoSuchFieldException | IllegalAccessException e) {
-                    throw new RuntimeException(e);
+                String name = methodExpr.method.lexeme.toLowerCase();
+                ImmutableList<BoundExpr> args = Arrays.stream(methodExpr.args).map(this::bindExpr).collect(ImmutableList.toImmutableList());
+                List<MethodSymbol> methods = DataType.getMethods(object.getType());
+                Map.Entry<MethodSymbol, Boolean> functionResult = Miscellaneous.getFunction(methods, name, args.stream().map(BoundExpr::getType).toList());
+                MethodSymbol method = functionResult.getKey();
+                if (method == null) {
+                    if (functionResult.getValue())
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.function_not_found_multiple", name), methodExpr.method.span()));
+                    else
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.function_not_found", name), methodExpr.method.span()));
+                    yield new BoundErrorExpr(methodExpr.method.span());
                 }
+
+                if (method.parameters.size() != methodExpr.args.length) {
+                    if (methodExpr.args.length == 0)
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", method.parameters.size(), "none"), new TextSpan(methodExpr.lParen.span().startColumn(), methodExpr.rParen.span().endColumn(), methodExpr.lParen.span().lineStart(), methodExpr.rParen.span().lineEnd())));
+                    else {
+                        TextSpan firstSpan = methodExpr.args[0].span();
+                        TextSpan lastSpan = methodExpr.args[methodExpr.args.length - 1].span();
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_arguments", method.parameters.size(), methodExpr.args.length), new TextSpan(firstSpan.startColumn(), lastSpan.endColumn(), firstSpan.lineStart(), lastSpan.lineEnd())));
+                    }
+                }
+
+                for (int i = 0; i < Math.min(args.size(), method.parameters.size()); i++)
+                    if (!method.parameters.get(i).isAssignableFrom(args.get(i).getType()))
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", method.parameters.get(i), args.get(i).getType()), methodExpr.args[i].span()));
+                yield new BoundMethodExpr(object, method, args, methodExpr.span());
             }
             default -> throw new RuntimeException("Unexpected expression.");
         };

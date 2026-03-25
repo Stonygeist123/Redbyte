@@ -37,7 +37,7 @@ public class VectorDataType extends DataType {
             new VariableSymbol("z", NumberType.class), x -> new NumberType((float) x.getVector().z)
     ));
     public static final List<MethodSymbol> methods = List.of(
-            new MethodSymbol("distance", ImmutableList.of(NumberType.class), NumberType.class,
+            new MethodSymbol("distance", ImmutableList.of(VectorDataType.class), NumberType.class,
                     (ev, robo, object, args) -> new NumberType((float) ((VectorDataType) object).getVector().distanceTo(((VectorDataType) args[0]).getVector())),
                     Component.translatable("functions.redbyte.description.distance")),
             new MethodSymbol("look_at", ImmutableList.of(), NothingDataType.class,

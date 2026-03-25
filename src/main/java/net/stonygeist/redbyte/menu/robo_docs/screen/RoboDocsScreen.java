@@ -212,7 +212,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         int startX = x + TEXT_PADDING_X;
         int startY = y + NAV_BAR_HEIGHT + TEXT_PADDING_Y;
         int textY = startY - verticalScrollOffset;
-        guiGraphics.drawString(font, Component.translatable("docs.redbyte.title.global_functions"), startX, textY, 0xffffffff);
+        guiGraphics.drawString(font, Component.translatable("docs.redbyte.title.global_functions"), startX, textY, 0xfffc0060);
         textY += font.lineHeight * 3;
         for (FunctionSymbol function : Miscellaneous.functions)
             textY += drawLibraryFunction(guiGraphics, startX, textY, function);
@@ -226,7 +226,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
                 textY += font.lineHeight * 3;
                 Field typeNameField = type.getField("TYPE");
                 Component typeName = ((TypeSymbol) typeNameField.get(null)).getDocsName();
-                guiGraphics.drawString(font, typeName, startX, textY, 0xffffffff);
+                guiGraphics.drawString(font, typeName, startX, textY, 0xfffc0060);
                 textY += font.lineHeight * 3;
                 for (MethodSymbol method : methods)
                     textY += drawLibraryFunction(guiGraphics, startX, textY, method);

@@ -28,74 +28,57 @@ public abstract class DataType {
     }
 
     public static final Map<VariableSymbol, Function<DataType, DataType>> properties = new Hashtable<>();
+    public static final List<MethodSymbol> methods = List.of();
 
-    public static Optional<Map.Entry<VariableSymbol, Function<DataType, DataType>>> getProperty(Class<? extends DataType> type, String name) {
+    public static final Map<Class<? extends DataType>, Map<VariableSymbol, Function<DataType, DataType>>> propertiesCache = new Hashtable<>();
+    public static final Map<Class<? extends DataType>, List<MethodSymbol>> methodsCache = new Hashtable<>();
+    public static final List<Class<? extends DataType>> dataTypes = List.of(DataType.class, PrimitiveType.class, NumberType.class, TextType.class, BooleanType.class, BlockDataType.class, CreatureDataType.class, EntityDataType.class, MonsterDataType.class, PlayerDataType.class, RoboDataType.class, VectorDataType.class);
+
+    static {
         try {
-            Field proprtiesField = type.getField("properties");
-            Map<VariableSymbol, Function<DataType, DataType>> properties = (Map<VariableSymbol, Function<DataType, DataType>>) proprtiesField.get(null);
+            for (Class<? extends DataType> type : dataTypes) {
+                Field proprtiesField = type.getField("properties");
+                Field methodsField = type.getField("methods");
+                Map<VariableSymbol, Function<DataType, DataType>> properties = (Map<VariableSymbol, Function<DataType, DataType>>) proprtiesField.get(null);
+                List<MethodSymbol> methods = new ArrayList<>((List<MethodSymbol>) methodsField.get(null));
 
-            Class<?> superType = type.getSuperclass();
-            while (!superType.equals(Object.class)) {
-                Field superPropertiesField = superType.getField("properties");
-                Map<VariableSymbol, Function<DataType, DataType>> superProperties = (Map<VariableSymbol, Function<DataType, DataType>>) superPropertiesField.get(null);
-                properties.putAll(superProperties);
-                superType = superType.getSuperclass();
+                Class<?> superType = type.getSuperclass();
+                while (!superType.equals(Object.class)) {
+                    Field superPropertiesField = superType.getField("properties");
+                    Map<VariableSymbol, Function<DataType, DataType>> superProperties = (Map<VariableSymbol, Function<DataType, DataType>>) superPropertiesField.get(null);
+                    properties.putAll(superProperties);
+
+                    Field superMethodsField = superType.getField("methods");
+                    List<MethodSymbol> superMethods = (List<MethodSymbol>) superMethodsField.get(null);
+                    methods.addAll(superMethods);
+                    superType = superType.getSuperclass();
+                }
+
+                propertiesCache.put(type, properties);
+                methodsCache.put(type, methods);
             }
-
-            return properties.entrySet()
-                    .stream()
-                    .filter(entry -> entry.getKey().name.equalsIgnoreCase(name))
-                    .findFirst();
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Optional<Map.Entry<VariableSymbol, Function<DataType, DataType>>> getProperty(Class<? extends DataType> type, String name) {
+        return propertiesCache.get(type).entrySet()
+                .stream()
+                .filter(entry -> entry.getKey().name.equalsIgnoreCase(name))
+                .findFirst();
     }
 
     public static Set<VariableSymbol> getPropertySymbols(Class<? extends DataType> type) {
-        try {
-            Field proprtiesField = type.getField("properties");
-            Map<VariableSymbol, Function<DataType, DataType>> properties = (Map<VariableSymbol, Function<DataType, DataType>>) proprtiesField.get(null);
-
-            Class<?> superType = type.getSuperclass();
-            while (!superType.equals(Object.class)) {
-                Field superPropertiesField = superType.getField("properties");
-                Map<VariableSymbol, Function<DataType, DataType>> superProperties = (Map<VariableSymbol, Function<DataType, DataType>>) superPropertiesField.get(null);
-                properties.putAll(superProperties);
-                superType = superType.getSuperclass();
-            }
-
-            return properties.keySet();
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+        return propertiesCache.get(type).keySet();
     }
 
-    public static final List<MethodSymbol> methods = List.of();
-
     public static List<MethodSymbol> getMethods(Class<? extends DataType> type) {
-        try {
-            Field methodsField = type.getField("methods");
-            List<MethodSymbol> methods = (List<MethodSymbol>) methodsField.get(null);
-            List<MethodSymbol> methodsResult = new ArrayList<>(methods);
-
-            Class<?> superType = type.getSuperclass();
-            while (!superType.equals(Object.class)) {
-                Field superMethodsField = superType.getField("methods");
-                List<MethodSymbol> superMethods = (List<MethodSymbol>) superMethodsField.get(null);
-                methodsResult.addAll(superMethods);
-                superType = superType.getSuperclass();
-            }
-
-            return methodsResult;
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+        return methodsCache.get(type);
     }
 
     @Override
     public boolean equals(Object obj) {
         return obj instanceof DataType d ? d.type.equals(type) : super.equals(obj);
     }
-
-    public static final List<Class<? extends DataType>> dataTypes = List.of(DataType.class, PrimitiveType.class, NumberType.class, TextType.class, BooleanType.class, BlockDataType.class, CreatureDataType.class, EntityDataType.class, MonsterDataType.class, PlayerDataType.class, RoboDataType.class, VectorDataType.class);
 }
