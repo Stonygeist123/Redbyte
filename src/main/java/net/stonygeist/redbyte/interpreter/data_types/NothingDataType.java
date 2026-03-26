@@ -1,7 +1,6 @@
 package net.stonygeist.redbyte.interpreter.data_types;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.Entity;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
@@ -18,6 +17,6 @@ public class NothingDataType extends DataType {
         super(TYPE);
     }
 
-    public static final Map<PropertySymbol, Function<EntityDataType<? extends Entity>, DataType>> properties = new Hashtable<>();
+    public static final Map<PropertySymbol, Function<NothingDataType, DataType>> properties = new Hashtable<>();
     public static final List<MethodSymbol> methods = List.of();
 }

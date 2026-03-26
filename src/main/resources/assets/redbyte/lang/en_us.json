@@ -50,6 +50,7 @@
   "interpreter.redbyte.types.entity": "Entity",
   "interpreter.redbyte.types.item": "Item",
   "interpreter.redbyte.types.block": "Block",
+  "interpreter.redbyte.types.container_block": "Container Block",
   "interpreter.redbyte.types.nothing": "Nothing",
   "interpreter.redbyte.types.error": "Error",
   "interpreter.redbyte.types.any": "Any",

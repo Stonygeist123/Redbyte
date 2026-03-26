@@ -3,7 +3,6 @@ package net.stonygeist.redbyte.interpreter.data_types;
 import com.google.common.collect.ImmutableList;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.BooleanType;
@@ -25,8 +24,8 @@ public class CreatureDataType<T extends LivingEntity> extends EntityDataType<T> 
         super(type, entity);
     }
 
-    public static final Map<PropertySymbol, Function<EntityDataType<? extends Entity>, DataType>> properties = new Hashtable<>(Map.of(
-            new PropertySymbol("health", NumberType.class, Component.translatable("docs.redbyte.description.properties.creature.health")), x -> new NumberType(((CreatureDataType<?>) x).getEntity().getHealth())
+    public static final Map<PropertySymbol, Function<CreatureDataType<?>, DataType>> properties = new Hashtable<>(Map.of(
+            new PropertySymbol("health", NumberType.class, Component.translatable("docs.redbyte.description.properties.creature.health")), x -> new NumberType(x.getEntity().getHealth())
     ));
     public static final List<MethodSymbol> methods = List.of(
             new MethodSymbol(

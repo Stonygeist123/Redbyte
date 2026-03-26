@@ -1,6 +1,5 @@
 package net.stonygeist.redbyte.interpreter.data_types.primitives;
 
-import net.stonygeist.redbyte.interpreter.data_types.BlockDataType;
 import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
@@ -16,6 +15,6 @@ public abstract class PrimitiveType extends DataType {
         super(type);
     }
 
-    public static final Map<PropertySymbol, Function<BlockDataType, DataType>> properties = new Hashtable<>();
+    public static final Map<PropertySymbol, Function<PrimitiveType, DataType>> properties = new Hashtable<>();
     public static final List<MethodSymbol> methods = List.of();
 }

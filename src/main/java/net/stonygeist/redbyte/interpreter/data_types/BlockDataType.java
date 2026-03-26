@@ -16,13 +16,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class BlockDataType extends DataType {
+public class BlockDataType extends DataType {
     public static final TypeSymbol TYPE = new TypeSymbol("block", EntityDataType.TYPE, Component.translatable("interpreter.redbyte.types.block"));
     private final @NotNull BlockState blockState;
     private final @NotNull BlockPos position;
 
     public BlockDataType(@NotNull BlockState blockState, @NotNull BlockPos position) {
-        super(TYPE);
+        this(TYPE, blockState, position);
+    }
+
+    public BlockDataType(TypeSymbol type, @NotNull BlockState blockState, @NotNull BlockPos position) {
+        super(type);
         this.blockState = blockState;
         this.position = position;
     }

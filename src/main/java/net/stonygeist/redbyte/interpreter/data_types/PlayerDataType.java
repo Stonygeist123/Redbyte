@@ -1,7 +1,6 @@
 package net.stonygeist.redbyte.interpreter.data_types;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
@@ -19,6 +18,6 @@ public final class PlayerDataType extends CreatureDataType<Player> {
         super(TYPE, player);
     }
 
-    public static final Map<PropertySymbol, Function<EntityDataType<? extends Entity>, DataType>> properties = new Hashtable<>();
+    public static final Map<PropertySymbol, Function<CreatureDataType<Player>, DataType>> properties = new Hashtable<>();
     public static final List<MethodSymbol> methods = List.of();
 }

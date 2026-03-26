@@ -1,7 +1,6 @@
 package net.stonygeist.redbyte.interpreter.data_types.primitives;
 
 import net.minecraft.network.chat.Component;
-import net.stonygeist.redbyte.interpreter.data_types.BlockDataType;
 import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
@@ -25,6 +24,6 @@ public final class NumberType extends PrimitiveType {
         return value;
     }
 
-    public static final Map<PropertySymbol, Function<BlockDataType, DataType>> properties = new Hashtable<>();
+    public static final Map<PropertySymbol, Function<NumberType, DataType>> properties = new Hashtable<>();
     public static final List<MethodSymbol> methods = List.of();
 }
