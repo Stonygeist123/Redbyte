@@ -50,7 +50,7 @@ public final class Binder {
             case IfStmt ifStmt -> {
                 BoundExpr condition = bindExpr(ifStmt.condition);
                 if (!condition.getType().equals(BooleanType.class))
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), condition.getType().toString()), ifStmt.condition.span()));
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), DataType.getTypeSymbol(condition.getType()).getDocsName()), ifStmt.condition.span()));
 
                 BoundStmt thenStmt = bindStmt(ifStmt.thenStmt);
                 @Nullable BoundStmt elseStmt = ifStmt.elseStmt == null ? null : bindStmt(ifStmt.elseStmt);
@@ -59,7 +59,7 @@ public final class Binder {
             case OnceStmt onceStmt -> {
                 BoundExpr condition = bindExpr(onceStmt.condition);
                 if (!condition.getType().equals(BooleanType.class))
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), condition.getType().toString()), onceStmt.condition.span()));
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), DataType.getTypeSymbol(condition.getType()).getDocsName()), onceStmt.condition.span()));
 
                 BoundStmt thenStmt = bindStmt(onceStmt.stmt);
                 yield new BoundOnceStmt(condition, thenStmt);
@@ -67,7 +67,7 @@ public final class Binder {
             case WhileStmt whileStmt -> {
                 BoundExpr condition = bindExpr(whileStmt.condition);
                 if (!condition.getType().equals(BooleanType.class))
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), condition.getType().toString()), whileStmt.condition.span()));
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), DataType.getTypeSymbol(condition.getType()).getDocsName()), whileStmt.condition.span()));
 
                 BoundStmt thenStmt = bindStmt(whileStmt.stmt);
                 yield new BoundWhileStmt(condition, thenStmt);
@@ -75,7 +75,7 @@ public final class Binder {
             case AlwaysStmt alwaysStmt -> {
                 BoundExpr condition = bindExpr(alwaysStmt.condition);
                 if (!condition.getType().equals(BooleanType.class))
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), condition.getType().toString()), alwaysStmt.condition.span()));
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), DataType.getTypeSymbol(condition.getType()).getDocsName()), alwaysStmt.condition.span()));
 
                 BoundStmt thenStmt = bindStmt(alwaysStmt.stmt);
                 yield new BoundAlwaysStmt(condition, thenStmt);
@@ -83,7 +83,7 @@ public final class Binder {
             case LoopStmt loopStmt -> {
                 BoundExpr count = bindExpr(loopStmt.count);
                 if (!count.getType().equals(NumberType.class))
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", NumberType.TYPE.toString(), count.getType().toString()), loopStmt.count.span()));
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", NumberType.TYPE.toString(), DataType.getTypeSymbol(count.getType()).getDocsName()), loopStmt.count.span()));
 
                 BoundStmt thenStmt = bindStmt(loopStmt.stmt);
                 yield new BoundLoopStmt(count, thenStmt);
@@ -145,7 +145,7 @@ public final class Binder {
                     variable = new VariableSymbol(name, value.getType());
                     tryDeclareVar(variable);
                 } else if (!variable.type.equals(value.getType())) {
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", variable.type.toString(), value.getType()), assignExpr.value.span()));
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", DataType.getTypeSymbol(variable.type).getDocsName(), DataType.getTypeSymbol(value.getType()).getDocsName()), assignExpr.value.span()));
                     yield new BoundErrorExpr(assignExpr.value.span());
                 }
 
@@ -175,9 +175,9 @@ public final class Binder {
                     }
                 }
 
-                for (int i = 0; i < Math.min(args.size(), function.parameters.size()); i++)
+                for (int i = 0; i < Math.min(args.size(), function.parameters.size()); ++i)
                     if (!function.parameters.get(i).isAssignableFrom(args.get(i).getType()))
-                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", function.parameters.get(i), args.get(i).getType()), callExpr.args[i].span()));
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", DataType.getTypeSymbol(function.parameters.get(i)).getDocsName(), DataType.getTypeSymbol(args.get(i).getType()).getDocsName()), callExpr.args[i].span()));
                 yield new BoundCallExpr(function, args, callExpr.span());
             }
             case PropertyExpr propertyExpr -> {
@@ -228,7 +228,7 @@ public final class Binder {
 
                 for (int i = 0; i < Math.min(args.size(), method.parameters.size()); i++)
                     if (!method.parameters.get(i).isAssignableFrom(args.get(i).getType()))
-                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", method.parameters.get(i), args.get(i).getType()), methodExpr.args[i].span()));
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", DataType.getTypeSymbol(method.parameters.get(i)).getDocsName(), DataType.getTypeSymbol(args.get(i).getType())), methodExpr.args[i].span()));
                 yield new BoundMethodExpr(object, method, args, methodExpr.span());
             }
             default -> throw new RuntimeException("Unexpected expression.");

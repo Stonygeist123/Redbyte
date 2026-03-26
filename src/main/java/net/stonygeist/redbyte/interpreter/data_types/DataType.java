@@ -30,18 +30,27 @@ public abstract class DataType {
     public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>();
     public static final List<MethodSymbol> methods = List.of();
 
-    public static final Map<Class<? extends DataType>, Map<PropertySymbol, Function<DataType, DataType>>> propertiesCache = new Hashtable<>();
-    public static final Map<Class<? extends DataType>, List<MethodSymbol>> methodsCache = new Hashtable<>();
-    public static final List<Class<? extends DataType>> dataTypes = List.of(DataType.class, PrimitiveType.class, NumberType.class, TextType.class, BooleanType.class, BlockDataType.class, CreatureDataType.class, EntityDataType.class, MonsterDataType.class, PlayerDataType.class, RoboDataType.class, VectorDataType.class);
+    private static final Map<Class<? extends DataType>, Map<PropertySymbol, Function<DataType, DataType>>> propertiesCache = new Hashtable<>();
+    private static final Map<Class<? extends DataType>, List<MethodSymbol>> methodsCache = new Hashtable<>();
+    private static final Map<Class<? extends DataType>, TypeSymbol> typeSymbolsCache = new Hashtable<>();
+    public static final List<Class<? extends DataType>> dataTypes = List.of(DataType.class, PrimitiveType.class, NumberType.class, TextType.class, BooleanType.class, CreatureDataType.class, EntityDataType.class, MonsterDataType.class, PlayerDataType.class, RoboDataType.class, VectorDataType.class, BlockDataType.class, ContainerBlockDataType.class);
 
     static {
         try {
             for (Class<? extends DataType> type : dataTypes) {
                 Field proprtiesField = type.getField("properties");
                 Field methodsField = type.getField("methods");
+                Field typeSymbolField = type.getField("TYPE");
                 Map<PropertySymbol, Function<DataType, DataType>> properties = (Map<PropertySymbol, Function<DataType, DataType>>) proprtiesField.get(null);
-                List<MethodSymbol> methods = new ArrayList<>((List<MethodSymbol>) methodsField.get(null));
+                List<MethodSymbol> methods = (List<MethodSymbol>) methodsField.get(null);
+                TypeSymbol typeSymbol = (TypeSymbol) typeSymbolField.get(null);
+                if (typeSymbol != null)
+                    typeSymbolsCache.put(type, typeSymbol);
 
+                if (properties == null || methods == null || properties.isEmpty() && methods.isEmpty())
+                    continue;
+
+                List<MethodSymbol> methodsCopy = new ArrayList<>(List.copyOf(methods));
                 Class<?> superType = type.getSuperclass();
                 while (!superType.equals(Object.class)) {
                     Field superPropertiesField = superType.getField("properties");
@@ -50,12 +59,12 @@ public abstract class DataType {
 
                     Field superMethodsField = superType.getField("methods");
                     List<MethodSymbol> superMethods = (List<MethodSymbol>) superMethodsField.get(null);
-                    methods.addAll(superMethods);
+                    methodsCopy.addAll(superMethods);
                     superType = superType.getSuperclass();
                 }
 
                 propertiesCache.put(type, properties);
-                methodsCache.put(type, methods);
+                methodsCache.put(type, methodsCopy);
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
@@ -75,6 +84,10 @@ public abstract class DataType {
 
     public static List<MethodSymbol> getMethods(Class<? extends DataType> type) {
         return methodsCache.get(type);
+    }
+
+    public static TypeSymbol getTypeSymbol(Class<? extends DataType> type) {
+        return typeSymbolsCache.get(type);
     }
 
     @Override

@@ -10,9 +10,11 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.items.IItemHandler;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.data_types.*;
@@ -126,7 +128,8 @@ public enum Miscellaneous {
                         RoboEntity roboEntity = robo.getEntity();
                         Vec3 vec = ((VectorDataType) args[0]).getVector();
                         BlockPos blockPos = BlockPos.containing(vec.x, vec.y, vec.z);
-                        return roboEntity.level().isEmptyBlock(blockPos) ? new NothingDataType() : new BlockDataType(roboEntity.level().getBlockState(blockPos), blockPos);
+                        Level level = roboEntity.level();
+                        return level.isEmptyBlock(blockPos) ? new NothingDataType() : new BlockDataType(level.getBlockState(blockPos), level.getBlockEntity(blockPos), blockPos);
                     }, Component.translatable("docs.redbyte.description.functions.get_block")))
             .add(new FunctionSymbol("try_place", ImmutableList.of(NumberType.class, VectorDataType.class), NothingDataType.class,
                     (ev, robo, args) -> {
@@ -167,4 +170,25 @@ public enum Miscellaneous {
             .put("and", TokenKind.And)
             .put("robo", TokenKind.Robo)
             .build();
+
+    public static ItemStack smartInsert(IItemHandler handler, ItemStack stack) {
+        ItemStack remaining = stack;
+        boolean canInsert = false;
+        for (int i = 0; i < handler.getSlots(); ++i) {
+            ItemStack sim = handler.insertItem(i, remaining, true);
+            if (sim.getCount() < remaining.getCount()) {
+                canInsert = true;
+                break;
+            }
+        }
+
+        if (!canInsert) return stack;
+        for (int i = 0; i < handler.getSlots(); ++i) {
+            remaining = handler.insertItem(i, remaining, false);
+            if (remaining.isEmpty())
+                break;
+        }
+
+        return remaining;
+    }
 }

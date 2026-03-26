@@ -1,9 +1,17 @@
 package net.stonygeist.redbyte.interpreter.data_types;
 
+import com.google.common.collect.ImmutableList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.Container;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.stonygeist.redbyte.entity.robo.RoboEntity;
+import net.stonygeist.redbyte.interpreter.Evaluator;
+import net.stonygeist.redbyte.interpreter.Miscellaneous;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
@@ -16,21 +24,55 @@ import java.util.function.Function;
 
 public final class ContainerBlockDataType extends BlockDataType {
     public static final TypeSymbol TYPE = new TypeSymbol("container_block", EntityDataType.TYPE, Component.translatable("interpreter.redbyte.types.container_block"));
-    @NotNull
-    private final Container container;
+    private final @NotNull BaseContainerBlockEntity container;
 
-    public ContainerBlockDataType(@NotNull BlockState blockState, @NotNull Container container, @NotNull BlockPos position) {
-        super(TYPE, blockState, position);
+    public ContainerBlockDataType(@NotNull BlockState blockState, @NotNull BaseContainerBlockEntity container, @NotNull BlockPos position) {
+        super(TYPE, blockState, container, position);
         this.container = container;
     }
 
-    public static final Map<PropertySymbol, Function<ContainerBlockDataType, DataType>> properties = new Hashtable<>(Map.of());
+    public @NotNull BaseContainerBlockEntity getContainer() {
+        return container;
+    }
+
+    public static final Map<PropertySymbol, Function<ContainerBlockDataType, DataType>> properties = new Hashtable<>(Map.of(
+            new PropertySymbol("slots", NumberType.class, Component.translatable("docs.redbyte.description.properties.container_block.slots")), x -> new NumberType(x.getContainer().getContainerSize())
+    ));
     public static final List<MethodSymbol> methods = List.of(
-//            new MethodSymbol("look_at", ImmutableList.of(), NothingDataType.class,
-//                    (ev, robo, object, args) -> {
-//                        robo.getEntity().lookAt(EntityAnchorArgument.Anchor.EYES, ((BlockDataType) object).position.getCenter());
-//                        return new NothingDataType();
-//                    },
-//                    Component.translatable("docs.redbyte.description.functions.block.look_at"))
+            new MethodSymbol("try_quick_put", ImmutableList.of(NumberType.class), NothingDataType.class,
+                    (ev, robo, object, args) -> {
+                        RoboEntity roboEntity = robo.getEntity();
+                        ContainerBlockDataType block = (ContainerBlockDataType) object;
+                        float slotFloat = ((NumberType) args[0]).getValue();
+                        if (Math.round(slotFloat) != slotFloat)
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 0);
+
+                        int slot = Math.round(slotFloat) - 1;
+                        if (slot >= roboEntity.getInventory().getSlots() || slot < 0)
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_range", 0, roboEntity.getInventory().getSlots()), 0);
+
+                        Item item = roboEntity.getInventory().getStackInSlot(slot).getItem();
+                        ItemStack itemStack = roboEntity.extractItem(slot, item.getDefaultMaxStackSize(), false);
+                        if (!block.getContainer().canPlaceItem(slot, itemStack)) {
+                            roboEntity.insertItem(slot, itemStack, false);
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item", item.getName(itemStack)), 0);
+                        }
+
+                        assert block.getBlockEntity() != null;
+                        ItemStack remainder = Miscellaneous.smartInsert(
+                                block.getBlockEntity().getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(RuntimeException::new),
+                                itemStack
+                        );
+                        if (!remainder.isEmpty()) {
+                            remainder = roboEntity.insertItem(slot, remainder, false);
+                            for (int i = 0; i < roboEntity.getInventory().getSlots(); i++) {
+                                remainder = roboEntity.insertItem(i, remainder, false);
+                                if (remainder.isEmpty())
+                                    break;
+                            }
+                        }
+
+                        return new NothingDataType();
+                    }, Component.translatable("docs.redbyte.description.functions.block.try_destroy"))
     );
 }

@@ -172,7 +172,7 @@ public class Lexer {
 
                     kind = TokenKind.Number;
                 } else if (Character.isAlphabetic(c) || c == '_') {
-                    while (Character.isAlphabetic(c) || Character.isDigit(c) || peek() == '_') {
+                    while (Character.isAlphabetic(peek()) || Character.isDigit(peek()) || peek() == '_') {
                         lexeme.append(peek());
                         ++current;
                         ++column;

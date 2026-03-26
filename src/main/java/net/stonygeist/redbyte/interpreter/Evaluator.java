@@ -216,6 +216,8 @@ public final class Evaluator {
                 }
 
                 DataType object = evaluateExpr(methodExpr.object(), robo);
+                if (object instanceof NothingDataType)
+                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), methodExpr.object().span());
                 yield methodExpr.method().callback.apply(this, robo, object, args);
             }
             default ->

@@ -4,12 +4,14 @@ import com.google.common.collect.ImmutableList;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Hashtable;
 import java.util.List;
@@ -19,15 +21,17 @@ import java.util.function.Function;
 public class BlockDataType extends DataType {
     public static final TypeSymbol TYPE = new TypeSymbol("block", EntityDataType.TYPE, Component.translatable("interpreter.redbyte.types.block"));
     private final @NotNull BlockState blockState;
+    private final @Nullable BlockEntity blockEntity;
     private final @NotNull BlockPos position;
 
-    public BlockDataType(@NotNull BlockState blockState, @NotNull BlockPos position) {
-        this(TYPE, blockState, position);
+    public BlockDataType(@NotNull BlockState blockState, @Nullable BlockEntity blockEntity, @NotNull BlockPos position) {
+        this(TYPE, blockState, blockEntity, position);
     }
 
-    public BlockDataType(TypeSymbol type, @NotNull BlockState blockState, @NotNull BlockPos position) {
+    public BlockDataType(TypeSymbol type, @NotNull BlockState blockState, @Nullable BlockEntity blockEntity, @NotNull BlockPos position) {
         super(type);
         this.blockState = blockState;
+        this.blockEntity = blockEntity;
         this.position = position;
     }
 
@@ -39,15 +43,18 @@ public class BlockDataType extends DataType {
         return position;
     }
 
+    public @Nullable BlockEntity getBlockEntity() {
+        return blockEntity;
+    }
+
     public static final Map<PropertySymbol, Function<BlockDataType, DataType>> properties = new Hashtable<>(Map.of(
             new PropertySymbol("position", VectorDataType.class, Component.translatable("docs.redbyte.description.properties.block.position")), x -> new VectorDataType(x.getPosition().getCenter())
     ));
     public static final List<MethodSymbol> methods = List.of(
             new MethodSymbol("try_destroy", ImmutableList.of(), NothingDataType.class,
                     (ev, robo, object, args) -> {
-                        RoboEntity roboEntity = robo.getEntity();
                         BlockPos blockPos = ((BlockDataType) object).position;
-                        if (!roboEntity.level().isEmptyBlock(blockPos))
+                        if (!robo.getEntity().level().isEmptyBlock(blockPos))
                             robo.addDestroyBlockGoalProp(blockPos);
                         return new NothingDataType();
                     }, Component.translatable("docs.redbyte.description.functions.block.try_destroy")),
@@ -56,6 +63,16 @@ public class BlockDataType extends DataType {
                         robo.getEntity().lookAt(EntityAnchorArgument.Anchor.EYES, ((BlockDataType) object).position.getCenter());
                         return new NothingDataType();
                     },
-                    Component.translatable("docs.redbyte.description.functions.block.look_at"))
+                    Component.translatable("docs.redbyte.description.functions.block.look_at")),
+            new MethodSymbol("asContainer", ImmutableList.of(), ContainerBlockDataType.class,
+                    (ev, robo, object, args) -> {
+                        if (object instanceof ContainerBlockDataType)
+                            return object;
+                        BlockDataType block = (BlockDataType) object;
+                        if (block.getBlockEntity() instanceof BaseContainerBlockEntity container)
+                            return new ContainerBlockDataType(block.getBlockState(), container, block.getPosition());
+                        return new NothingDataType();
+                    },
+                    Component.translatable("docs.redbyte.description.functions.block.asContainer"))
     );
 }
