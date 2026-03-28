@@ -727,7 +727,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         int actualEndLine = Math.max(selectionStartLine, selectionEndLine);
         int actualStartChar, actualEndChar;
 
-        if (selectionStartLine <= selectionEndLine) {
+        if (selectionStartChar <= selectionEndChar) {
             actualStartChar = selectionStartChar;
             actualEndChar = selectionEndChar;
         } else {

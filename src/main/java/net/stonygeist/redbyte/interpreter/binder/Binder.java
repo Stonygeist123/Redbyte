@@ -109,7 +109,7 @@ public final class Binder {
                 BoundExpr operand = bindExpr(unaryExpr.operand);
                 BoundOperator.BoundUnaryOperator operator = BoundOperator.BoundUnaryOperator.bind(unaryExpr.op.kind, operand.getType());
                 if (operator == null) {
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_unary_operator", unaryExpr.op.lexeme, operand.getType().toString()), unaryExpr.span()));
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_unary_operator", unaryExpr.op.lexeme, DataType.getTypeSymbol(operand.getType()).getDocsName()), unaryExpr.span()));
                     yield new BoundErrorExpr(unaryExpr.span());
                 }
 
@@ -120,7 +120,7 @@ public final class Binder {
                 BoundExpr right = bindExpr(binaryExpr.right);
                 BoundOperator.BoundBinaryOperator operator = BoundOperator.BoundBinaryOperator.bind(binaryExpr.op.kind, left.getType(), right.getType());
                 if (operator == null) {
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_binary_operator", binaryExpr.op.lexeme, left.getType().toString(), right.getType().toString()), binaryExpr.span()));
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.invalid_binary_operator", binaryExpr.op.lexeme, DataType.getTypeSymbol(left.getType()).getDocsName(), DataType.getTypeSymbol(right.getType()).getDocsName()), binaryExpr.span()));
                     yield new BoundErrorExpr(binaryExpr.span());
                 }
 
@@ -188,7 +188,7 @@ public final class Binder {
                 }
 
                 String propertyName = propertyExpr.property.lexeme.toLowerCase();
-                Optional<Map.Entry<PropertySymbol, Function<DataType, DataType>>> property = DataType.getProperty(object.getType(), propertyName);
+                Optional<Map.Entry<PropertySymbol, Function<DataType, DataType>>> property = DataType.getProperties(object.getType()).entrySet().stream().filter(p -> p.getKey().name.equals(propertyName)).findFirst();
                 if (property.isEmpty()) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.property_not_existing", propertyName.toLowerCase()), propertyExpr.property.span()));
                     yield new BoundErrorExpr(propertyExpr.property.span());

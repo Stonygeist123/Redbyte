@@ -166,17 +166,17 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
             if (methods.isEmpty() && properties.isEmpty())
                 continue;
             totalHeight += 6 * font.lineHeight;
-            totalHeight += (methods.stream().mapToInt(m -> {
+            totalHeight += methods.stream().mapToInt(m -> {
                 List<FormattedCharSequence> wrappedDescriptionLines = font.split(
                         FormattedText.of(m.description.getString()),
                         (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f)
                 );
-                return wrappedDescriptionLines.size();
-            }).sum() + 1) * font.lineHeight;
-            totalHeight += (properties.stream().mapToInt(p -> {
+                return wrappedDescriptionLines.size() + 1;
+            }).sum() * font.lineHeight;
+            totalHeight += properties.stream().mapToInt(p -> {
                 List<FormattedCharSequence> wrappedDescriptionLines = font.split(FormattedText.of(p.description.getString()), (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f));
-                return wrappedDescriptionLines.size();
-            }).sum() + 1) * font.lineHeight;
+                return wrappedDescriptionLines.size() + 1;
+            }).sum() * font.lineHeight;
         }
 
         return totalHeight;

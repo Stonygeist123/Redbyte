@@ -189,6 +189,7 @@ public final class PseudoRobo {
     }
 
     public void evaluate() {
+        stopEvaluation();
         getEntity().setRuntimeError(null);
         if (diagnostics.isEmpty() && !buildResult.isEmpty()) {
             destroyBlockGoalProp.clear();
@@ -320,5 +321,11 @@ public final class PseudoRobo {
     public void stopEvaluation() {
         getEntity().setIsRuntime(false);
         evaluator = null;
+
+        followPlayerGoalProp.clear();
+        attackGoalProp.clear();
+        destroyBlockGoalProp.clear();
+        walkToGoalProp.clear();
+        walkGoalProp.clear();
     }
 }

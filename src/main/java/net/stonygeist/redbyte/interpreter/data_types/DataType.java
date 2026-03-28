@@ -38,16 +38,13 @@ public abstract class DataType {
     static {
         try {
             for (Class<? extends DataType> type : dataTypes) {
-                Field proprtiesField = type.getField("properties");
-                Field methodsField = type.getField("methods");
-                Field typeSymbolField = type.getField("TYPE");
-                Map<PropertySymbol, Function<DataType, DataType>> properties = (Map<PropertySymbol, Function<DataType, DataType>>) proprtiesField.get(null);
-                List<MethodSymbol> methods = (List<MethodSymbol>) methodsField.get(null);
-                TypeSymbol typeSymbol = (TypeSymbol) typeSymbolField.get(null);
+                Map<PropertySymbol, Function<DataType, DataType>> properties = getProperties(type);
+                List<MethodSymbol> methods = getMethods(type);
+                TypeSymbol typeSymbol = getTypeSymbol(type);
                 if (typeSymbol != null)
                     typeSymbolsCache.put(type, typeSymbol);
 
-                if (properties == null || methods == null || properties.isEmpty() && methods.isEmpty())
+                if (properties == null || methods == null)
                     continue;
 
                 List<MethodSymbol> methodsCopy = new ArrayList<>(List.copyOf(methods));
@@ -71,23 +68,64 @@ public abstract class DataType {
         }
     }
 
-    public static Optional<Map.Entry<PropertySymbol, Function<DataType, DataType>>> getProperty(Class<? extends DataType> type, String name) {
-        return propertiesCache.get(type).entrySet()
-                .stream()
-                .filter(entry -> entry.getKey().name.equalsIgnoreCase(name))
-                .findFirst();
+    public static Map<PropertySymbol, Function<DataType, DataType>> getProperties(Class<? extends DataType> type) {
+        try {
+            if (!propertiesCache.containsKey(type)) {
+                Field proprtiesField = type.getField("properties");
+                Map<PropertySymbol, Function<DataType, DataType>> properties = (Map<PropertySymbol, Function<DataType, DataType>>) proprtiesField.get(null);
+                propertiesCache.put(type, properties);
+                return properties;
+            }
+
+            return propertiesCache.get(type);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static Set<PropertySymbol> getPropertySymbols(Class<? extends DataType> type) {
-        return propertiesCache.get(type).keySet();
+        try {
+            if (!propertiesCache.containsKey(type)) {
+                Field proprtiesField = type.getField("properties");
+                Map<PropertySymbol, Function<DataType, DataType>> properties = (Map<PropertySymbol, Function<DataType, DataType>>) proprtiesField.get(null);
+                propertiesCache.put(type, properties);
+                return properties.keySet();
+            }
+
+            return propertiesCache.get(type).keySet();
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static List<MethodSymbol> getMethods(Class<? extends DataType> type) {
-        return methodsCache.get(type);
+        try {
+            if (!methodsCache.containsKey(type)) {
+                Field methodsField = type.getField("methods");
+                List<MethodSymbol> methods = new ArrayList<>((List<MethodSymbol>) methodsField.get(null));
+                methodsCache.put(type, methods);
+                return methods;
+            }
+
+            return methodsCache.get(type);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static TypeSymbol getTypeSymbol(Class<? extends DataType> type) {
-        return typeSymbolsCache.get(type);
+        try {
+            if (!typeSymbolsCache.containsKey(type)) {
+                Field typeSymbolField = type.getField("TYPE");
+                TypeSymbol typeSymbol = (TypeSymbol) typeSymbolField.get(null);
+                typeSymbolsCache.put(type, typeSymbol);
+                return typeSymbol;
+            }
+
+            return typeSymbolsCache.get(type);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
