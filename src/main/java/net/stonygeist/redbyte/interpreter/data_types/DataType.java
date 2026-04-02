@@ -35,39 +35,6 @@ public abstract class DataType {
     private static final Map<Class<? extends DataType>, TypeSymbol> typeSymbolsCache = new Hashtable<>();
     public static final List<Class<? extends DataType>> dataTypes = List.of(DataType.class, PrimitiveType.class, NumberType.class, TextType.class, BooleanType.class, CreatureDataType.class, EntityDataType.class, MonsterDataType.class, PlayerDataType.class, RoboDataType.class, VectorDataType.class, BlockDataType.class, ContainerBlockDataType.class);
 
-    static {
-        try {
-            for (Class<? extends DataType> type : dataTypes) {
-                Map<PropertySymbol, Function<DataType, DataType>> properties = getProperties(type);
-                List<MethodSymbol> methods = getMethods(type);
-                TypeSymbol typeSymbol = getTypeSymbol(type);
-                if (typeSymbol != null)
-                    typeSymbolsCache.put(type, typeSymbol);
-
-                if (properties == null || methods == null)
-                    continue;
-
-                List<MethodSymbol> methodsCopy = new ArrayList<>(List.copyOf(methods));
-                Class<?> superType = type.getSuperclass();
-                while (!superType.equals(Object.class)) {
-                    Field superPropertiesField = superType.getField("properties");
-                    Map<PropertySymbol, Function<DataType, DataType>> superProperties = (Map<PropertySymbol, Function<DataType, DataType>>) superPropertiesField.get(null);
-                    properties.putAll(superProperties);
-
-                    Field superMethodsField = superType.getField("methods");
-                    List<MethodSymbol> superMethods = (List<MethodSymbol>) superMethodsField.get(null);
-                    methodsCopy.addAll(superMethods);
-                    superType = superType.getSuperclass();
-                }
-
-                propertiesCache.put(type, properties);
-                methodsCache.put(type, methodsCopy);
-            }
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public static Map<PropertySymbol, Function<DataType, DataType>> getProperties(Class<? extends DataType> type) {
         try {
             if (!propertiesCache.containsKey(type)) {

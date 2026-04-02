@@ -9,13 +9,16 @@ import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
+import net.stonygeist.redbyte.index.RedbyteConfigs;
 import net.stonygeist.redbyte.interpreter.Evaluator;
 import net.stonygeist.redbyte.interpreter.Miscellaneous;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Hashtable;
 import java.util.List;
@@ -43,6 +46,9 @@ public final class ContainerBlockDataType extends BlockDataType {
                     (ev, robo, object, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
                         ContainerBlockDataType block = (ContainerBlockDataType) object;
+                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) <= RedbyteConfigs.ROBO_RANGE)
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
+
                         float slotFloat = ((NumberType) args[0]).getValue();
                         if (Math.round(slotFloat) != slotFloat)
                             throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 0);
@@ -73,6 +79,45 @@ public final class ContainerBlockDataType extends BlockDataType {
                         }
 
                         return new NothingDataType();
-                    }, Component.translatable("docs.redbyte.description.functions.block.try_destroy"))
+                    }, Component.translatable("docs.redbyte.description.functions.container_block.try_quick_put.slot")),
+            new MethodSymbol("try_quick_put", ImmutableList.of(TextType.class), NothingDataType.class,
+                    (ev, robo, object, args) -> {
+                        RoboEntity roboEntity = robo.getEntity();
+                        ContainerBlockDataType block = (ContainerBlockDataType) object;
+                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
+
+                        String idToSearch = ((TextType) args[0]).getValue();
+                        Map.Entry<Integer, @Nullable Item> slotItemPair = Miscellaneous.getSlot(roboEntity.getInventory(), idToSearch);
+                        int slot = slotItemPair.getKey();
+                        Item item = slotItemPair.getValue();
+                        if (item == null)
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_does_not_exist", idToSearch), 0);
+
+                        if (slot == -1)
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_not_found", idToSearch), 0);
+
+                        ItemStack itemStack = roboEntity.extractItem(slot, item.getDefaultMaxStackSize(), false);
+                        if (!block.getContainer().canPlaceItem(slot, itemStack)) {
+                            roboEntity.insertItem(slot, itemStack, false);
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item", item.getName(itemStack)), 0);
+                        }
+
+                        assert block.getBlockEntity() != null;
+                        ItemStack remainder = Miscellaneous.smartInsert(
+                                block.getBlockEntity().getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(RuntimeException::new),
+                                itemStack
+                        );
+                        if (!remainder.isEmpty()) {
+                            remainder = roboEntity.insertItem(slot, remainder, false);
+                            for (int i = 0; i < roboEntity.getInventory().getSlots(); ++i) {
+                                remainder = roboEntity.insertItem(i, remainder, false);
+                                if (remainder.isEmpty())
+                                    break;
+                            }
+                        }
+
+                        return new NothingDataType();
+                    }, Component.translatable("docs.redbyte.description.functions.container_block.try_quick_put.name"))
     );
 }

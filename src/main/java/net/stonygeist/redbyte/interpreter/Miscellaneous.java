@@ -4,17 +4,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.registries.ForgeRegistries;
 import net.stonygeist.redbyte.entity.robo.RoboEntity;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.data_types.*;
@@ -22,6 +25,8 @@ import net.stonygeist.redbyte.interpreter.data_types.primitives.BooleanType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.AbstractMap;
 import java.util.List;
@@ -190,5 +195,17 @@ public enum Miscellaneous {
         }
 
         return remaining;
+    }
+
+    public static Map.Entry<@NotNull Integer, @Nullable Item> getSlot(IItemHandler handler, String id) {
+        String idNamepace = id.split(":")[0];
+        String idName = id.split(":")[1];
+        ResourceLocation idLocation = ResourceLocation.fromNamespaceAndPath(idNamepace, idName);
+        Item item = ForgeRegistries.ITEMS.getValue(idLocation);
+        if (item == null) return new AbstractMap.SimpleEntry<>(-1, null);
+        for (int i = 0; i < handler.getSlots(); ++i)
+            if (handler.getStackInSlot(i).is(item))
+                return new AbstractMap.SimpleEntry<>(i, item);
+        return new AbstractMap.SimpleEntry<>(-1, item);
     }
 }

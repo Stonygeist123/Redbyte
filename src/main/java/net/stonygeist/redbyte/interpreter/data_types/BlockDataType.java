@@ -4,9 +4,12 @@ import com.google.common.collect.ImmutableList;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
@@ -73,6 +76,16 @@ public class BlockDataType extends DataType {
                             return new ContainerBlockDataType(block.getBlockState(), container, block.getPosition());
                         return new NothingDataType();
                     },
-                    Component.translatable("docs.redbyte.description.functions.block.asContainer"))
+                    Component.translatable("docs.redbyte.description.functions.block.asContainer")),
+            new MethodSymbol("get_id", ImmutableList.of(), TextType.class,
+                    (ev, robo, object, args) -> {
+                        if (object instanceof ContainerBlockDataType)
+                            return object;
+                        BlockDataType block = (BlockDataType) object;
+                        ResourceLocation idResource = ForgeRegistries.BLOCKS.getKey(block.getBlockState().getBlock());
+                        assert idResource != null;
+                        return new TextType(idResource.toString());
+                    },
+                    Component.translatable("docs.redbyte.description.functions.block.get_id"))
     );
 }

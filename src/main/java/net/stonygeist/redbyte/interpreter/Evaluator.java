@@ -89,7 +89,7 @@ public final class Evaluator {
                     if (condition instanceof NothingDataType)
                         throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), conditionalGotoStmt.condition().span());
 
-                    if ((boolean) condition == conditionalGotoStmt.jumpIfTrue())
+                    if (((BooleanType) condition).getValue() == conditionalGotoStmt.jumpIfTrue())
                         index = labelToIndex.get(conditionalGotoStmt.label());
                     else
                         ++index;
@@ -197,7 +197,10 @@ public final class Evaluator {
                 try {
                     yield function.callback.apply(this, robo, args);
                 } catch (Evaluator.CallEvaluationError e) {
-                    throw new EvaluationError(e.getMessage(), callExpr.args().get(e.getArg()).span());
+                    if (e.getArg() == null)
+                        throw new EvaluationError(e.getMessage(), callExpr.span());
+                    else
+                        throw new EvaluationError(e.getMessage(), callExpr.args().get(e.getArg()).span());
                 }
             }
             case BoundPropertyExpr propertyExpr -> {
@@ -218,7 +221,14 @@ public final class Evaluator {
                 DataType object = evaluateExpr(methodExpr.object(), robo);
                 if (object instanceof NothingDataType)
                     throw new EvaluationError(Component.translatable("runtime.redbyte.error.value_not_existing"), methodExpr.object().span());
-                yield methodExpr.method().callback.apply(this, robo, object, args);
+                try {
+                    yield methodExpr.method().callback.apply(this, robo, object, args);
+                } catch (Evaluator.CallEvaluationError e) {
+                    if (e.getArg() == null)
+                        throw new EvaluationError(e.getMessage(), methodExpr.span());
+                    else
+                        throw new EvaluationError(e.getMessage(), methodExpr.args().get(e.getArg()).span());
+                }
             }
             default ->
                     throw new EvaluationError(Component.translatable("runtime.redbyte.error.unsupported_expression"), expr.span());
@@ -247,14 +257,14 @@ public final class Evaluator {
     }
 
     public static final class CallEvaluationError extends RuntimeException {
-        private final int arg;
+        private final @Nullable Integer arg;
 
-        public CallEvaluationError(Component message, int arg) {
+        public CallEvaluationError(Component message, @Nullable Integer arg) {
             super(message.getString());
             this.arg = arg;
         }
 
-        public int getArg() {
+        public @Nullable Integer getArg() {
             return arg;
         }
     }
