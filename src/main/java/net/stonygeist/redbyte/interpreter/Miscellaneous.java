@@ -82,6 +82,11 @@ public enum Miscellaneous {
                         robo.getEntity().addPrintOutput(((NumberType) args[0]).getValue());
                         return new NothingDataType();
                     }, Component.translatable("docs.redbyte.description.functions.print")))
+            .add(new FunctionSymbol("print", ImmutableList.of(BooleanType.class), NothingDataType.class,
+                    (ev, robo, args) -> {
+                        robo.getEntity().addPrintOutput(((BooleanType) args[0]).getValue());
+                        return new NothingDataType();
+                    }, Component.translatable("docs.redbyte.description.functions.print")))
             .add(new FunctionSymbol("is_nothing", ImmutableList.of(DataType.class), BooleanType.class,
                     (ev, robo, args) -> new BooleanType(args[0] instanceof NothingDataType), Component.translatable("docs.redbyte.description.functions.is_nothing")))
             .add(new FunctionSymbol("walk", ImmutableList.of(NumberType.class), NothingDataType.class, (ev, robo, args) -> {
