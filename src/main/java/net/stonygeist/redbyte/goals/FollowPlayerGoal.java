@@ -41,7 +41,7 @@ public class FollowPlayerGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return !property.isEmpty() && target.equals(property.peek()) && target.isAlive();
+        return !(property = robo.getFollowPlayerGoalProp()).isEmpty() && target.equals(property.peek()) && target.isAlive();
     }
 
     @Override

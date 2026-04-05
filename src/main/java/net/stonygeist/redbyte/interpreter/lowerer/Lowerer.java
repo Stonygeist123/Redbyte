@@ -5,8 +5,9 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.binder.BoundOperator;
 import net.stonygeist.redbyte.interpreter.binder.expr.*;
 import net.stonygeist.redbyte.interpreter.binder.stmt.*;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.BooleanType;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.symbols.LabelSymbol;
-import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 
 import java.util.Stack;
@@ -61,7 +62,7 @@ public final class Lowerer {
                 }
             }
             case BoundOnceStmt onceStmt -> {
-                BoundOperator.BoundUnaryOperator conditionOperator = BoundOperator.BoundUnaryOperator.bind(TokenKind.Bang, TypeSymbol.Boolean);
+                BoundOperator.BoundUnaryOperator conditionOperator = BoundOperator.BoundUnaryOperator.bind(TokenKind.Bang, BooleanType.class);
                 assert conditionOperator != null;
                 BoundUnaryExpr negatedCondition = new BoundUnaryExpr(onceStmt.condition(), conditionOperator, onceStmt.condition().span());
                 BoundWhileStmt whileStmt = new BoundWhileStmt(negatedCondition, new BoundBlockStmt(ImmutableList.of()));
@@ -81,7 +82,7 @@ public final class Lowerer {
                 yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(gotoCheck, continueLabelStmt, whileStmt.body(), checkLabelStmt, gotoTrue, endLabelStmt)));
             }
             case BoundAlwaysStmt alwaysStmt -> {
-                BoundExpr alwaysTrue = new BoundLiteralExpr(true, null);
+                BoundExpr alwaysTrue = new BoundLiteralExpr(new BooleanType(true), null);
                 LabelSymbol endLabel = generateLabel();
                 BoundConditionalGotoStmt gotoFalse = new BoundConditionalGotoStmt(endLabel, alwaysStmt.condition(), false);
                 BoundLabelStmt endLabelStmt = new BoundLabelStmt(endLabel);
@@ -89,17 +90,17 @@ public final class Lowerer {
                 yield rewriteStmt(new BoundWhileStmt(alwaysTrue, body));
             }
             case BoundLoopStmt loopStmt -> {
-                VariableSymbol variable = new VariableSymbol("$LoopVar_" + ++loopVarCount, TypeSymbol.Number);
-                BoundExprStmt varDecl = new BoundExprStmt(new BoundAssignExpr(variable, new BoundLiteralExpr(1f, loopStmt.count().span()), loopStmt.count().span()));
+                VariableSymbol variable = new VariableSymbol("$LoopVar_" + ++loopVarCount, NumberType.class);
+                BoundExprStmt varDecl = new BoundExprStmt(new BoundAssignExpr(variable, new BoundLiteralExpr(new NumberType(1f), loopStmt.count().span()), loopStmt.count().span()));
                 BoundNameExpr nameExpr = new BoundNameExpr(variable, loopStmt.count().span());
 
-                BoundOperator.BoundBinaryOperator conditonOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.LessEquals, TypeSymbol.Number, TypeSymbol.Number);
+                BoundOperator.BoundBinaryOperator conditonOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.LessEquals, NumberType.class, NumberType.class);
                 assert conditonOperator != null;
                 BoundBinaryExpr condition = new BoundBinaryExpr(nameExpr, conditonOperator, loopStmt.count(), loopStmt.count().span());
 
-                BoundOperator.BoundBinaryOperator incrementOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.Plus, TypeSymbol.Number, TypeSymbol.Number);
+                BoundOperator.BoundBinaryOperator incrementOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.Plus, NumberType.class, NumberType.class);
                 assert incrementOperator != null;
-                BoundExprStmt increment = new BoundExprStmt(new BoundAssignExpr(variable, new BoundBinaryExpr(nameExpr, incrementOperator, new BoundLiteralExpr(1f, loopStmt.count().span()), loopStmt.count().span()), loopStmt.count().span()));
+                BoundExprStmt increment = new BoundExprStmt(new BoundAssignExpr(variable, new BoundBinaryExpr(nameExpr, incrementOperator, new BoundLiteralExpr(new NumberType(1f), loopStmt.count().span()), loopStmt.count().span()), loopStmt.count().span()));
 
                 BoundWhileStmt whileStmt = new BoundWhileStmt(condition, new BoundBlockStmt(ImmutableList.of(loopStmt.body(), increment)));
                 yield rewriteStmt(new BoundBlockStmt(ImmutableList.of(

@@ -59,6 +59,9 @@ public class Lexer {
             case ',':
                 kind = TokenKind.Comma;
                 break;
+            case '.':
+                kind = TokenKind.Dot;
+                break;
             case '{':
                 kind = TokenKind.LBrace;
                 break;
@@ -169,7 +172,7 @@ public class Lexer {
 
                     kind = TokenKind.Number;
                 } else if (Character.isAlphabetic(c) || c == '_') {
-                    while (Character.isAlphabetic(peek()) || peek() == '_') {
+                    while (Character.isAlphabetic(peek()) || Character.isDigit(peek()) || peek() == '_') {
                         lexeme.append(peek());
                         ++current;
                         ++column;

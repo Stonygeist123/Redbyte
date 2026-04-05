@@ -141,6 +141,43 @@ public class Parser {
             }
 
             return expr;
+        } else if (token.kind == TokenKind.Dot) {
+            ++current;
+            if (getCurrent().kind == TokenKind.Identifier) {
+                Token name = getCurrent();
+                ++current;
+                if (getCurrent().kind == TokenKind.LParen) {
+                    Token lParen = getCurrent();
+                    ++current;
+                    List<Expr> args = new ArrayList<>();
+                    boolean needsArg = false;
+                    while (getCurrent().kind != TokenKind.RParen && getCurrent().kind != TokenKind.Eof) {
+                        needsArg = false;
+                        args.add(parseExpr(0));
+                        Token currentToken = getCurrent();
+                        if (currentToken.kind != TokenKind.RParen && currentToken.kind != TokenKind.Eof && currentToken.kind != TokenKind.Comma)
+                            diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_character", "')' or ','", currentToken.lexeme), currentToken.span()));
+                        else if (currentToken.kind == TokenKind.Comma) {
+                            needsArg = true;
+                            ++current;
+                        }
+                    }
+
+                    if (needsArg)
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_expression"), getCurrent().span()));
+
+                    Token rParen = getCurrent();
+                    if (rParen.kind != TokenKind.RParen)
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_character", "')'", rParen.lexeme), rParen.span()));
+                    else
+                        ++current;
+                    expr = new MethodExpr(expr, token, name, lParen, args.toArray(new Expr[0]), rParen);
+                } else
+                    expr = new PropertyExpr(expr, token, name);
+            } else {
+                diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_name"), getCurrent().span()));
+                return expr;
+            }
         } else if (expr instanceof NameExpr nameExpr) {
             if (token.kind == TokenKind.Equals) {
                 ++current;

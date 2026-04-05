@@ -12,13 +12,20 @@ import net.stonygeist.redbyte.interpreter.Miscellaneous;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.Node;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.expr.Expr;
 import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.Stmt;
+import net.stonygeist.redbyte.interpreter.data_types.DataType;
+import net.stonygeist.redbyte.interpreter.data_types.NothingDataType;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
+import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import net.stonygeist.redbyte.menu.robo_docs.RoboDocs;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Set;
 
 public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
     private static final int BORDER_COLOR = 0xff808080;
@@ -43,7 +50,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
     private Category category = Category.None;
 
     public enum Category {
-        None, Statements, Expressions, Functions
+        None, Statements, Expressions, Library
     }
 
     public RoboDocsScreen(RoboDocs menu, Inventory playerInventory, Component title) {
@@ -67,7 +74,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         ));
         addRenderableWidget(new CategoryButton(
                 width - TERMINAL_WIDTH / 4, (height - TERMINAL_HEIGHT) / 2, 80, 20,
-                Component.translatable("menu.redbyte.docs.functions"), Category.Functions, category -> this.category = category
+                Component.translatable("menu.redbyte.docs.library"), Category.Library, category -> this.category = category
         ));
     }
 
@@ -116,7 +123,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         return switch (category) {
             case Statements -> calculateStatementsHeight();
             case Expressions -> calculateExpressionsHeight();
-            case Functions -> calculateFunctionsHeight();
+            case Library -> calculateLibraryHeight();
             default -> 0;
         };
     }
@@ -143,14 +150,33 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         return Node.allExpressions.size() * font.lineHeight * 4;
     }
 
-    private int calculateFunctionsHeight() {
-        int totalHeight = 0;
+    private int calculateLibraryHeight() {
+        int totalHeight = 3 * font.lineHeight;
         for (FunctionSymbol function : Miscellaneous.functions) {
             List<FormattedCharSequence> wrappedDescriptionLines = font.split(
                     FormattedText.of(function.description.getString()),
                     (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f)
             );
             totalHeight += (wrappedDescriptionLines.size() + 1) * font.lineHeight;
+        }
+
+        for (Class<? extends DataType> type : DataType.dataTypes) {
+            List<MethodSymbol> methods = DataType.getMethods(type);
+            Set<PropertySymbol> properties = DataType.getPropertySymbols(type);
+            if (methods.isEmpty() && properties.isEmpty())
+                continue;
+            totalHeight += 6 * font.lineHeight;
+            totalHeight += methods.stream().mapToInt(m -> {
+                List<FormattedCharSequence> wrappedDescriptionLines = font.split(
+                        FormattedText.of(m.description.getString()),
+                        (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f)
+                );
+                return wrappedDescriptionLines.size() + 1;
+            }).sum() * font.lineHeight;
+            totalHeight += properties.stream().mapToInt(p -> {
+                List<FormattedCharSequence> wrappedDescriptionLines = font.split(FormattedText.of(p.description.getString()), (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f));
+                return wrappedDescriptionLines.size() + 1;
+            }).sum() * font.lineHeight;
         }
 
         return totalHeight;
@@ -161,7 +187,7 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         switch (category) {
             case Statements -> renderStatementsContent(guiGraphics, x, y);
             case Expressions -> renderExpressionsContent(guiGraphics, x, y);
-            case Functions -> renderFunctionsContent(guiGraphics, x, y);
+            case Library -> renderLibraryContent(guiGraphics, x, y);
             case None -> renderDefaultContent(guiGraphics, x);
         }
 
@@ -170,27 +196,49 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
     }
 
     private void renderStatementsContent(@NotNull GuiGraphics guiGraphics, int x, int y) {
-        int textY = -verticalScrollOffset;
         int startX = x + TEXT_PADDING_X;
         int startY = y + NAV_BAR_HEIGHT + TEXT_PADDING_Y;
+        int textY = startY - verticalScrollOffset;
         for (Class<? extends Stmt> stmt : Node.allStatements)
-            textY += drawStatement(guiGraphics, startX, startY + textY, stmt);
+            textY += drawStatement(guiGraphics, startX, textY, stmt);
     }
 
     private void renderExpressionsContent(@NotNull GuiGraphics guiGraphics, int x, int y) {
-        int textY = -verticalScrollOffset;
         int startX = x + TEXT_PADDING_X;
         int startY = y + NAV_BAR_HEIGHT + TEXT_PADDING_Y;
+        int textY = startY - verticalScrollOffset;
         for (Class<? extends Expr> expr : Node.allExpressions)
-            textY += drawExpression(guiGraphics, startX, startY + textY, expr);
+            textY += drawExpression(guiGraphics, startX, textY, expr);
     }
 
-    private void renderFunctionsContent(@NotNull GuiGraphics guiGraphics, int x, int y) {
-        int textY = -verticalScrollOffset;
+    private void renderLibraryContent(@NotNull GuiGraphics guiGraphics, int x, int y) {
         int startX = x + TEXT_PADDING_X;
         int startY = y + NAV_BAR_HEIGHT + TEXT_PADDING_Y;
+        int textY = startY - verticalScrollOffset;
+        guiGraphics.drawString(font, Component.translatable("docs.redbyte.title.global_functions"), startX, textY, 0xfffc0060);
+        textY += font.lineHeight * 3;
         for (FunctionSymbol function : Miscellaneous.functions)
-            textY += drawFunction(guiGraphics, startX, startY + textY, function);
+            textY += drawLibraryFunction(guiGraphics, startX, textY, function);
+
+        for (Class<? extends DataType> type : DataType.dataTypes) {
+            try {
+                List<MethodSymbol> methods = DataType.getMethods(type);
+                Set<PropertySymbol> properties = DataType.getPropertySymbols(type);
+                if (methods.isEmpty() && properties.isEmpty())
+                    continue;
+                textY += font.lineHeight * 3;
+                Field typeNameField = type.getField("TYPE");
+                Component typeName = ((TypeSymbol) typeNameField.get(null)).getDocsName();
+                guiGraphics.drawString(font, typeName, startX, textY, 0xfffc0060);
+                textY += font.lineHeight * 3;
+                for (MethodSymbol method : methods)
+                    textY += drawLibraryFunction(guiGraphics, startX, textY, method);
+                for (PropertySymbol property : properties)
+                    textY += drawLibraryProperty(guiGraphics, startX, textY, property);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private void renderDefaultContent(@NotNull GuiGraphics guiGraphics, int x) {
@@ -258,32 +306,69 @@ public class RoboDocsScreen extends AbstractContainerScreen<RoboDocs> {
         return font.lineHeight * 4;
     }
 
-    public int drawFunction(@NotNull GuiGraphics guiGraphics, int x, int y, FunctionSymbol function) {
+    public int drawLibraryFunction(@NotNull GuiGraphics guiGraphics, int x, int y, FunctionSymbol function) {
         int textX = 0;
         guiGraphics.drawString(font, function.name, x, y, GENERAL_COLOR);
         textX += font.width(function.name);
         guiGraphics.drawString(font, "(", x + textX, y, PUNCTUATION_COLOR);
         textX += font.width("(");
         for (int i = 0; i < function.parameters.size(); i++) {
-            Component paramTypeName = function.parameters.get(i).getDocsName();
-            guiGraphics.drawString(font, paramTypeName, x + textX, y, PARAM_TYPE_COLOR);
-            textX += font.width(paramTypeName);
-            if (i < function.parameters.size() - 1) {
-                guiGraphics.drawString(font, ", ", x + textX, y, PUNCTUATION_COLOR);
-                textX += font.width(", ");
+            try {
+                Component paramTypeName = ((TypeSymbol) function.parameters.get(i).getField("TYPE").get(null)).getDocsName();
+                guiGraphics.drawString(font, paramTypeName, x + textX, y, PARAM_TYPE_COLOR);
+                textX += font.width(paramTypeName);
+                if (i < function.parameters.size() - 1) {
+                    guiGraphics.drawString(font, ", ", x + textX, y, PUNCTUATION_COLOR);
+                    textX += font.width(", ");
+                }
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
         }
 
-        guiGraphics.drawString(font, ") -> ", x + textX, y, PUNCTUATION_COLOR);
-        textX += font.width(") -> ");
-        guiGraphics.drawString(font, function.type.getDocsName(), x + textX, y, RETURN_TYPE_COLOR);
-        List<FormattedCharSequence> wrappedDescriptionLines = font.split(FormattedText.of(function.description.getString()), (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f));
-        for (int i = 0; i < wrappedDescriptionLines.size(); ++i) {
-            FormattedCharSequence line = wrappedDescriptionLines.get(i);
-            guiGraphics.drawString(font, line, (int) (x + (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.5f), y + i * font.lineHeight, GENERAL_COLOR);
-        }
+        guiGraphics.drawString(font, ")", x + textX, y, PUNCTUATION_COLOR);
+        textX += font.width(")");
+        try {
+            TypeSymbol type = ((TypeSymbol) function.type.getField("TYPE").get(null));
+            Component typeName = type.getDocsName();
+            if (!type.equals(NothingDataType.TYPE)) {
+                guiGraphics.drawString(font, " -> ", x + textX, y, PUNCTUATION_COLOR);
+                textX += font.width(" -> ");
+                guiGraphics.drawString(font, typeName, x + textX, y, RETURN_TYPE_COLOR);
+            }
 
-        return (wrappedDescriptionLines.size() + 1) * font.lineHeight;
+            List<FormattedCharSequence> wrappedDescriptionLines = font.split(FormattedText.of(function.description.getString()), (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f));
+            for (int i = 0; i < wrappedDescriptionLines.size(); ++i) {
+                FormattedCharSequence line = wrappedDescriptionLines.get(i);
+                guiGraphics.drawString(font, line, (int) (x + (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.5f), y + i * font.lineHeight, GENERAL_COLOR);
+            }
+
+            return (wrappedDescriptionLines.size() + 1) * font.lineHeight;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public int drawLibraryProperty(@NotNull GuiGraphics guiGraphics, int x, int y, PropertySymbol property) {
+        int textX = 0;
+        guiGraphics.drawString(font, property.name, x, y, GENERAL_COLOR);
+        textX += font.width(property.name);
+
+        guiGraphics.drawString(font, " -> ", x + textX, y, PUNCTUATION_COLOR);
+        textX += font.width(" -> ");
+        try {
+            Component typeName = ((TypeSymbol) property.type.getField("TYPE").get(null)).getDocsName();
+            guiGraphics.drawString(font, typeName, x + textX, y, RETURN_TYPE_COLOR);
+            List<FormattedCharSequence> wrappedDescriptionLines = font.split(FormattedText.of(property.description.getString()), (int) (TERMINAL_WIDTH - (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.75f));
+            for (int i = 0; i < wrappedDescriptionLines.size(); ++i) {
+                FormattedCharSequence line = wrappedDescriptionLines.get(i);
+                guiGraphics.drawString(font, line, (int) (x + (TERMINAL_WIDTH - TEXT_PADDING_X) / 2.5f), y + i * font.lineHeight, GENERAL_COLOR);
+            }
+
+            return (wrappedDescriptionLines.size() + 1) * font.lineHeight;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void drawVerticalScrollbar(GuiGraphics guiGraphics, int x, int y, int visibleTextHeight) {
