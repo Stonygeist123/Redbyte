@@ -18,6 +18,8 @@ import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.menu.robo_terminal.RoboTerminal;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTerminal> {
@@ -58,6 +60,9 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     private ListTag lastDiagnosticsTag = new ListTag();
     private TextFieldHelper textFieldHelper;
     private boolean followCursorOnRender = true;
+
+    private final Deque<EditorSnapshot> undoStack = new ArrayDeque<>();
+    private static final int MAX_UNDO_STEPS = 100;
 
     public RoboTerminalScreen(RoboTerminal menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -258,7 +263,11 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
 
         // Handle Ctrl+A for select all
         if (keyCode == InputConstants.KEY_A && hasCtrl) {
+            saveUndoState();
             selectAll();
+            return true;
+        } else if (keyCode == InputConstants.KEY_Z && hasCtrl) {
+            undo();
             return true;
         }
 
@@ -302,11 +311,12 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
 
             return true;
         } else if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER) {
+            saveUndoState();
             getMenu().getTerminalText().newLine(curLine, textFieldHelper.getCursorPos());
             ++curLine;
             return true;
         } else if (keyCode == InputConstants.KEY_BACKSPACE) {
-            // Handle selection deletion
+            saveUndoState();
             if (hasSelection) {
                 deleteSelection();
                 return true;
@@ -340,6 +350,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             deleteSelection();
 
         String text = String.valueOf(codePoint);
+        saveUndoState();
         textFieldHelper.insertText(text);
         return true;
     }
@@ -766,5 +777,57 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
 
         // Clear selection
         hasSelection = false;
+    }
+
+    private void saveUndoState() {
+        if (textFieldHelper == null || getMenu().getTerminalText() == null)
+            return;
+
+        undoStack.push(new EditorSnapshot(
+                getMenu().getTerminalText().getLines().clone(),
+                curLine,
+                textFieldHelper.getCursorPos(),
+                textFieldHelper.getSelectionPos(),
+                hasSelection,
+                selectionStartLine,
+                selectionStartChar,
+                selectionEndLine,
+                selectionEndChar
+        ));
+
+        while (undoStack.size() > MAX_UNDO_STEPS)
+            undoStack.removeLast();
+    }
+
+    private void undo() {
+        if (undoStack.isEmpty())
+            return;
+
+        EditorSnapshot snapshot = undoStack.pop();
+        getMenu().getTerminalText().setLines(snapshot.lines());
+        curLine = snapshot.curLine();
+        textFieldHelper.setCursorPos(snapshot.cursorPos(), false);
+        textFieldHelper.setSelectionPos(snapshot.selectionPos());
+        hasSelection = snapshot.hasSelection();
+        selectionStartLine = snapshot.selectionStartLine();
+        selectionStartChar = snapshot.selectionStartChar();
+        selectionEndLine = snapshot.selectionEndLine();
+        selectionEndChar = snapshot.selectionEndChar();
+        followCursorOnRender = true;
+        getMenu().setRunDisabledUntilBuild(true);
+        getMenu().setErrorHighlightingDisabled(true);
+    }
+
+    private record EditorSnapshot(
+            String[] lines,
+            int curLine,
+            int cursorPos,
+            int selectionPos,
+            boolean hasSelection,
+            int selectionStartLine,
+            int selectionStartChar,
+            int selectionEndLine,
+            int selectionEndChar
+    ) {
     }
 }

@@ -1,6 +1,7 @@
 package net.stonygeist.redbyte.menu.robo_terminal.screen;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class TerminalText {
@@ -38,5 +39,10 @@ public class TerminalText {
 
             lines.set(curLine, lines.get(curLine).substring(0, cursorPos));
         }
+    }
+
+    public void setLines(String[] newLines) {
+        lines.clear();
+        lines.addAll(Arrays.asList(newLines));
     }
 }
