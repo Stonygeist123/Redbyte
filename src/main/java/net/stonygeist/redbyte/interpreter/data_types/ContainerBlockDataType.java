@@ -22,10 +22,10 @@ import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public final class ContainerBlockDataType extends BlockDataType {
     public static final TypeSymbol TYPE = new TypeSymbol("container_block", EntityDataType.TYPE, Component.translatable("interpreter.redbyte.types.container_block"));
@@ -40,10 +40,20 @@ public final class ContainerBlockDataType extends BlockDataType {
         return container;
     }
 
-    public static final Map<PropertySymbol, Function<ContainerBlockDataType, DataType>> properties = new Hashtable<>(Map.of(
-            new PropertySymbol("slots", NumberType.class, Component.translatable("docs.redbyte.description.properties.container_block.slots")), x -> new NumberType(x.getContainer().getContainerSize())
-    ));
-    public static final List<MethodSymbol> methods = List.of(
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = getProperties(BlockDataType.class);
+
+    static {
+        properties.put(
+                new PropertySymbol("slots", NumberType.class,
+                        Component.translatable("docs.redbyte.description.properties.container_block.slots")),
+                x -> {
+                    if (x instanceof ContainerBlockDataType c)
+                        return new NumberType(c.getContainer().getContainerSize());
+                    throw new IllegalArgumentException("Expected a creature, got " + x.getClass().getSimpleName());
+                });
+    }
+
+    public static final List<MethodSymbol> methods = Stream.concat(getMethods(EntityDataType.class).stream(), Stream.of(
             new MethodSymbol("try_quick_put", ImmutableList.of(NumberType.class), NothingDataType.class,
                     (ev, robo, object, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
@@ -347,5 +357,5 @@ public final class ContainerBlockDataType extends BlockDataType {
                             return new BooleanType(false);
                         return new BooleanType(true);
                     }, Component.translatable("docs.redbyte.description.functions.container_block.can_put.name"))
-    );
+    )).toList();
 }

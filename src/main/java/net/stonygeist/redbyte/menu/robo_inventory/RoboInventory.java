@@ -157,7 +157,7 @@ public class RoboInventory extends AbstractContainerMenu {
         addSlot(new ToolSlot(inventory, RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS, 98, 48, SwordItem.class, EMPTY_SWORD_ICON, this::setSword));
         addSlot(new ToolSlot(inventory, RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS + 1, 98 + 18, 48, PickaxeItem.class, EMPTY_PICKAXE_ICON, this::setPickaxe));
         addSlot(new ToolSlot(inventory, RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS + 2, 98 + 2 * 18, 48, AxeItem.class, EMPTY_AXE_ICON, this::setAxe));
-        addSlot(new ToolSlot(inventory, RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS + 3, 98 + 3 * 18, 48, SwordItem.class, EMPTY_SHOVEL_ICON, this::setShovel));
+        addSlot(new ToolSlot(inventory, RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS + 3, 98 + 3 * 18, 48, ShovelItem.class, EMPTY_SHOVEL_ICON, this::setShovel));
     }
 
     public SwordItem getSword() {

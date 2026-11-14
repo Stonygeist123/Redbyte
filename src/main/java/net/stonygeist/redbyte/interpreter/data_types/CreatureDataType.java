@@ -12,10 +12,10 @@ import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class CreatureDataType<T extends LivingEntity> extends EntityDataType<T> {
     public static final TypeSymbol TYPE = new TypeSymbol("creature", EntityDataType.TYPE, Component.translatable("interpreter.redbyte.types.creature"));
@@ -24,10 +24,20 @@ public class CreatureDataType<T extends LivingEntity> extends EntityDataType<T> 
         super(type, entity);
     }
 
-    public static final Map<PropertySymbol, Function<CreatureDataType<?>, DataType>> properties = new Hashtable<>(Map.of(
-            new PropertySymbol("health", NumberType.class, Component.translatable("docs.redbyte.description.properties.creature.health")), x -> new NumberType(x.getEntity().getHealth())
-    ));
-    public static final List<MethodSymbol> methods = List.of(
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = getProperties(EntityDataType.class);
+
+    static {
+        properties.put(
+                new PropertySymbol("health", NumberType.class,
+                        Component.translatable("docs.redbyte.description.properties.creature.health")),
+                x -> {
+                    if (x instanceof CreatureDataType<?> c)
+                        return new NumberType(c.getEntity().getHealth());
+                    throw new IllegalArgumentException("Expected a creature, got " + x.getClass().getSimpleName());
+                });
+    }
+
+    public static final List<MethodSymbol> methods = Stream.concat(getMethods(EntityDataType.class).stream(), Stream.of(
             new MethodSymbol(
                     "follow", ImmutableList.of(), NothingDataType.class, (ev, robo, object, args) -> {
                 CreatureDataType<?> entity = (CreatureDataType<?>) object;
@@ -57,5 +67,5 @@ public class CreatureDataType<T extends LivingEntity> extends EntityDataType<T> 
                         return new NothingDataType();
                     },
                     Component.translatable("docs.redbyte.description.functions.creature.look_at"))
-    );
+    )).toList();
 }

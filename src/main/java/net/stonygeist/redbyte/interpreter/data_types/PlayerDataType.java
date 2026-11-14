@@ -6,7 +6,6 @@ import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -18,6 +17,7 @@ public final class PlayerDataType extends CreatureDataType<Player> {
         super(TYPE, player);
     }
 
-    public static final Map<PropertySymbol, Function<CreatureDataType<Player>, DataType>> properties = new Hashtable<>();
-    public static final List<MethodSymbol> methods = List.of();
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = getProperties(CreatureDataType.class);
+
+    public static final List<MethodSymbol> methods = getMethods(CreatureDataType.class);
 }

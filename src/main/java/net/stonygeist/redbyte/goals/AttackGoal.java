@@ -20,7 +20,8 @@ public class AttackGoal extends Goal {
     private final RoboEntity roboEntity;
     private PseudoRobo robo;
     private LivingEntity property;
-    private int cooldown = 0;
+    private long nextHitTime;
+    private boolean hit;
 
     public AttackGoal(RoboEntity roboEntity) {
         this.roboEntity = roboEntity;
@@ -46,17 +47,17 @@ public class AttackGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return property.isAlive() && property.attackable() && roboEntity.isInRange(property);
+        return !hit && property.isAlive() && property.attackable() && roboEntity.isInRange(property);
     }
 
     @Override
     public void tick() {
-        if (cooldown > 0) {
-            --cooldown;
-            return;
-        }
-
         ServerLevel level = (ServerLevel) roboEntity.level();
+        long now = level.getGameTime();
+        if (now < nextHitTime)
+            return;
+
+
         float damage = (float) roboEntity.getAttributeValue(Attributes.ATTACK_DAMAGE);
         ItemStack sword = roboEntity.getSword();
         ItemAttributeModifiers modifiers = sword.getDefaultAttributeModifiers();
@@ -80,12 +81,13 @@ public class AttackGoal extends Goal {
             EnchantmentHelper.doPostAttackEffects(level, property, damageSource);
         }
 
-        cooldown = 10;
-        stop();
+        nextHitTime = now + 10;
+        hit = true;
     }
 
     @Override
     public void start() {
+        hit = false;
         roboEntity.setItemInHand(InteractionHand.MAIN_HAND, roboEntity.getSword());
     }
 

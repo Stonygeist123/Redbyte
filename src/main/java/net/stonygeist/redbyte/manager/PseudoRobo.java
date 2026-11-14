@@ -8,6 +8,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.items.ItemStackHandler;
@@ -158,7 +159,7 @@ public final class PseudoRobo {
             if (error != null) {
                 getEntity().setRuntimeError(error);
                 stopEvaluation();
-            } else if (evaluator.getFinished())
+            } else if (evaluator.getFinished() && !hasPendingGoals())
                 stopEvaluation();
         }
     }
@@ -213,6 +214,27 @@ public final class PseudoRobo {
         robo.setPos(currentPos.x, currentPos.y, currentPos.z);
         serverLevel.addFreshEntity(robo);
         setEntity(robo);
+    }
+
+    public void stopEvaluation() {
+        getEntity().setIsRuntime(false);
+        evaluator = null;
+
+        followPlayerGoalProp.clear();
+        attackGoalProp.clear();
+        destroyBlockGoalProp.clear();
+        walkToGoalProp.clear();
+        walkGoalProp.clear();
+    }
+
+    private boolean hasPendingGoals() {
+        if (!followPlayerGoalProp.isEmpty() || !walkGoalProp.isEmpty() || !walkToGoalProp.isEmpty()
+                || !destroyBlockGoalProp.isEmpty() || !attackGoalProp.isEmpty())
+            return true;
+
+        RoboEntity entity = getEntity();
+        return entity != null && entity.goalSelector.getAvailableGoals().stream()
+                .anyMatch(g -> g.isRunning() && !(g.getGoal() instanceof FloatGoal));
     }
 
     public static Vec3 readVec3FromTag(CompoundTag tag, String key) {
@@ -316,16 +338,5 @@ public final class PseudoRobo {
 
     public void addAttackGoalProp(LivingEntity attackGoalProp) {
         this.attackGoalProp.add(attackGoalProp);
-    }
-
-    public void stopEvaluation() {
-        getEntity().setIsRuntime(false);
-        evaluator = null;
-
-        followPlayerGoalProp.clear();
-        attackGoalProp.clear();
-        destroyBlockGoalProp.clear();
-        walkToGoalProp.clear();
-        walkGoalProp.clear();
     }
 }
