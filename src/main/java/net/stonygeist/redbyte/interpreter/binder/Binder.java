@@ -122,6 +122,8 @@ public final class Binder {
                     value = new NumberType(Float.parseFloat(literalExpr.token.lexeme));
                 else if (literalExpr.token.kind == TokenKind.String)
                     value = new TextType(literalExpr.token.lexeme.substring(1, literalExpr.token.lexeme.length() - 1));
+                else if (literalExpr.token.kind == TokenKind.True || literalExpr.token.kind == TokenKind.False)
+                    value = new BooleanType(literalExpr.token.kind == TokenKind.True);
                 else
                     throw new RuntimeException("Unexpected token.");
                 yield new BoundLiteralExpr(value, literalExpr.span());

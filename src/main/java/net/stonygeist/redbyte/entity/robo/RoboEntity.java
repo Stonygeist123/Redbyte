@@ -25,7 +25,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.items.ItemStackHandler;
 import net.stonygeist.redbyte.goals.*;
@@ -42,6 +42,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import static net.stonygeist.redbyte.index.RedbyteConfigs.ROBO_TOOL_SLOTS;
 
 public class RoboEntity extends PathfinderMob implements MenuProvider {
     private static final EntityDataAccessor<Optional<UUID>> redbyteID =
@@ -127,6 +129,15 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
     }
 
     @Override
+    public void die(@NotNull DamageSource source) {
+        super.die(source);
+        if (!level().isClientSide)
+            dropInventory();
+        if (redbyteID != null && level() instanceof ServerLevel serverLevel)
+            RoboRegistry.get(serverLevel).remove(getRedbyteID().orElse(null));
+    }
+
+    @Override
     protected void defineSynchedData(SynchedEntityData.@NotNull Builder builder) {
         super.defineSynchedData(builder);
         builder.define(code, "");
@@ -138,7 +149,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         builder.define(isRuntime, false);
         CompoundTag inventoryTag = new CompoundTag();
         ListTag listTag = new ListTag();
-        ItemStackHandler itemHandler = new ItemStackHandler(RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS + RedbyteConfigs.ROBO_TOOL_SLOTS);
+        ItemStackHandler itemHandler = new ItemStackHandler(RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS + ROBO_TOOL_SLOTS);
         for (int i = 0; i < itemHandler.getSlots(); ++i)
             listTag.add(new CompoundTag());
         inventoryTag.put("slots", listTag);
@@ -185,14 +196,8 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
 
         ItemStackHandler inventory = getInventory();
         setInventory(inventory);
-        setBuildDone(false);
-    }
-
-    @Override
-    public void die(@NotNull DamageSource source) {
-        if (!level().isClientSide)
-            dropInventory();
-        super.die(source);
+        if (!getBuildDone())
+            setBuildDone(false);
     }
 
     private void dropInventory() {
@@ -202,15 +207,22 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             if (!itemStack.isEmpty()) {
                 spawnAtLocation(itemStack);
                 inventory.setStackInSlot(i, ItemStack.EMPTY);
-                setInventory(inventory);
             }
         }
+        
+        setInventory(inventory);
     }
 
     @Override
     protected void pickUpItem(ItemEntity itemEntity) {
         ItemStack itemStack = itemEntity.getItem();
-        for (int i = 0; i < getInventory().getSlots(); i++) {
+        final int slots = getInventory().getSlots();
+        for (int i = 0; i < slots; i++) {
+            if (i == slots - ROBO_TOOL_SLOTS && !(itemStack.getItem() instanceof SwordItem)
+                    || i == slots - ROBO_TOOL_SLOTS + 1 && !(itemStack.getItem() instanceof PickaxeItem)
+                    || i == slots - ROBO_TOOL_SLOTS + 2 && !(itemStack.getItem() instanceof AxeItem)
+                    || i == slots - ROBO_TOOL_SLOTS + 3 && !(itemStack.getItem() instanceof ShovelItem))
+                continue;
             itemStack = insertItem(i, itemStack, false);
             if (itemStack.isEmpty())
                 break;
@@ -255,22 +267,22 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
 
     public ItemStack getSword() {
         ItemStackHandler inventory = getInventory();
-        return inventory.getStackInSlot(inventory.getSlots() - 4);
+        return inventory.getStackInSlot(inventory.getSlots() - ROBO_TOOL_SLOTS);
     }
 
     public ItemStack getPickaxe() {
         ItemStackHandler inventory = getInventory();
-        return inventory.getStackInSlot(inventory.getSlots() - 3);
+        return inventory.getStackInSlot(inventory.getSlots() - ROBO_TOOL_SLOTS + 1);
     }
 
     public ItemStack getAxe() {
         ItemStackHandler inventory = getInventory();
-        return inventory.getStackInSlot(inventory.getSlots() - 2);
+        return inventory.getStackInSlot(inventory.getSlots() - ROBO_TOOL_SLOTS + 2);
     }
 
     public ItemStack getShovel() {
         ItemStackHandler inventory = getInventory();
-        return inventory.getStackInSlot(inventory.getSlots() - 1);
+        return inventory.getStackInSlot(inventory.getSlots() - ROBO_TOOL_SLOTS + 3);
     }
 
     public boolean isInRange(@NotNull LivingEntity target) {
@@ -366,7 +378,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
     public @NotNull ItemStackHandler getInventory() {
         CompoundTag tag = getInventoryTag();
         if (tag == null || !tag.contains("slots"))
-            return new ItemStackHandler(RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS + RedbyteConfigs.ROBO_TOOL_SLOTS);
+            return new ItemStackHandler(RedbyteConfigs.ROBO_DEFAULT_INVENTORY_SLOTS + ROBO_TOOL_SLOTS);
 
         ListTag listTag = tag.getList("slots", Tag.TAG_COMPOUND);
         ItemStackHandler inventory = new ItemStackHandler(listTag.size());

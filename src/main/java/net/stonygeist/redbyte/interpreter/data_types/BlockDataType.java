@@ -79,8 +79,6 @@ public class BlockDataType extends DataType {
                     Component.translatable("docs.redbyte.description.functions.block.asContainer")),
             new MethodSymbol("get_id", ImmutableList.of(), TextType.class,
                     (ev, robo, object, args) -> {
-                        if (object instanceof ContainerBlockDataType)
-                            return object;
                         BlockDataType block = (BlockDataType) object;
                         ResourceLocation idResource = ForgeRegistries.BLOCKS.getKey(block.getBlockState().getBlock());
                         assert idResource != null;

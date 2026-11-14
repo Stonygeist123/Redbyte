@@ -107,7 +107,7 @@ public class Parser {
         Token token = getCurrent();
         ++current;
         return checkExtension(switch (token.kind) {
-            case Number, String -> new LiteralExpr(token);
+            case Number, String, True, False -> new LiteralExpr(token);
             case Identifier -> new NameExpr(token);
             case Robo -> new RoboExpr(token);
             case LParen -> {

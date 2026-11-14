@@ -176,6 +176,8 @@ public enum Miscellaneous {
             .build();
 
     public static final ImmutableMap<String, TokenKind> keywords = new ImmutableMap.Builder<String, TokenKind>()
+            .put("true", TokenKind.True)
+            .put("false", TokenKind.False)
             .put("if", TokenKind.If)
             .put("else", TokenKind.Else)
             .put("loop", TokenKind.Loop)

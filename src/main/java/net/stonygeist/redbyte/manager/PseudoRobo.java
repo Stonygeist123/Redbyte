@@ -304,39 +304,39 @@ public final class PseudoRobo {
         this.followPlayerGoalProp.add(followPlayerGoalProp);
     }
 
-    public void popFollowEntityGoalProp() {
-        followPlayerGoalProp.pop();
-    }
-
-    public @Nullable Float popWalkGoalProp() {
-        return walkGoalProp.isEmpty() ? null : walkGoalProp.pop();
+    public @Nullable LivingEntity popFollowEntityGoalProp() {
+        return followPlayerGoalProp.isEmpty() ? null : followPlayerGoalProp.pop();
     }
 
     public void addWalkGoalProp(Float walkGoalProp) {
         this.walkGoalProp.add(walkGoalProp);
     }
 
-    public @Nullable Vec3 popWalkToGoalProp() {
-        return walkGoalProp.isEmpty() ? null : walkToGoalProp.pop();
+    public @Nullable Float popWalkGoalProp() {
+        return walkGoalProp.isEmpty() ? null : walkGoalProp.pop();
     }
 
     public void addWalkToGoalProp(Vec3 walkToGoalProp) {
         this.walkToGoalProp.add(walkToGoalProp);
     }
 
-    public @Nullable BlockPos popDestroyBlockGoalProp() {
-        return destroyBlockGoalProp.isEmpty() ? null : destroyBlockGoalProp.pop();
+    public @Nullable Vec3 popWalkToGoalProp() {
+        return walkToGoalProp.isEmpty() ? null : walkToGoalProp.pop();
     }
 
     public void addDestroyBlockGoalProp(BlockPos destroyBlockGoalProp) {
         this.destroyBlockGoalProp.add(destroyBlockGoalProp);
     }
 
-    public @Nullable LivingEntity popAttackGoalProp() {
-        return attackGoalProp.isEmpty() ? null : attackGoalProp.pop();
+    public @Nullable BlockPos popDestroyBlockGoalProp() {
+        return destroyBlockGoalProp.isEmpty() ? null : destroyBlockGoalProp.pop();
     }
 
     public void addAttackGoalProp(LivingEntity attackGoalProp) {
         this.attackGoalProp.add(attackGoalProp);
+    }
+
+    public @Nullable LivingEntity popAttackGoalProp() {
+        return attackGoalProp.isEmpty() ? null : attackGoalProp.pop();
     }
 }

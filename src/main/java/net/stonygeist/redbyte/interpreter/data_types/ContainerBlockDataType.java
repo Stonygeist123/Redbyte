@@ -22,6 +22,7 @@ import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -40,7 +41,7 @@ public final class ContainerBlockDataType extends BlockDataType {
         return container;
     }
 
-    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = getProperties(BlockDataType.class);
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>(getProperties(BlockDataType.class));
 
     static {
         properties.put(
@@ -49,7 +50,7 @@ public final class ContainerBlockDataType extends BlockDataType {
                 x -> {
                     if (x instanceof ContainerBlockDataType c)
                         return new NumberType(c.getContainer().getContainerSize());
-                    throw new IllegalArgumentException("Expected a creature, got " + x.getClass().getSimpleName());
+                    throw new IllegalArgumentException("Expected a container block, got " + x.getClass().getSimpleName());
                 });
     }
 
@@ -58,7 +59,7 @@ public final class ContainerBlockDataType extends BlockDataType {
                     (ev, robo, object, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
                         ContainerBlockDataType block = (ContainerBlockDataType) object;
-                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) <= RedbyteConfigs.ROBO_RANGE)
+                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
                             throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
 
                         float slotFloat = ((NumberType) args[0]).getValue();

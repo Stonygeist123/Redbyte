@@ -47,7 +47,7 @@ public class AttackGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return !hit && property.isAlive() && property.attackable() && roboEntity.isInRange(property);
+        return roboEntity.getIsRuntime() && !hit && property.isAlive() && property.attackable() && roboEntity.isInRange(property);
     }
 
     @Override

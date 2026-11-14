@@ -13,6 +13,7 @@ import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -25,7 +26,7 @@ public class RoboDataType extends CreatureDataType<RoboEntity> {
         super(TYPE, robo);
     }
 
-    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = getProperties(CreatureDataType.class);
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>(getProperties(CreatureDataType.class));
     public static final List<MethodSymbol> methods = Stream.concat(getMethods(CreatureDataType.class).stream(), Stream.of(
             new MethodSymbol("has_item", ImmutableList.of(TextType.class), BooleanType.class,
                     (ev, robo, object, args) -> {

@@ -75,7 +75,7 @@ public class RoboTerminal extends AbstractContainerMenu {
     // TODO: Fix this
     @Override
     public boolean stillValid(@NotNull Player player) {
-        return true;
+        return getRoboEntity() != null && player.distanceTo(getRoboEntity()) <= 3f;
     }
 
     @Override

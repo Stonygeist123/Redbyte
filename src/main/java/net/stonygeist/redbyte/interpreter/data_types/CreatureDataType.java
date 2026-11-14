@@ -12,6 +12,7 @@ import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -24,7 +25,7 @@ public class CreatureDataType<T extends LivingEntity> extends EntityDataType<T> 
         super(type, entity);
     }
 
-    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = getProperties(EntityDataType.class);
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>(getProperties(EntityDataType.class));
 
     static {
         properties.put(
