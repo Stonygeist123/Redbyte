@@ -35,14 +35,6 @@ public abstract class DataType {
     private static final Map<Class<? extends DataType>, TypeSymbol> typeSymbolsCache = new Hashtable<>();
     public static final List<Class<? extends DataType>> dataTypes = List.of(DataType.class, PrimitiveType.class, NumberType.class, TextType.class, BooleanType.class, CreatureDataType.class, EntityDataType.class, MonsterDataType.class, PlayerDataType.class, RoboDataType.class, VectorDataType.class, BlockDataType.class, ContainerBlockDataType.class);
 
-    protected static <T extends DataType> void register(
-            Map<PropertySymbol, Function<DataType, DataType>> map,
-            Class<T> type,
-            PropertySymbol symbol,
-            Function<T, DataType> fn) {
-        map.put(symbol, x -> fn.apply(type.cast(x)));
-    }
-
     public static Map<PropertySymbol, Function<DataType, DataType>> getProperties(Class<? extends DataType> type) {
         Map<PropertySymbol, Function<DataType, DataType>> properties = propertiesCache.get(type);
 
