@@ -45,6 +45,8 @@
   "runtime.redbyte.error.item_does_not_exist": "Item '%1$s' does not exist.",
   "runtime.redbyte.error.item_not_found": "Item '%1$s' could not be found in robo's inventory.",
   "runtime.redbyte.error.container_not_in_range": "Given container is too far away.",
+  "runtime.redbyte.error.block_is_air": "Given block is air.",
+  "runtime.redbyte.error.block_not_in_range": "Given block is not in range.",
   "interpreter.redbyte.types.primitive": "Primitive",
   "interpreter.redbyte.types.number": "Number",
   "interpreter.redbyte.types.text": "Text",

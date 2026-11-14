@@ -56,9 +56,7 @@ public class WalkGoal extends Goal {
     public void tick() {
         if (roboEntity.getNavigation().shouldRecomputePath(BlockPos.containing(targetPos)))
             roboEntity.getNavigation().recomputePath();
-        else if (roboEntity.getNavigation().isDone()) {
-            robo.addWalkGoalProp(null);
+        else if (roboEntity.getNavigation().isDone())
             targetPos = null;
-        }
     }
 }

@@ -124,8 +124,8 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
     @Override
     public void kill() {
         super.kill();
-        if (redbyteID != null && level() instanceof ServerLevel serverLevel)
-            RoboRegistry.get(serverLevel).remove(getRedbyteID().orElse(null));
+        if (redbyteID != null && level() instanceof ServerLevel serverLevel && getRedbyteID().isPresent())
+            RoboRegistry.get(serverLevel).remove(getRedbyteID().get());
     }
 
     @Override
@@ -133,8 +133,8 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         super.die(source);
         if (!level().isClientSide)
             dropInventory();
-        if (redbyteID != null && level() instanceof ServerLevel serverLevel)
-            RoboRegistry.get(serverLevel).remove(getRedbyteID().orElse(null));
+        if (redbyteID != null && level() instanceof ServerLevel serverLevel && getRedbyteID().isPresent())
+            RoboRegistry.get(serverLevel).remove(getRedbyteID().get());
     }
 
     @Override
@@ -196,8 +196,6 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
 
         ItemStackHandler inventory = getInventory();
         setInventory(inventory);
-        if (!getBuildDone())
-            setBuildDone(false);
     }
 
     private void dropInventory() {
@@ -209,7 +207,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
                 inventory.setStackInSlot(i, ItemStack.EMPTY);
             }
         }
-        
+
         setInventory(inventory);
     }
 
@@ -344,7 +342,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             result.add(output);
         }
 
-        return result;
+        return result.subList(Math.max(0, result.size() - 100), result.size());
     }
 
     public void addPrintOutput(Object printOutput) {

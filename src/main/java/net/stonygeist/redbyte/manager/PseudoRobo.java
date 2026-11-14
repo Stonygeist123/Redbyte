@@ -53,6 +53,7 @@ public final class PseudoRobo {
     private final Stack<Vec3> walkToGoalProp = new Stack<>();
     private final Stack<BlockPos> destroyBlockGoalProp = new Stack<>();
     private final Stack<LivingEntity> attackGoalProp = new Stack<>();
+    public boolean followGoalShouldStop;
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code, ItemStackHandler inventory, boolean buildDone, DiagnosticBag diagnostics) {
         this.redbyteID = redbyteID;
@@ -283,21 +284,19 @@ public final class PseudoRobo {
     }
 
     public void setCode(String code) {
+        if (getEntity() == null) return;
         this.code = code;
         getEntity().setCode(code);
     }
 
     public void setBuildDone(boolean buildDone) {
+        if (getEntity() == null) return;
         this.buildDone = buildDone;
         getEntity().setBuildDone(buildDone);
     }
 
     public void setDiagnostics(DiagnosticBag diagnostics) {
         this.diagnostics = diagnostics;
-    }
-
-    public Stack<LivingEntity> getFollowPlayerGoalProp() {
-        return followPlayerGoalProp;
     }
 
     public void addFollowEntityGoalProp(LivingEntity followPlayerGoalProp) {

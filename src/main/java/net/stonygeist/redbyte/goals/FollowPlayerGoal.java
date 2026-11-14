@@ -36,7 +36,12 @@ public class FollowPlayerGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return roboEntity.getIsRuntime() && property != null && property.isAlive();
+        return roboEntity.getIsRuntime() && property != null && property.isAlive() && !robo.followGoalShouldStop;
+    }
+
+    @Override
+    public void start() {
+        robo.followGoalShouldStop = false;
     }
 
     @Override

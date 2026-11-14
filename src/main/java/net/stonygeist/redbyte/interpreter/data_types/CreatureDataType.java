@@ -47,7 +47,7 @@ public class CreatureDataType<T extends LivingEntity> extends EntityDataType<T> 
             }, Component.translatable("docs.redbyte.description.functions.creature.follow")),
             new MethodSymbol(
                     "stop_follow", ImmutableList.of(), NothingDataType.class, (ev, robo, object, args) -> {
-                robo.popFollowEntityGoalProp();
+                robo.followGoalShouldStop = true;
                 return new NothingDataType();
             }, Component.translatable("docs.redbyte.description.functions.creature.stop_follow")),
             new MethodSymbol(

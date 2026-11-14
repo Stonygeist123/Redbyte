@@ -20,6 +20,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.UUID;
 
+import static net.stonygeist.redbyte.index.RedbyteConfigs.ROBO_RANGE;
+
 public class RoboTerminal extends AbstractContainerMenu {
     private final Level level;
     private final Inventory inventory;
@@ -75,7 +77,7 @@ public class RoboTerminal extends AbstractContainerMenu {
     // TODO: Fix this
     @Override
     public boolean stillValid(@NotNull Player player) {
-        return getRoboEntity() != null && player.distanceTo(getRoboEntity()) <= 3f;
+        return getRoboEntity() != null && player.distanceTo(getRoboEntity()) <= ROBO_RANGE;
     }
 
     @Override
