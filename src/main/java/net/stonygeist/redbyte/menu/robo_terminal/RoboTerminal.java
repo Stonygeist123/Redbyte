@@ -82,8 +82,10 @@ public class RoboTerminal extends AbstractContainerMenu {
 
     @Override
     public void removed(@NotNull Player player) {
-        if (getRoboEntity() != null)
-            Redbyte.CHANNEL.send(new C2SStoreRoboCodePacket(getRoboEntity().getRedbyteID().orElse(null), terminalText.toString()), PacketDistributor.SERVER.noArg());
+        if (player.level().isClientSide() && getRoboEntity() != null && terminalText != null)
+            Redbyte.CHANNEL.send(
+                    new C2SStoreRoboCodePacket(getRoboEntity().getRedbyteID().orElse(null), terminalText.toString()),
+                    PacketDistributor.SERVER.noArg());
         super.removed(player);
     }
 

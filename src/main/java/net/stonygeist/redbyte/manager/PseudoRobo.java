@@ -294,7 +294,7 @@ public final class PseudoRobo {
 
     public void setCode(String code) {
         this.code = code;
-        if (getEntity() == null)
+        if (getEntity() != null)
             getEntity().setCode(code);
     }
 
