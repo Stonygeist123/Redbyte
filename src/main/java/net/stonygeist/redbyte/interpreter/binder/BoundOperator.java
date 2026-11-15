@@ -45,6 +45,9 @@ public final class BoundOperator {
 
                 new BoundBinaryOperator(TokenKind.Plus, TextType.class),
 
+                new BoundBinaryOperator(TokenKind.Plus, TextType.class, NumberType.class),
+                new BoundBinaryOperator(TokenKind.Plus, NumberType.class, TextType.class),
+
                 new BoundBinaryOperator(TokenKind.EqualsEquals, NumberType.class, BooleanType.class),
                 new BoundBinaryOperator(TokenKind.EqualsEquals, TextType.class, BooleanType.class),
                 new BoundBinaryOperator(TokenKind.EqualsEquals, BooleanType.class, BooleanType.class),

@@ -6,7 +6,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
@@ -29,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.AbstractMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -128,10 +128,16 @@ public enum Miscellaneous {
             .add(new FunctionSymbol("get_nearest_monster", ImmutableList.of(NumberType.class), MonsterDataType.class,
                     (ev, robo, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
-                        Vec3 pos = roboEntity.position();
-                        AABB searchArea = robo.getEntity().getBoundingBox().inflate(((NumberType) args[0]).getValue());
-                        Monster monster = robo.getServerLevel().getNearestEntity(Monster.class, TargetingConditions.forCombat(), roboEntity, pos.x, pos.y, pos.z, searchArea);
-                        return monster == null ? new NothingDataType() : new MonsterDataType(monster);
+                        double radius = ((NumberType) args[0]).getValue();
+                        AABB searchArea = roboEntity.getBoundingBox().inflate(radius);
+
+                        Monster nearest = robo.getServerLevel()
+                                .getEntitiesOfClass(Monster.class, searchArea, m -> m.isAlive() && m.distanceTo(roboEntity) <= radius)
+                                .stream()
+                                .min(Comparator.comparingDouble(m -> m.distanceToSqr(roboEntity)))
+                                .orElse(null);
+
+                        return nearest == null ? new NothingDataType() : new MonsterDataType(nearest);
                     }, Component.translatable("docs.redbyte.description.functions.get_nearest_monster")))
             .add(new FunctionSymbol("get_block", ImmutableList.of(VectorDataType.class), BlockDataType.class,
                     (ev, robo, args) -> {
@@ -170,6 +176,8 @@ public enum Miscellaneous {
             .build();
 
     public static final ImmutableMap<String, TokenKind> keywords = new ImmutableMap.Builder<String, TokenKind>()
+            .put("true", TokenKind.True)
+            .put("false", TokenKind.False)
             .put("if", TokenKind.If)
             .put("else", TokenKind.Else)
             .put("loop", TokenKind.Loop)

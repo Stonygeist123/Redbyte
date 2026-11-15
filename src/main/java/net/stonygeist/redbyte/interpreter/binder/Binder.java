@@ -23,13 +23,16 @@ import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 public final class Binder {
     private final ImmutableList<Stmt> stmts;
-    private final Hashtable<String, VariableSymbol> symbolTable = new Hashtable<>();
     private final DiagnosticBag diagnostics = new DiagnosticBag();
+    private BoundScope _scope = new BoundScope();
 
     public Binder(Stmt[] stmts) {
         this.stmts = Arrays.stream(stmts).collect(ImmutableList.toImmutableList());
@@ -44,7 +47,9 @@ public final class Binder {
             case ExprStmt exprStmt -> new BoundExprStmt(bindExpr(exprStmt.expr));
             case BlockStmt blockStmt -> {
                 ImmutableList.Builder<BoundStmt> stmts = new ImmutableList.Builder<>();
+                _scope = new BoundScope(_scope);
                 stmts.addAll(Arrays.stream(blockStmt.stmts).map(this::bindStmt).toList());
+                _scope = _scope.getParent();
                 yield new BoundBlockStmt(stmts.build());
             }
             case IfStmt ifStmt -> {
@@ -52,8 +57,16 @@ public final class Binder {
                 if (!condition.getType().equals(BooleanType.class))
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), DataType.getTypeSymbol(condition.getType()).getDocsName()), ifStmt.condition.span()));
 
+                _scope = new BoundScope(_scope);
                 BoundStmt thenStmt = bindStmt(ifStmt.thenStmt);
-                @Nullable BoundStmt elseStmt = ifStmt.elseStmt == null ? null : bindStmt(ifStmt.elseStmt);
+                _scope = _scope.getParent();
+                @Nullable BoundStmt elseStmt;
+                if (ifStmt.elseStmt == null) elseStmt = null;
+                else {
+                    _scope = new BoundScope(_scope);
+                    elseStmt = bindStmt(ifStmt.elseStmt);
+                    _scope = _scope.getParent();
+                }
                 yield new BoundIfStmt(condition, thenStmt, elseStmt);
             }
             case OnceStmt onceStmt -> {
@@ -61,7 +74,9 @@ public final class Binder {
                 if (!condition.getType().equals(BooleanType.class))
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), DataType.getTypeSymbol(condition.getType()).getDocsName()), onceStmt.condition.span()));
 
+                _scope = new BoundScope(_scope);
                 BoundStmt thenStmt = bindStmt(onceStmt.stmt);
+                _scope = _scope.getParent();
                 yield new BoundOnceStmt(condition, thenStmt);
             }
             case WhileStmt whileStmt -> {
@@ -69,7 +84,9 @@ public final class Binder {
                 if (!condition.getType().equals(BooleanType.class))
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), DataType.getTypeSymbol(condition.getType()).getDocsName()), whileStmt.condition.span()));
 
+                _scope = new BoundScope(_scope);
                 BoundStmt thenStmt = bindStmt(whileStmt.stmt);
+                _scope = _scope.getParent();
                 yield new BoundWhileStmt(condition, thenStmt);
             }
             case AlwaysStmt alwaysStmt -> {
@@ -77,7 +94,9 @@ public final class Binder {
                 if (!condition.getType().equals(BooleanType.class))
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", BooleanType.TYPE.toString(), DataType.getTypeSymbol(condition.getType()).getDocsName()), alwaysStmt.condition.span()));
 
+                _scope = new BoundScope(_scope);
                 BoundStmt thenStmt = bindStmt(alwaysStmt.stmt);
+                _scope = _scope.getParent();
                 yield new BoundAlwaysStmt(condition, thenStmt);
             }
             case LoopStmt loopStmt -> {
@@ -85,7 +104,9 @@ public final class Binder {
                 if (!count.getType().equals(NumberType.class))
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", NumberType.TYPE.toString(), DataType.getTypeSymbol(count.getType()).getDocsName()), loopStmt.count.span()));
 
+                _scope = new BoundScope(_scope);
                 BoundStmt thenStmt = bindStmt(loopStmt.stmt);
+                _scope = _scope.getParent();
                 yield new BoundLoopStmt(count, thenStmt);
             }
             default -> throw new RuntimeException("Unexpected statement.");
@@ -101,6 +122,8 @@ public final class Binder {
                     value = new NumberType(Float.parseFloat(literalExpr.token.lexeme));
                 else if (literalExpr.token.kind == TokenKind.String)
                     value = new TextType(literalExpr.token.lexeme.substring(1, literalExpr.token.lexeme.length() - 1));
+                else if (literalExpr.token.kind == TokenKind.True || literalExpr.token.kind == TokenKind.False)
+                    value = new BooleanType(literalExpr.token.kind == TokenKind.True);
                 else
                     throw new RuntimeException("Unexpected token.");
                 yield new BoundLiteralExpr(value, literalExpr.span());
@@ -129,7 +152,7 @@ public final class Binder {
             case GroupExpr groupExpr -> new BoundGroupExpr(bindExpr(groupExpr.expr), groupExpr.span());
             case NameExpr nameExpr -> {
                 String name = nameExpr.name.lexeme.toLowerCase();
-                VariableSymbol variable = symbolTable.get(name);
+                VariableSymbol variable = _scope.getSymbolTable().get(name);
                 if (variable == null) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.variable_not_found", name), nameExpr.name.span()));
                     yield new BoundErrorExpr(nameExpr.span());
@@ -140,7 +163,7 @@ public final class Binder {
             case AssignExpr assignExpr -> {
                 BoundExpr value = bindExpr(assignExpr.value);
                 String name = assignExpr.name.lexeme.toLowerCase();
-                VariableSymbol variable = symbolTable.get(name);
+                VariableSymbol variable = _scope.getSymbolTable().get(name);
                 if (variable == null) {
                     variable = new VariableSymbol(name, value.getType());
                     tryDeclareVar(variable);
@@ -236,10 +259,10 @@ public final class Binder {
     }
 
     public void tryDeclareVar(VariableSymbol variable) {
-        if (symbolTable.containsKey(variable.name))
+        if (_scope.getSymbolTable().containsKey(variable.name))
             return;
 
-        symbolTable.put(variable.name, variable);
+        _scope.getSymbolTable().put(variable.name, variable);
     }
 
     public DiagnosticBag getDiagnostics() {

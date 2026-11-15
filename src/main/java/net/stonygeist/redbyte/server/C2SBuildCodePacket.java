@@ -23,7 +23,7 @@ public class C2SBuildCodePacket {
             if (sender != null) {
                 RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
                 PseudoRobo robo = registry.get(msg.redbyteID);
-                if (robo != null) {
+                if (robo != null && robo.getEntity() != null) {
                     robo.setCode(msg.code);
                     robo.build();
                     registry.setDirty();

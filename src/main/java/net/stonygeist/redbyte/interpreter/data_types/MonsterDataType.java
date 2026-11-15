@@ -18,6 +18,6 @@ public final class MonsterDataType extends CreatureDataType<Monster> {
         super(TYPE, mob);
     }
 
-    public static final Map<PropertySymbol, Function<CreatureDataType<Monster>, DataType>> properties = new Hashtable<>();
-    public static final List<MethodSymbol> methods = List.of();
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>(getProperties(CreatureDataType.class));
+    public static final List<MethodSymbol> methods = getMethods(CreatureDataType.class);
 }

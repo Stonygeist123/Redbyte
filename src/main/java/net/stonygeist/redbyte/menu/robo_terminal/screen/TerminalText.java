@@ -45,4 +45,28 @@ public class TerminalText {
         lines.clear();
         lines.addAll(Arrays.asList(newLines));
     }
+
+    public record Pos(int line, int col) {
+    }
+
+    public Pos insert(int line, int col, String text) {
+        String[] parts = text.replace("\r\n", "\n").replace('\r', '\n').replace("\t", "    ").split("\n", -1);
+        String cur = lines.get(line);
+        String before = cur.substring(0, col);
+        String after = cur.substring(col);
+
+        if (parts.length == 1) {
+            lines.set(line, before + parts[0] + after);
+            return new Pos(line, col + parts[0].length());
+        }
+
+        lines.set(line, before + parts[0]);
+        for (int i = 1; i < parts.length; ++i)
+            lines.add(line + i, parts[i]);
+
+        int last = line + parts.length - 1;
+        lines.set(last, parts[parts.length - 1] + after);
+        return new Pos(last, parts[parts.length - 1].length());
+    }
+
 }

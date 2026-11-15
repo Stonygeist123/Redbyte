@@ -36,18 +36,18 @@ public abstract class DataType {
     public static final List<Class<? extends DataType>> dataTypes = List.of(DataType.class, PrimitiveType.class, NumberType.class, TextType.class, BooleanType.class, CreatureDataType.class, EntityDataType.class, MonsterDataType.class, PlayerDataType.class, RoboDataType.class, VectorDataType.class, BlockDataType.class, ContainerBlockDataType.class);
 
     public static Map<PropertySymbol, Function<DataType, DataType>> getProperties(Class<? extends DataType> type) {
-        try {
-            if (!propertiesCache.containsKey(type)) {
-                Field proprtiesField = type.getField("properties");
-                Map<PropertySymbol, Function<DataType, DataType>> properties = (Map<PropertySymbol, Function<DataType, DataType>>) proprtiesField.get(null);
-                propertiesCache.put(type, properties);
-                return properties;
-            }
+        Map<PropertySymbol, Function<DataType, DataType>> properties = propertiesCache.get(type);
 
-            return propertiesCache.get(type);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
+        if (properties == null) {
+            try {
+                properties = (Map<PropertySymbol, Function<DataType, DataType>>) type.getField("properties").get(null);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+            propertiesCache.put(type, properties);
         }
+
+        return properties;
     }
 
     public static Set<PropertySymbol> getPropertySymbols(Class<? extends DataType> type) {

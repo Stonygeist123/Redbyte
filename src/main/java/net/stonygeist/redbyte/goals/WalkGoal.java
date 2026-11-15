@@ -36,31 +36,27 @@ public class WalkGoal extends Goal {
             return false;
 
         property = robo.popWalkGoalProp();
-        if (property != null) {
-            int horizontalIndex = Mth.floor((double) (robo.getEntity().getYRot() * 4.0F / 360.0F) + 0.5D) & 3;
-            Direction direction = Direction.from2DDataValue(horizontalIndex);
-            targetPos = roboEntity.position().relative(direction, property + 1);
-            roboEntity.getNavigation().moveTo(targetPos.x, targetPos.y, targetPos.z, robo.getSpeed());
-            Path path = roboEntity.getNavigation().getPath();
-            return path != null;
-        }
+        if (property == null)
+            return false;
 
-        return false;
+        int horizontalIndex = Mth.floor((double) (robo.getEntity().getYRot() * 4.0F / 360.0F) + 0.5D) & 3;
+        Direction direction = Direction.from2DDataValue(horizontalIndex);
+        targetPos = roboEntity.position().relative(direction, property + 1);
+        roboEntity.getNavigation().moveTo(targetPos.x, targetPos.y, targetPos.z, robo.getSpeed());
+        Path path = roboEntity.getNavigation().getPath();
+        return path != null;
     }
 
     @Override
     public boolean canContinueToUse() {
-        property = robo.popWalkGoalProp();
-        return property != null && targetPos != null;
+        return roboEntity.getIsRuntime() && property != null && targetPos != null;
     }
 
     @Override
     public void tick() {
         if (roboEntity.getNavigation().shouldRecomputePath(BlockPos.containing(targetPos)))
             roboEntity.getNavigation().recomputePath();
-        else if (roboEntity.getNavigation().isDone()) {
-            robo.addWalkGoalProp(null);
+        else if (roboEntity.getNavigation().isDone())
             targetPos = null;
-        }
     }
 }

@@ -9,6 +9,7 @@ import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.stonygeist.redbyte.interpreter.Evaluator;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
@@ -20,6 +21,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+
+import static net.stonygeist.redbyte.index.RedbyteConfigs.ROBO_RANGE;
 
 public class BlockDataType extends DataType {
     public static final TypeSymbol TYPE = new TypeSymbol("block", EntityDataType.TYPE, Component.translatable("interpreter.redbyte.types.block"));
@@ -57,9 +60,14 @@ public class BlockDataType extends DataType {
             new MethodSymbol("try_destroy", ImmutableList.of(), NothingDataType.class,
                     (ev, robo, object, args) -> {
                         BlockPos blockPos = ((BlockDataType) object).position;
-                        if (!robo.getEntity().level().isEmptyBlock(blockPos))
+                        if (robo.getEntity().level().isEmptyBlock(blockPos))
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.block_is_air"), null);
+
+                        if (blockPos.closerToCenterThan(robo.getEntity().position(), ROBO_RANGE)) {
                             robo.addDestroyBlockGoalProp(blockPos);
-                        return new NothingDataType();
+                            return new NothingDataType();
+                        } else
+                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.block_not_in_range"), null);
                     }, Component.translatable("docs.redbyte.description.functions.block.try_destroy")),
             new MethodSymbol("look_at", ImmutableList.of(), NothingDataType.class,
                     (ev, robo, object, args) -> {
@@ -79,8 +87,6 @@ public class BlockDataType extends DataType {
                     Component.translatable("docs.redbyte.description.functions.block.asContainer")),
             new MethodSymbol("get_id", ImmutableList.of(), TextType.class,
                     (ev, robo, object, args) -> {
-                        if (object instanceof ContainerBlockDataType)
-                            return object;
                         BlockDataType block = (BlockDataType) object;
                         ResourceLocation idResource = ForgeRegistries.BLOCKS.getKey(block.getBlockState().getBlock());
                         assert idResource != null;

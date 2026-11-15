@@ -32,17 +32,14 @@ public class WalkToGoal extends Goal {
             return false;
 
         property = robo.popWalkToGoalProp();
-        if (property == null)
-            return false;
-
+        if (property == null) return false;
         roboEntity.getNavigation().moveTo(property.x, property.y, property.z, robo.getSpeed());
         return roboEntity.getNavigation().getPath() != null;
     }
 
     @Override
     public boolean canContinueToUse() {
-        property = robo.popWalkToGoalProp();
-        return property != null;
+        return roboEntity.getIsRuntime() && property != null && roboEntity.getNavigation().getPath() != null;
     }
 
     @Override

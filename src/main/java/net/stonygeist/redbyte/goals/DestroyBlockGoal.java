@@ -45,22 +45,18 @@ public class DestroyBlockGoal extends Goal {
             return false;
 
         property = robo.popDestroyBlockGoalProp();
-        if (property == null)
-            return false;
-
+        if (property == null) return false;
         blockState = roboEntity.level().getBlockState(property);
         float hardness = blockState.getDestroySpeed(roboEntity.level(), property);
-        if (blockState.isAir() || hardness < 0f) {
-            robo.popDestroyBlockGoalProp();
+        if (blockState.isAir() || hardness < 0f)
             return false;
-        }
 
         return hardness >= 0 && property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE);
     }
 
     @Override
     public boolean canContinueToUse() {
-        return property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE) && roboEntity.level().getBlockState(property).is(blockState.getBlock());
+        return roboEntity.getIsRuntime() && property.closerToCenterThan(roboEntity.position(), RedbyteConfigs.ROBO_RANGE) && roboEntity.level().getBlockState(property).is(blockState.getBlock());
     }
 
     @Override

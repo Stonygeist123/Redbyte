@@ -26,6 +26,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public final class ContainerBlockDataType extends BlockDataType {
     public static final TypeSymbol TYPE = new TypeSymbol("container_block", EntityDataType.TYPE, Component.translatable("interpreter.redbyte.types.container_block"));
@@ -40,15 +41,25 @@ public final class ContainerBlockDataType extends BlockDataType {
         return container;
     }
 
-    public static final Map<PropertySymbol, Function<ContainerBlockDataType, DataType>> properties = new Hashtable<>(Map.of(
-            new PropertySymbol("slots", NumberType.class, Component.translatable("docs.redbyte.description.properties.container_block.slots")), x -> new NumberType(x.getContainer().getContainerSize())
-    ));
-    public static final List<MethodSymbol> methods = List.of(
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>(getProperties(BlockDataType.class));
+
+    static {
+        properties.put(
+                new PropertySymbol("slots", NumberType.class,
+                        Component.translatable("docs.redbyte.description.properties.container_block.slots")),
+                x -> {
+                    if (x instanceof ContainerBlockDataType c)
+                        return new NumberType(c.getContainer().getContainerSize());
+                    throw new IllegalArgumentException("Expected a container block, got " + x.getClass().getSimpleName());
+                });
+    }
+
+    public static final List<MethodSymbol> methods = Stream.concat(getMethods(EntityDataType.class).stream(), Stream.of(
             new MethodSymbol("try_quick_put", ImmutableList.of(NumberType.class), NothingDataType.class,
                     (ev, robo, object, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
                         ContainerBlockDataType block = (ContainerBlockDataType) object;
-                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) <= RedbyteConfigs.ROBO_RANGE)
+                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
                             throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
 
                         float slotFloat = ((NumberType) args[0]).getValue();
@@ -347,5 +358,5 @@ public final class ContainerBlockDataType extends BlockDataType {
                             return new BooleanType(false);
                         return new BooleanType(true);
                     }, Component.translatable("docs.redbyte.description.functions.container_block.can_put.name"))
-    );
+    )).toList();
 }

@@ -17,6 +17,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class RoboDataType extends CreatureDataType<RoboEntity> {
     public static final TypeSymbol TYPE = new TypeSymbol("robo", CreatureDataType.TYPE, Component.translatable("interpreter.redbyte.types.robo"));
@@ -25,8 +26,8 @@ public class RoboDataType extends CreatureDataType<RoboEntity> {
         super(TYPE, robo);
     }
 
-    public static final Map<PropertySymbol, Function<CreatureDataType<RoboEntity>, DataType>> properties = new Hashtable<>();
-    public static final List<MethodSymbol> methods = List.of(
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>(getProperties(CreatureDataType.class));
+    public static final List<MethodSymbol> methods = Stream.concat(getMethods(CreatureDataType.class).stream(), Stream.of(
             new MethodSymbol("has_item", ImmutableList.of(TextType.class), BooleanType.class,
                     (ev, robo, object, args) -> {
                         String idToSearch = ((TextType) args[0]).getValue();
@@ -39,5 +40,5 @@ public class RoboDataType extends CreatureDataType<RoboEntity> {
                             return new BooleanType(false);
                         return new BooleanType(true);
                     }, Component.translatable("docs.redbyte.description.functions.robo.has_item"))
-    );
+    )).toList();
 }

@@ -131,6 +131,10 @@ public final class Evaluator {
                             yield new NumberType(f1.getValue() + f2.getValue());
                         else if (left instanceof TextType s1 && right instanceof TextType s2)
                             yield new TextType(s1.getValue() + s2.getValue());
+                        else if (left instanceof TextType s && right instanceof NumberType f)
+                            yield new TextType(s.getValue() + f.getValue());
+                        else if (left instanceof NumberType f && right instanceof TextType s)
+                            yield new TextType(f.getValue() + s.getValue());
                     }
                     case Minus: {
                         if (left instanceof NumberType l && right instanceof NumberType r)

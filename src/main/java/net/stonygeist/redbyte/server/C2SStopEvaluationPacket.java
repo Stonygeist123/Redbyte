@@ -21,7 +21,7 @@ public class C2SStopEvaluationPacket {
             if (sender != null) {
                 RoboRegistry registry = RoboRegistry.get(sender.serverLevel());
                 PseudoRobo robo = registry.get(msg.redbyteID);
-                if (robo != null) {
+                if (robo != null && robo.getEntity() != null) {
                     robo.stopEvaluation();
                     registry.setDirty();
                 }

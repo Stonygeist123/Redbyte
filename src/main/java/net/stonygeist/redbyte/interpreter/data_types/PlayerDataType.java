@@ -18,6 +18,6 @@ public final class PlayerDataType extends CreatureDataType<Player> {
         super(TYPE, player);
     }
 
-    public static final Map<PropertySymbol, Function<CreatureDataType<Player>, DataType>> properties = new Hashtable<>();
-    public static final List<MethodSymbol> methods = List.of();
+    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>(getProperties(CreatureDataType.class));
+    public static final List<MethodSymbol> methods = getMethods(CreatureDataType.class);
 }

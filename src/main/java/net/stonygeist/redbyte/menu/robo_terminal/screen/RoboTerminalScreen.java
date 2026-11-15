@@ -17,6 +17,7 @@ import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.menu.robo_terminal.RoboTerminal;
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -252,6 +253,41 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     protected void renderBlurredBackground(float pPartialTick) {
     }
 
+    private static boolean isLayoutKey(int keyCode, int scanCode, char letter) {
+        String name = GLFW.glfwGetKeyName(keyCode, scanCode);
+        return String.valueOf(letter).equalsIgnoreCase(name);
+    }
+
+    private record Range(int startLine, int startChar, int endLine, int endChar) {
+    }
+
+    private Range selectionRange() {
+        boolean forward = selectionStartLine < selectionEndLine
+                || (selectionStartLine == selectionEndLine && selectionStartChar <= selectionEndChar);
+        return forward
+                ? new Range(selectionStartLine, selectionStartChar, selectionEndLine, selectionEndChar)
+                : new Range(selectionEndLine, selectionEndChar, selectionStartLine, selectionStartChar);
+    }
+
+    private String getSelectedText() {
+        if (!hasSelection)
+            return "";
+
+        Range r = selectionRange();
+        String[] lines = getMenu().getTerminalText().getLines();
+        String first = lines[r.startLine()];
+        int min = Math.min(r.startChar(), first.length());
+        if (r.startLine() == r.endLine())
+            return first.substring(min, Math.min(r.endChar(), first.length()));
+
+        StringBuilder sb = new StringBuilder(first.substring(min));
+        for (int i = r.startLine() + 1; i < r.endLine(); ++i)
+            sb.append('\n').append(lines[i]);
+        String last = lines[r.endLine()];
+        sb.append('\n').append(last, 0, Math.min(r.endChar(), last.length()));
+        return sb.toString();
+    }
+
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (textFieldHelper == null) return super.keyPressed(keyCode, scanCode, modifiers);
@@ -262,12 +298,40 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         boolean hasCtrl = hasControlDown();
 
         // Handle Ctrl+A for select all
-        if (keyCode == InputConstants.KEY_A && hasCtrl) {
+        if (hasCtrl && isLayoutKey(keyCode, scanCode, 'a')) {
             saveUndoState();
             selectAll();
             return true;
-        } else if (keyCode == InputConstants.KEY_Z && hasCtrl) {
+        } else if (hasCtrl && isLayoutKey(keyCode, scanCode, 'z')) {
             undo();
+            return true;
+        } else if (hasCtrl && isLayoutKey(keyCode, scanCode, 'v')) {
+            saveUndoState();
+            if (hasSelection)
+                deleteSelection();
+
+            if (getMinecraft() == null)
+                return true;
+            String clipboard = getMinecraft().keyboardHandler.getClipboard();
+            TerminalText.Pos pos = getMenu().getTerminalText().insert(curLine, textFieldHelper.getCursorPos(), clipboard);
+            curLine = pos.line();
+            textFieldHelper.setCursorPos(pos.col(), false);
+            getMenu().setRunDisabledUntilBuild(true);
+            getMenu().setErrorHighlightingDisabled(true);
+            return true;
+        } else if (hasCtrl && isLayoutKey(keyCode, scanCode, 'c')) {
+            if (hasSelection && getMinecraft() != null)
+                getMinecraft().keyboardHandler.setClipboard(getSelectedText());
+            return true;
+        } else if (hasCtrl && isLayoutKey(keyCode, scanCode, 'x')) {
+            if (hasSelection && getMinecraft() != null) {
+                saveUndoState();
+                getMinecraft().keyboardHandler.setClipboard(getSelectedText());
+                deleteSelection();
+                getMenu().setRunDisabledUntilBuild(true);
+                getMenu().setErrorHighlightingDisabled(true);
+            }
+
             return true;
         }
 
@@ -730,22 +794,14 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
 
     private void deleteSelection() {
         if (!hasSelection) return;
+        // Determine the actual selection bounds (normalize startColumn/endColumn)
+        Range r = selectionRange();
+        int actualStartLine = r.startLine();
+        int actualEndLine = r.endLine();
+        int actualStartChar = r.startChar();
+        int actualEndChar = r.endChar();
 
         String[] lines = getMenu().getTerminalText().getLines();
-
-        // Determine the actual selection bounds (normalize startColumn/endColumn)
-        int actualStartLine = Math.min(selectionStartLine, selectionEndLine);
-        int actualEndLine = Math.max(selectionStartLine, selectionEndLine);
-        int actualStartChar, actualEndChar;
-
-        if (selectionStartChar <= selectionEndChar) {
-            actualStartChar = selectionStartChar;
-            actualEndChar = selectionEndChar;
-        } else {
-            actualStartChar = selectionEndChar;
-            actualEndChar = selectionStartChar;
-        }
-
         // Handle single lineStart selection
         if (actualStartLine == actualEndLine) {
             String line = lines[actualStartLine];

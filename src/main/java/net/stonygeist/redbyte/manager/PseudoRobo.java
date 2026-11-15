@@ -6,8 +6,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.items.ItemStackHandler;
@@ -27,6 +27,7 @@ import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.interpreter.lowerer.Lowerer;
 import net.stonygeist.redbyte.server.C2SBuildResultPacket;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 public final class PseudoRobo {
     private final UUID redbyteID;
@@ -52,6 +54,7 @@ public final class PseudoRobo {
     private final Stack<Vec3> walkToGoalProp = new Stack<>();
     private final Stack<BlockPos> destroyBlockGoalProp = new Stack<>();
     private final Stack<LivingEntity> attackGoalProp = new Stack<>();
+    public boolean followGoalShouldStop;
 
     public PseudoRobo(ServerLevel serverLevel, UUID redbyteID, BlockPos currentPos, String code, ItemStackHandler inventory, boolean buildDone, DiagnosticBag diagnostics) {
         this.redbyteID = redbyteID;
@@ -122,14 +125,21 @@ public final class PseudoRobo {
 
     public RoboEntity resolveEntity(ServerLevel level) {
         RoboEntity entity = getEntity();
-        if (entity != null && !entity.isRemoved()) return entity;
-        for (Entity e : level.getAllEntities())
-            if (e instanceof RoboEntity robo && redbyteID.equals(robo.getRedbyteID().orElse(null))) {
-                setEntity(robo);
-                return robo;
-            }
-
-        return null;
+        if (entity != null && !entity.isRemoved())
+            return entity;
+        else
+            return StreamSupport.stream(level.getAllEntities().spliterator(), false)
+                    .filter(RoboEntity.class::isInstance)
+                    .map(RoboEntity.class::cast)
+                    .filter(robo -> robo.getRedbyteID()
+                            .filter(redbyteID::equals)
+                            .isPresent())
+                    .findFirst()
+                    .map(robo -> {
+                        setEntity(robo);
+                        return robo;
+                    })
+                    .orElse(null);
     }
 
     private void updateEntity() {
@@ -158,7 +168,7 @@ public final class PseudoRobo {
             if (error != null) {
                 getEntity().setRuntimeError(error);
                 stopEvaluation();
-            } else if (evaluator.getFinished())
+            } else if (evaluator.getFinished() && !hasPendingGoals())
                 stopEvaluation();
         }
     }
@@ -215,6 +225,28 @@ public final class PseudoRobo {
         setEntity(robo);
     }
 
+    public void stopEvaluation() {
+        getEntity().setIsRuntime(false);
+        evaluator = null;
+
+        followGoalShouldStop = false;
+        followPlayerGoalProp.clear();
+        attackGoalProp.clear();
+        destroyBlockGoalProp.clear();
+        walkToGoalProp.clear();
+        walkGoalProp.clear();
+    }
+
+    private boolean hasPendingGoals() {
+        if (!followPlayerGoalProp.isEmpty() || !walkGoalProp.isEmpty() || !walkToGoalProp.isEmpty()
+                || !destroyBlockGoalProp.isEmpty() || !attackGoalProp.isEmpty())
+            return true;
+
+        RoboEntity entity = getEntity();
+        return entity != null && entity.goalSelector.getAvailableGoals().stream()
+                .anyMatch(g -> g.isRunning() && !(g.getGoal() instanceof FloatGoal));
+    }
+
     public static Vec3 readVec3FromTag(CompoundTag tag, String key) {
         double x = tag.getDouble(key + "X");
         double y = tag.getDouble(key + "Y");
@@ -252,7 +284,7 @@ public final class PseudoRobo {
         return entityRef.get();
     }
 
-    public void setEntity(RoboEntity entity) {
+    public void setEntity(@NotNull RoboEntity entity) {
         entity.setRedbyteID(redbyteID);
         entity.setCode(code);
         entity.setBuildDone(buildDone);
@@ -262,70 +294,58 @@ public final class PseudoRobo {
 
     public void setCode(String code) {
         this.code = code;
-        getEntity().setCode(code);
+        if (getEntity() != null)
+            getEntity().setCode(code);
     }
 
     public void setBuildDone(boolean buildDone) {
         this.buildDone = buildDone;
-        getEntity().setBuildDone(buildDone);
+        if (getEntity() != null)
+            getEntity().setBuildDone(buildDone);
     }
 
     public void setDiagnostics(DiagnosticBag diagnostics) {
         this.diagnostics = diagnostics;
     }
 
-    public Stack<LivingEntity> getFollowPlayerGoalProp() {
-        return followPlayerGoalProp;
-    }
-
     public void addFollowEntityGoalProp(LivingEntity followPlayerGoalProp) {
+        this.followPlayerGoalProp.clear();
         this.followPlayerGoalProp.add(followPlayerGoalProp);
     }
 
-    public void popFollowEntityGoalProp() {
-        followPlayerGoalProp.pop();
-    }
-
-    public @Nullable Float popWalkGoalProp() {
-        return walkGoalProp.isEmpty() ? null : walkGoalProp.pop();
+    public @Nullable LivingEntity popFollowEntityGoalProp() {
+        return followPlayerGoalProp.isEmpty() ? null : followPlayerGoalProp.pop();
     }
 
     public void addWalkGoalProp(Float walkGoalProp) {
         this.walkGoalProp.add(walkGoalProp);
     }
 
-    public @Nullable Vec3 popWalkToGoalProp() {
-        return walkGoalProp.isEmpty() ? null : walkToGoalProp.pop();
+    public @Nullable Float popWalkGoalProp() {
+        return walkGoalProp.isEmpty() ? null : walkGoalProp.pop();
     }
 
     public void addWalkToGoalProp(Vec3 walkToGoalProp) {
         this.walkToGoalProp.add(walkToGoalProp);
     }
 
-    public @Nullable BlockPos popDestroyBlockGoalProp() {
-        return destroyBlockGoalProp.isEmpty() ? null : destroyBlockGoalProp.pop();
+    public @Nullable Vec3 popWalkToGoalProp() {
+        return walkToGoalProp.isEmpty() ? null : walkToGoalProp.pop();
     }
 
     public void addDestroyBlockGoalProp(BlockPos destroyBlockGoalProp) {
         this.destroyBlockGoalProp.add(destroyBlockGoalProp);
     }
 
-    public @Nullable LivingEntity popAttackGoalProp() {
-        return attackGoalProp.isEmpty() ? null : attackGoalProp.pop();
+    public @Nullable BlockPos popDestroyBlockGoalProp() {
+        return destroyBlockGoalProp.isEmpty() ? null : destroyBlockGoalProp.pop();
     }
 
     public void addAttackGoalProp(LivingEntity attackGoalProp) {
         this.attackGoalProp.add(attackGoalProp);
     }
 
-    public void stopEvaluation() {
-        getEntity().setIsRuntime(false);
-        evaluator = null;
-
-        followPlayerGoalProp.clear();
-        attackGoalProp.clear();
-        destroyBlockGoalProp.clear();
-        walkToGoalProp.clear();
-        walkGoalProp.clear();
+    public @Nullable LivingEntity popAttackGoalProp() {
+        return attackGoalProp.isEmpty() ? null : attackGoalProp.pop();
     }
 }
