@@ -47,6 +47,7 @@
   "runtime.redbyte.error.container_not_in_range": "Given container is too far away.",
   "runtime.redbyte.error.block_is_air": "Given block is air.",
   "runtime.redbyte.error.block_not_in_range": "Given block is not in range.",
+  "runtime.redbyte.error.division_by_range": "Division by zero.",
   "interpreter.redbyte.types.primitive": "Primitive",
   "interpreter.redbyte.types.number": "Number",
   "interpreter.redbyte.types.text": "Text",

@@ -144,8 +144,12 @@ public final class Evaluator {
                         if (left instanceof NumberType l && right instanceof NumberType r)
                             yield new NumberType(l.getValue() * r.getValue());
                     case Slash: {
-                        if (left instanceof NumberType l && right instanceof NumberType r)
-                            yield new NumberType(l.getValue() / r.getValue());
+                        if (left instanceof NumberType l && right instanceof NumberType r) {
+                            float rv = r.getValue();
+                            if (rv == 0)
+                                throw new EvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), binaryExpr.right().span());
+                            yield new NumberType(l.getValue() / rv);
+                        }
                     }
                     case EqualsEquals: {
                         yield new BooleanType(equalsPrimitives(left, right));
