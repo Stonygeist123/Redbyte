@@ -6,7 +6,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.item.ItemStack;
@@ -28,6 +27,7 @@ import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.interpreter.lowerer.Lowerer;
 import net.stonygeist.redbyte.server.C2SBuildResultPacket;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 public final class PseudoRobo {
     private final UUID redbyteID;
@@ -124,14 +125,21 @@ public final class PseudoRobo {
 
     public RoboEntity resolveEntity(ServerLevel level) {
         RoboEntity entity = getEntity();
-        if (entity != null && !entity.isRemoved()) return entity;
-        for (Entity e : level.getAllEntities())
-            if (e instanceof RoboEntity robo && redbyteID.equals(robo.getRedbyteID().orElse(null))) {
-                setEntity(robo);
-                return robo;
-            }
-
-        return null;
+        if (entity != null && !entity.isRemoved())
+            return entity;
+        else
+            return StreamSupport.stream(level.getAllEntities().spliterator(), false)
+                    .filter(RoboEntity.class::isInstance)
+                    .map(RoboEntity.class::cast)
+                    .filter(robo -> robo.getRedbyteID()
+                            .filter(redbyteID::equals)
+                            .isPresent())
+                    .findFirst()
+                    .map(robo -> {
+                        setEntity(robo);
+                        return robo;
+                    })
+                    .orElse(null);
     }
 
     private void updateEntity() {
@@ -221,6 +229,7 @@ public final class PseudoRobo {
         getEntity().setIsRuntime(false);
         evaluator = null;
 
+        followGoalShouldStop = false;
         followPlayerGoalProp.clear();
         attackGoalProp.clear();
         destroyBlockGoalProp.clear();
@@ -275,7 +284,7 @@ public final class PseudoRobo {
         return entityRef.get();
     }
 
-    public void setEntity(RoboEntity entity) {
+    public void setEntity(@NotNull RoboEntity entity) {
         entity.setRedbyteID(redbyteID);
         entity.setCode(code);
         entity.setBuildDone(buildDone);
@@ -284,15 +293,15 @@ public final class PseudoRobo {
     }
 
     public void setCode(String code) {
-        if (getEntity() == null) return;
         this.code = code;
-        getEntity().setCode(code);
+        if (getEntity() == null)
+            getEntity().setCode(code);
     }
 
     public void setBuildDone(boolean buildDone) {
-        if (getEntity() == null) return;
         this.buildDone = buildDone;
-        getEntity().setBuildDone(buildDone);
+        if (getEntity() != null)
+            getEntity().setBuildDone(buildDone);
     }
 
     public void setDiagnostics(DiagnosticBag diagnostics) {
@@ -300,6 +309,7 @@ public final class PseudoRobo {
     }
 
     public void addFollowEntityGoalProp(LivingEntity followPlayerGoalProp) {
+        this.followPlayerGoalProp.clear();
         this.followPlayerGoalProp.add(followPlayerGoalProp);
     }
 

@@ -63,7 +63,7 @@ public class BlockDataType extends DataType {
                         if (robo.getEntity().level().isEmptyBlock(blockPos))
                             throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.block_is_air"), null);
 
-                        if (blockPos.closerThan(robo.getEntity().blockPosition(), ROBO_RANGE)) {
+                        if (blockPos.closerToCenterThan(robo.getEntity().position(), ROBO_RANGE)) {
                             robo.addDestroyBlockGoalProp(blockPos);
                             return new NothingDataType();
                         } else
