@@ -40,8 +40,8 @@ public enum Miscellaneous {
         return switch (kind) {
             case Star, Slash -> 6;
             case Plus, Minus -> 5;
-            case EqualsEquals, NotEquals -> 4;
-            case Greater, GreaterEquals, Less, LessEquals -> 3;
+            case Greater, GreaterEquals, Less, LessEquals -> 4;
+            case EqualsEquals, NotEquals -> 3;
             case And -> 2;
             case Or -> 1;
             default -> 0;
