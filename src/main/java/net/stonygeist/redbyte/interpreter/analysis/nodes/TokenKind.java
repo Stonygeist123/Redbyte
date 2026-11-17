@@ -1,7 +1,7 @@
 package net.stonygeist.redbyte.interpreter.analysis.nodes;
 
 public enum TokenKind {
-    Plus, Minus, Star, Slash,
+    Plus, Minus, Star, Slash, Power, Modulo,
     Bang, EqualsEquals, NotEquals, Greater, GreaterEquals, Less, LessEquals,
     LParen, RParen, LBrace, RBrace,
     Equals, Comma, Dot,
@@ -10,5 +10,5 @@ public enum TokenKind {
 
     True, False, If, Else, Loop, Once, While, Always, Or, And,
 
-    Whitespace, Bad, Eof
+    Whitespace, Comment, Bad, Eof
 }

@@ -145,12 +145,27 @@ public final class Evaluator {
                             yield new NumberType(l.getValue() * r.getValue());
                     case Slash: {
                         if (left instanceof NumberType l && right instanceof NumberType r) {
-                            float rv = r.getValue();
-                            if (rv == 0)
-                                throw new EvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), binaryExpr.right().span());
-                            yield new NumberType(l.getValue() / rv);
+                            if (r.getValue() == 0)
+                                throw new EvaluationError(Component.translatable("runtime.redbyte.error.division_by_zero"), binaryExpr.right().span());
+                            yield new NumberType(l.getValue() / r.getValue());
                         }
                     }
+                    case Modulo:
+                        if (left instanceof NumberType l && right instanceof NumberType r) {
+                            if (r.getValue() == 0)
+                                throw new EvaluationError(Component.translatable("runtime.redbyte.error.modulo_by_zero"), binaryExpr.right().span());
+                            else if (l.getValue() != Math.ceil(l.getValue()))
+                                throw new EvaluationError(Component.translatable("runtime.redbyte.error.modulo_float"), binaryExpr.left().span());
+                            else if (r.getValue() != Math.ceil(r.getValue()))
+                                throw new EvaluationError(Component.translatable("runtime.redbyte.error.modulo_float"), binaryExpr.right().span());
+                            yield new NumberType(l.getValue() % r.getValue());
+                        }
+                    case Power:
+                        if (left instanceof NumberType l && right instanceof NumberType r) {
+                            if (l.getValue() == 0 && r.getValue() == 0)
+                                throw new EvaluationError(Component.translatable("runtime.redbyte.error.zero_power_zero"), binaryExpr.span());
+                            yield new NumberType((float) Math.pow(l.getValue(), r.getValue()));
+                        }
                     case EqualsEquals: {
                         yield new BooleanType(equalsPrimitives(left, right));
                     }

@@ -45,10 +45,26 @@ public class Lexer {
                 kind = TokenKind.Minus;
                 break;
             case '*':
-                kind = TokenKind.Star;
+                if (peek() == '*') {
+                    lexeme.append(peek());
+                    ++current;
+                    ++column;
+                    kind = TokenKind.Power;
+                } else
+                    kind = TokenKind.Star;
                 break;
             case '/':
-                kind = TokenKind.Slash;
+                if (peek() == '/') {
+                    while (peek() != '\n' && peek() != '\r' && !isAtEnd())
+                        lexeme.append(peek());
+                    ++current;
+                    ++column;
+                    kind = TokenKind.Comment;
+                } else
+                    kind = TokenKind.Slash;
+                break;
+            case '%':
+                kind = TokenKind.Modulo;
                 break;
             case '(':
                 kind = TokenKind.LParen;

@@ -38,8 +38,9 @@ public enum Miscellaneous {
 
     public static int getBinaryPrecedence(TokenKind kind) {
         return switch (kind) {
+            case Power -> 7;
             case Star, Slash -> 6;
-            case Plus, Minus -> 5;
+            case Plus, Minus, Modulo -> 5;
             case Greater, GreaterEquals, Less, LessEquals -> 4;
             case EqualsEquals, NotEquals -> 3;
             case And -> 2;

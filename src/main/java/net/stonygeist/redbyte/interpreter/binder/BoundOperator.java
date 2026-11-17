@@ -42,6 +42,8 @@ public final class BoundOperator {
                 new BoundBinaryOperator(TokenKind.Minus, NumberType.class),
                 new BoundBinaryOperator(TokenKind.Star, NumberType.class),
                 new BoundBinaryOperator(TokenKind.Slash, NumberType.class),
+                new BoundBinaryOperator(TokenKind.Modulo, NumberType.class),
+                new BoundBinaryOperator(TokenKind.Power, NumberType.class),
 
                 new BoundBinaryOperator(TokenKind.Plus, TextType.class),
 
