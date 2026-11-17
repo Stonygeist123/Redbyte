@@ -205,11 +205,6 @@ public final class Binder {
             }
             case PropertyExpr propertyExpr -> {
                 BoundExpr object = bindExpr(propertyExpr.object);
-                if (PrimitiveType.class.isAssignableFrom(object.getType())) {
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.primitive_not_allowed"), propertyExpr.object.span()));
-                    yield new BoundErrorExpr(propertyExpr.object.span());
-                }
-
                 String propertyName = propertyExpr.property.lexeme.toLowerCase();
                 Optional<Map.Entry<PropertySymbol, Function<DataType, DataType>>> property = DataType.getProperties(object.getType()).entrySet().stream().filter(p -> p.getKey().name.equals(propertyName)).findFirst();
                 if (property.isEmpty()) {
@@ -221,11 +216,6 @@ public final class Binder {
             }
             case MethodExpr methodExpr -> {
                 BoundExpr object = bindExpr(methodExpr.object);
-                //if (PrimitiveType.class.isAssignableFrom(object.getType())) {
-                //  diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.primitive_not_allowed"), methodExpr.object.span()));
-                //yield new BoundErrorExpr(methodExpr.object.span());
-                // }
-
                 String name = methodExpr.method.lexeme.toLowerCase();
                 ImmutableList<BoundExpr> args = Arrays.stream(methodExpr.args).map(this::bindExpr).collect(ImmutableList.toImmutableList());
                 List<MethodSymbol> methods = DataType.getMethods(object.getType());
