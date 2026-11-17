@@ -221,10 +221,10 @@ public final class Binder {
             }
             case MethodExpr methodExpr -> {
                 BoundExpr object = bindExpr(methodExpr.object);
-                if (PrimitiveType.class.isAssignableFrom(object.getType())) {
-                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.primitive_not_allowed"), methodExpr.object.span()));
-                    yield new BoundErrorExpr(methodExpr.object.span());
-                }
+                //if (PrimitiveType.class.isAssignableFrom(object.getType())) {
+                //  diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.primitive_not_allowed"), methodExpr.object.span()));
+                //yield new BoundErrorExpr(methodExpr.object.span());
+                // }
 
                 String name = methodExpr.method.lexeme.toLowerCase();
                 ImmutableList<BoundExpr> args = Arrays.stream(methodExpr.args).map(this::bindExpr).collect(ImmutableList.toImmutableList());
