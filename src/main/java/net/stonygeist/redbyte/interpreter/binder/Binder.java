@@ -17,10 +17,7 @@ import net.stonygeist.redbyte.interpreter.data_types.primitives.PrimitiveType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
-import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
-import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
-import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
-import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -166,7 +163,7 @@ public final class Binder {
                 String name = assignExpr.name.lexeme.toLowerCase();
                 VariableSymbol variable = _scope.getSymbolTable().get(name);
                 if (variable == null) {
-                    variable = new VariableSymbol(name, value.getType());
+                    variable = new VariableSymbol(name, value.getType(), value.getTypeSymbol());
                     tryDeclareVar(variable);
                 } else if (!variable.type.equals(value.getType())) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", DataType.getTypeSymbol(variable.type).getDocsName(), DataType.getTypeSymbol(value.getType()).getDocsName()), assignExpr.value.span()));
@@ -180,11 +177,24 @@ public final class Binder {
                 List<BoundExpr> items = listExpr.items.stream().map(i -> bindExpr(i.getKey())).toList();
                 // TODO: Fix if list is empty
                 Class<? extends DataType> listType = items.isEmpty() ? NothingDataType.class : items.getFirst().getType();
+                TypeSymbol listTypeSymbol = items.isEmpty() ? NothingDataType.TYPE : items.getFirst().getTypeSymbol();
                 for (BoundExpr i : items)
-                    if (!listType.isAssignableFrom(i.getType()))
-                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_list_type", DataType.getTypeSymbol(listType).getDocsName(), DataType.getTypeSymbol(i.getType()).getDocsName()), i.span()));
+                    if (!listTypeSymbol.equals(i.getTypeSymbol()))
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_list_type", listTypeSymbol.getBase().getDocsName(), i.getTypeSymbol().getDocsName()), i.span()));
 
-                yield new BoundListExpr(items, listExpr.span());
+                yield new BoundListExpr(items, listExpr.span(), listType, items.getFirst().getTypeSymbol());
+            }
+            case IndexExpr indexExpr -> {
+                BoundExpr base = bindExpr(indexExpr.base);
+                BoundExpr index = bindExpr(indexExpr.index);
+                // TODO: Fix if list is empty
+                if (!DataType.getTypeSymbol(base.getType()).isList())
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_list", DataType.getTypeSymbol(base.getType()).getDocsName()), base.span()));
+
+                if (!index.getType().equals(NumberType.class))
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_type", DataType.getTypeSymbol(index.getType()).getDocsName(), DataType.getTypeSymbol(index.getType()).getDocsName()), base.span()));
+
+                yield new BoundIndexExpr(base, index, indexExpr.span());
             }
             case CallExpr callExpr -> {
                 String name = callExpr.name.lexeme.toLowerCase();

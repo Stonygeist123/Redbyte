@@ -2,6 +2,7 @@ package net.stonygeist.redbyte.interpreter.symbols;
 
 import net.minecraft.network.chat.Component;
 import net.stonygeist.redbyte.interpreter.data_types.DataType;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class TypeSymbol extends Symbol {
@@ -30,7 +31,9 @@ public class TypeSymbol extends Symbol {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof TypeSymbol t && (name.equals((DataType.TYPE).name) || name.equals(t.name) || equals(t.superType));
+        return obj instanceof TypeSymbol t
+                && (name.equals((DataType.TYPE).name) || name.equals(t.name) || equals(t.superType))
+                && isList == t.isList;
     }
 
     @Override
@@ -44,5 +47,13 @@ public class TypeSymbol extends Symbol {
 
     public boolean isList() {
         return isList;
+    }
+
+    public TypeSymbol getBase() {
+        return new TypeSymbol(name, superType, docsName);
+    }
+
+    public @NotNull TypeSymbol transform(boolean isList) {
+        return new TypeSymbol(name, superType, docsName, isList);
     }
 }

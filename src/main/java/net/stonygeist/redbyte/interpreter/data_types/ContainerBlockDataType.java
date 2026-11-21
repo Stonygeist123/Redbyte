@@ -29,7 +29,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public final class ContainerBlockDataType extends BlockDataType {
-    public static final TypeSymbol TYPE = new TypeSymbol("container_block", EntityDataType.TYPE, Component.translatable("interpreter.redbyte.types.container_block"));
+    public static final TypeSymbol TYPE = new TypeSymbol("container_block", BlockDataType.TYPE, Component.translatable("interpreter.redbyte.types.container_block"));
     private final @NotNull BaseContainerBlockEntity container;
 
     public ContainerBlockDataType(@NotNull BlockState blockState, @NotNull BaseContainerBlockEntity container, @NotNull BlockPos position) {

@@ -200,6 +200,15 @@ public class Parser {
                 diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_name"), getCurrent().span()));
                 return expr;
             }
+        } else if (token.kind == TokenKind.LBracket) {
+            ++current;
+            Expr index = parseExpr(0);
+            Token rBracket = getCurrent();
+            if (rBracket.kind != TokenKind.RBracket)
+                diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_character", "']'", rBracket.lexeme), rBracket.span()));
+            else
+                ++current;
+            expr = new IndexExpr(expr, token, index, rBracket);
         } else if (expr instanceof NameExpr nameExpr) {
             if (token.kind == TokenKind.Equals) {
                 ++current;

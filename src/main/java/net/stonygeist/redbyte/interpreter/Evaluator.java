@@ -8,10 +8,10 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.TokenKind;
 import net.stonygeist.redbyte.interpreter.binder.expr.*;
 import net.stonygeist.redbyte.interpreter.binder.stmt.*;
 import net.stonygeist.redbyte.interpreter.data_types.DataType;
+import net.stonygeist.redbyte.interpreter.data_types.ListType;
 import net.stonygeist.redbyte.interpreter.data_types.NothingDataType;
 import net.stonygeist.redbyte.interpreter.data_types.RoboDataType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.BooleanType;
-import net.stonygeist.redbyte.interpreter.data_types.primitives.ListType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
@@ -215,6 +215,17 @@ public final class Evaluator {
                 } catch (NoSuchFieldException | IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
+            }
+            case BoundIndexExpr indexExpr -> {
+                DataType base = evaluateExpr(indexExpr.base(), robo);
+                DataType index = evaluateExpr(indexExpr.index(), robo);
+                if (base instanceof ListType l && index instanceof NumberType i) {
+                    if (i.getValue() < 0 || i.getValue() >= l.getValue().size())
+                        throw new EvaluationError(Component.translatable("runtime.redbyte.error.index_out_of_bounds"), indexExpr.index().span());
+                    yield l.getValue().get((int) i.getValue());
+                }
+
+                throw new RuntimeException("Base is not a list or index is not a number.");
             }
             case BoundCallExpr callExpr -> {
                 DataType[] args = callExpr.args().stream().map(a -> evaluateExpr(a, robo)).toArray(DataType[]::new);

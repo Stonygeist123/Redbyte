@@ -1,7 +1,7 @@
-package net.stonygeist.redbyte.interpreter.data_types.primitives;
+package net.stonygeist.redbyte.interpreter.data_types;
 
 import net.minecraft.network.chat.Component;
-import net.stonygeist.redbyte.interpreter.data_types.DataType;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
 import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
@@ -11,11 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class ListType extends PrimitiveType {
+public final class ListType extends DataType {
     private final List<? extends DataType> value;
+    public static final TypeSymbol TYPE = new TypeSymbol("list", Component.translatable("interpreter.redbyte.types.list"), true);
 
-    public ListType(List<DataType> value, Class<? extends DataType> type) throws NoSuchFieldException, IllegalAccessException {
-        super(new TypeSymbol(((TypeSymbol) type.getField("TYPE").get(null)).name, ((TypeSymbol) type.getField("TYPE").get(null)).getDocsName().copy().append("[]"), true));
+    public ListType(List<DataType> value, Class<? extends DataType> typeClass) throws NoSuchFieldException, IllegalAccessException {
+        super(new TypeSymbol(getTypeSymbol(typeClass).name, getTypeSymbol(typeClass).getDocsName().copy().append("[]"), true));
         this.value = value;
     }
 

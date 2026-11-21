@@ -25,7 +25,7 @@ import java.util.function.Function;
 import static net.stonygeist.redbyte.index.RedbyteConfigs.ROBO_RANGE;
 
 public class BlockDataType extends DataType {
-    public static final TypeSymbol TYPE = new TypeSymbol("block", EntityDataType.TYPE, Component.translatable("interpreter.redbyte.types.block"));
+    public static final TypeSymbol TYPE = new TypeSymbol("block", Component.translatable("interpreter.redbyte.types.block"));
     private final @NotNull BlockState blockState;
     private final @Nullable BlockEntity blockEntity;
     private final @NotNull BlockPos position;

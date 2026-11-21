@@ -18,7 +18,7 @@ public final class CallExpr extends Expr {
     }
 
     public static Component title() {
-        return Component.translatable("docs.redbyte.title.method");
+        return Component.translatable("docs.redbyte.title.call");
     }
 
     public static Component docs() {

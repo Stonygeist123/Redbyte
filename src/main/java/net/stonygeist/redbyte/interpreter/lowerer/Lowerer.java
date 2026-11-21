@@ -90,7 +90,7 @@ public final class Lowerer {
                 yield rewriteStmt(new BoundWhileStmt(alwaysTrue, body));
             }
             case BoundLoopStmt loopStmt -> {
-                VariableSymbol variable = new VariableSymbol("$LoopVar_" + ++loopVarCount, NumberType.class);
+                VariableSymbol variable = new VariableSymbol("$LoopVar_" + ++loopVarCount, NumberType.class, NumberType.TYPE);
                 BoundExprStmt varDecl = new BoundExprStmt(new BoundAssignExpr(variable, new BoundLiteralExpr(new NumberType(1f), loopStmt.count().span()), loopStmt.count().span()));
                 BoundNameExpr nameExpr = new BoundNameExpr(variable, loopStmt.count().span());
 

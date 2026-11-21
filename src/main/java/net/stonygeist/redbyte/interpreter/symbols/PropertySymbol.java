@@ -7,7 +7,11 @@ public class PropertySymbol extends VariableSymbol {
     public final Component description;
 
     public PropertySymbol(String name, Class<? extends DataType> type, Component description) {
-        super(name, type);
+        this(name, type, DataType.getTypeSymbol(type), description);
+    }
+
+    public PropertySymbol(String name, Class<? extends DataType> type, TypeSymbol typeSymbol, Component description) {
+        super(name, type, typeSymbol);
         this.description = description;
     }
 }
