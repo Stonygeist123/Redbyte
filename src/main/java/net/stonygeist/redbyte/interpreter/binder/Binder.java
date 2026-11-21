@@ -10,6 +10,7 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.*;
 import net.stonygeist.redbyte.interpreter.binder.expr.*;
 import net.stonygeist.redbyte.interpreter.binder.stmt.*;
 import net.stonygeist.redbyte.interpreter.data_types.DataType;
+import net.stonygeist.redbyte.interpreter.data_types.NothingDataType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.BooleanType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.PrimitiveType;
@@ -175,6 +176,16 @@ public final class Binder {
                 yield new BoundAssignExpr(variable, value, assignExpr.span());
             }
             case RoboExpr roboExpr -> new BoundRoboExpr(roboExpr.span());
+            case ListExpr listExpr -> {
+                List<BoundExpr> items = listExpr.items.stream().map(i -> bindExpr(i.getKey())).toList();
+                // TODO: Fix if list is empty
+                Class<? extends DataType> listType = items.isEmpty() ? NothingDataType.class : items.getFirst().getType();
+                for (BoundExpr i : items)
+                    if (!listType.isAssignableFrom(i.getType()))
+                        diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_list_type", DataType.getTypeSymbol(listType).getDocsName(), DataType.getTypeSymbol(i.getType()).getDocsName()), i.span()));
+
+                yield new BoundListExpr(items, listExpr.span());
+            }
             case CallExpr callExpr -> {
                 String name = callExpr.name.lexeme.toLowerCase();
                 ImmutableList<BoundExpr> args = Arrays.stream(callExpr.args).map(this::bindExpr).collect(ImmutableList.toImmutableList());

@@ -11,6 +11,7 @@ import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.interpreter.data_types.NothingDataType;
 import net.stonygeist.redbyte.interpreter.data_types.RoboDataType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.BooleanType;
+import net.stonygeist.redbyte.interpreter.data_types.primitives.ListType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
@@ -208,6 +209,13 @@ public final class Evaluator {
                 yield value;
             }
             case BoundRoboExpr ignored -> new RoboDataType(getRoboEntity());
+            case BoundListExpr listExpr -> {
+                try {
+                    yield new ListType(listExpr.items().stream().map(i -> evaluateExpr(i, robo)).toList(), listExpr.getType());
+                } catch (NoSuchFieldException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             case BoundCallExpr callExpr -> {
                 DataType[] args = callExpr.args().stream().map(a -> evaluateExpr(a, robo)).toArray(DataType[]::new);
                 FunctionSymbol function = callExpr.function();

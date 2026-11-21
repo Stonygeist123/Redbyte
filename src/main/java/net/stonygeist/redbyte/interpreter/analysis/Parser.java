@@ -9,10 +9,9 @@ import net.stonygeist.redbyte.interpreter.analysis.nodes.stmt.*;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class Parser {
     private final Token[] tokens;
@@ -118,6 +117,29 @@ public class Parser {
                 else
                     ++current;
                 yield new GroupExpr(token, expr, rParen);
+            }
+            case LBracket -> {
+                Token rBracket = getCurrent();
+                List<Map.Entry<@NotNull Expr, @Nullable Token>> items = new ArrayList<>();
+                while (rBracket.kind != TokenKind.RBrace && rBracket.kind != TokenKind.Eof) {
+                    Expr expr = parseExpr(0);
+                    @Nullable Token comma = getCurrent();
+                    if (comma.kind == TokenKind.Comma) {
+                        items.add(new AbstractMap.SimpleEntry<>(expr, comma));
+                        ++current;
+                        rBracket = getCurrent();
+                    } else {
+                        items.add(new AbstractMap.SimpleEntry<>(expr, null));
+                        rBracket = getCurrent();
+                        break;
+                    }
+                }
+
+                if (rBracket.kind != TokenKind.RBracket)
+                    diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.expected_character", "']'", rBracket.lexeme), rBracket.span()));
+                else
+                    ++current;
+                yield new ListExpr(token, items, rBracket);
             }
             case Plus, Minus, Bang -> new UnaryExpr(parseExpr(Miscellaneous.unaryPrecedence), token);
             default -> {

@@ -3,7 +3,7 @@ package net.stonygeist.redbyte.interpreter.analysis.nodes;
 public enum TokenKind {
     Plus, Minus, Star, Slash, Power, Modulo,
     Bang, EqualsEquals, NotEquals, Greater, GreaterEquals, Less, LessEquals,
-    LParen, RParen, LBrace, RBrace,
+    LParen, RParen, LBracket, RBracket, LBrace, RBrace,
     Equals, Comma, Dot,
 
     Number, String, Identifier, Robo,

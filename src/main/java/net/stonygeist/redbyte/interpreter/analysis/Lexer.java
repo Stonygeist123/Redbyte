@@ -78,6 +78,12 @@ public class Lexer {
             case '.':
                 kind = TokenKind.Dot;
                 break;
+            case '[':
+                kind = TokenKind.LBracket;
+                break;
+            case ']':
+                kind = TokenKind.RBracket;
+                break;
             case '{':
                 kind = TokenKind.LBrace;
                 break;
