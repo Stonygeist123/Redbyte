@@ -23,9 +23,7 @@ import net.stonygeist.redbyte.manager.PseudoRobo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Stack;
+import java.util.*;
 
 public final class Evaluator {
     private final Stack<BoundBlockStmt> globalStmts = new Stack<>();
@@ -208,20 +206,32 @@ public final class Evaluator {
                 variables.put(assignExpr.variable(), value);
                 yield value;
             }
-            case BoundRoboExpr ignored -> new RoboDataType(getRoboEntity());
-            case BoundListExpr listExpr -> {
-                try {
-                    yield new ListType(listExpr.items().stream().map(i -> evaluateExpr(i, robo)).toList(), listExpr.getType());
-                } catch (NoSuchFieldException | IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
+            case BoundIndexAssignExpr indexAssignExpr -> {
+                NumberType index = (NumberType) evaluateExpr(indexAssignExpr.index(), robo);
+                ListType oldList = (ListType) variables.get(indexAssignExpr.variable());
+                if (index.getValue() < 0)
+                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.index_out_of_bounds"), indexAssignExpr.index().span());
+                if (Math.floor(index.getValue()) != index.getValue())
+                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.index_must_be_int"), indexAssignExpr.index().span());
+
+                DataType value = evaluateExpr(indexAssignExpr.value(), robo);
+                List<DataType> items = new ArrayList<>(oldList.getValue());
+                items.set((int) index.getValue(), value);
+                ListType newList = new ListType(items);
+                variables.put(indexAssignExpr.variable(), newList);
+                yield value;
             }
+            case BoundRoboExpr ignored -> new RoboDataType(getRoboEntity());
+            case BoundListExpr listExpr ->
+                    new ListType(listExpr.items().stream().map(i -> evaluateExpr(i, robo)).toList());
             case BoundIndexExpr indexExpr -> {
                 DataType base = evaluateExpr(indexExpr.base(), robo);
                 DataType index = evaluateExpr(indexExpr.index(), robo);
                 if (base instanceof ListType l && index instanceof NumberType i) {
                     if (i.getValue() < 0 || i.getValue() >= l.getValue().size())
                         throw new EvaluationError(Component.translatable("runtime.redbyte.error.index_out_of_bounds"), indexExpr.index().span());
+                    if (Math.floor(i.getValue()) != i.getValue())
+                        throw new EvaluationError(Component.translatable("runtime.redbyte.error.index_must_be_int"), indexExpr.index().span());
                     yield l.getValue().get((int) i.getValue());
                 }
 

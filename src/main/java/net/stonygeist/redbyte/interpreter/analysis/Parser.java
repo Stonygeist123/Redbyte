@@ -209,11 +209,16 @@ public class Parser {
             else
                 ++current;
             expr = new IndexExpr(expr, token, index, rBracket);
-        } else if (expr instanceof NameExpr nameExpr) {
-            if (token.kind == TokenKind.Equals) {
+        } else if (token.kind == TokenKind.Equals) {
+            if (expr instanceof NameExpr nameExpr) {
                 ++current;
                 return new AssignExpr(nameExpr.name, token, parseExpr(0));
-            } else if (token.kind == TokenKind.LParen) {
+            } else if (expr instanceof IndexExpr indexExpr) {
+                ++current;
+                return new IndexAssignExpr(indexExpr, token, parseExpr(0));
+            }
+        } else if (expr instanceof NameExpr nameExpr) {
+            if (token.kind == TokenKind.LParen) {
                 ++current;
                 List<Expr> args = new ArrayList<>();
                 boolean needsArg = false;

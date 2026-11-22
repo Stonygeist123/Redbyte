@@ -12,15 +12,15 @@ import java.util.Map;
 import java.util.function.Function;
 
 public final class ListType extends DataType {
-    private final List<? extends DataType> value;
+    private final List<DataType> value;
     public static final TypeSymbol TYPE = new TypeSymbol("list", Component.translatable("interpreter.redbyte.types.list"), true);
 
-    public ListType(List<DataType> value, Class<? extends DataType> typeClass) throws NoSuchFieldException, IllegalAccessException {
-        super(new TypeSymbol(getTypeSymbol(typeClass).name, getTypeSymbol(typeClass).getDocsName().copy().append("[]"), true));
+    public ListType(List<DataType> value) {
+        super(new TypeSymbol(getTypeSymbol(ListType.class).name, getTypeSymbol(ListType.class).getDocsName().copy().append("[]"), true));
         this.value = value;
     }
 
-    public List<? extends DataType> getValue() {
+    public List<DataType> getValue() {
         return value;
     }
 
