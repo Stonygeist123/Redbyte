@@ -22,11 +22,7 @@ import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Stream;
 
 public final class ContainerBlockDataType extends BlockDataType {
     public static final TypeSymbol TYPE = new TypeSymbol("container_block", BlockDataType.TYPE, Component.translatable("interpreter.redbyte.types.container_block"));
@@ -41,322 +37,321 @@ public final class ContainerBlockDataType extends BlockDataType {
         return container;
     }
 
-    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>(getProperties(BlockDataType.class));
-
     static {
-        properties.put(
-                new PropertySymbol("slots", NumberType.class,
-                        Component.translatable("docs.redbyte.description.properties.container_block.slots")),
-                x -> {
-                    if (x instanceof ContainerBlockDataType c)
-                        return new NumberType(c.getContainer().getContainerSize());
-                    throw new IllegalArgumentException("Expected a container block, got " + x.getClass().getSimpleName());
-                });
+        TYPE.declareMembers(self -> {
+            self.addProperty(
+                    new PropertySymbol("slots", NumberType.TYPE,
+                            Component.translatable("docs.redbyte.description.properties.container_block.slots")),
+                    x -> {
+                        if (x instanceof ContainerBlockDataType c)
+                            return new NumberType(c.getContainer().getContainerSize());
+                        throw new IllegalArgumentException("Expected a container block, got " + x.getClass().getSimpleName());
+                    });
+            self.addMethods(
+                    new MethodSymbol("try_quick_put", ImmutableList.of(NumberType.TYPE), NothingDataType.TYPE,
+                            (ev, robo, object, args) -> {
+                                RoboEntity roboEntity = robo.getEntity();
+                                ContainerBlockDataType block = (ContainerBlockDataType) object;
+                                if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
+
+                                float slotFloat = ((NumberType) args[0]).getValue();
+                                if (Math.round(slotFloat) != slotFloat)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 0);
+
+                                int slot = Math.round(slotFloat) - 1;
+                                if (slot >= roboEntity.getInventory().getSlots() || slot < 0)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_range", 0, roboEntity.getInventory().getSlots()), 0);
+
+                                Item item = roboEntity.getInventory().getStackInSlot(slot).getItem();
+                                ItemStack itemStack = roboEntity.extractItem(slot, item.getDefaultMaxStackSize(), false);
+
+                                boolean canPlace = false;
+                                for (int i = 0; i < block.getContainer().getContainerSize(); ++i) {
+                                    ItemStack resultStack = block.getContainer().getItem(i);
+                                    if ((resultStack.is(itemStack.getItem()) || resultStack.isEmpty()) && resultStack.getCount() < resultStack.getMaxStackSize()) {
+                                        canPlace = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!canPlace) {
+                                    roboEntity.insertItem(slot, itemStack, false);
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item", item.getName(itemStack)), 0);
+                                }
+
+                                assert block.getBlockEntity() != null;
+                                ItemStack remainder = Miscellaneous.smartInsert(
+                                        block.getBlockEntity().getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(RuntimeException::new),
+                                        itemStack
+                                );
+                                if (!remainder.isEmpty()) {
+                                    remainder = roboEntity.insertItem(slot, remainder, false);
+                                    for (int i = 0; i < roboEntity.getInventory().getSlots(); i++) {
+                                        remainder = roboEntity.insertItem(i, remainder, false);
+                                        if (remainder.isEmpty())
+                                            break;
+                                    }
+                                }
+
+                                return new NothingDataType();
+                            }, Component.translatable("docs.redbyte.description.functions.container_block.try_quick_put.slot")),
+                    new MethodSymbol("try_quick_put", ImmutableList.of(TextType.TYPE), NothingDataType.TYPE,
+                            (ev, robo, object, args) -> {
+                                RoboEntity roboEntity = robo.getEntity();
+                                ContainerBlockDataType block = (ContainerBlockDataType) object;
+                                if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
+
+                                String idToSearch = ((TextType) args[0]).getValue();
+                                Map.Entry<Integer, @Nullable Item> slotItemPair = Miscellaneous.getSlot(roboEntity.getInventory(), idToSearch);
+                                int slot = slotItemPair.getKey();
+                                Item item = slotItemPair.getValue();
+                                if (item == null)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_does_not_exist", idToSearch), 0);
+
+                                if (slot == -1)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_not_found", idToSearch), 0);
+
+                                ItemStack itemStack = roboEntity.extractItem(slot, item.getDefaultMaxStackSize(), false);
+                                boolean canPlace = false;
+                                for (int i = 0; i < block.getContainer().getContainerSize(); ++i) {
+                                    ItemStack resultStack = block.getContainer().getItem(i);
+                                    if ((resultStack.is(itemStack.getItem()) || resultStack.isEmpty()) && resultStack.getCount() < resultStack.getMaxStackSize()) {
+                                        canPlace = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!canPlace) {
+                                    roboEntity.insertItem(slot, itemStack, false);
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item", item.getName(itemStack)), 0);
+                                }
+
+                                assert block.getBlockEntity() != null;
+                                ItemStack remainder = Miscellaneous.smartInsert(
+                                        block.getBlockEntity().getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(RuntimeException::new),
+                                        itemStack
+                                );
+                                if (!remainder.isEmpty()) {
+                                    remainder = roboEntity.insertItem(slot, remainder, false);
+                                    for (int i = 0; i < roboEntity.getInventory().getSlots(); ++i) {
+                                        remainder = roboEntity.insertItem(i, remainder, false);
+                                        if (remainder.isEmpty())
+                                            break;
+                                    }
+                                }
+
+                                return new NothingDataType();
+                            }, Component.translatable("docs.redbyte.description.functions.container_block.try_quick_put.name")),
+                    new MethodSymbol("try_put", ImmutableList.of(NumberType.TYPE, NumberType.TYPE), NothingDataType.TYPE,
+                            (ev, robo, object, args) -> {
+                                RoboEntity roboEntity = robo.getEntity();
+                                ContainerBlockDataType block = (ContainerBlockDataType) object;
+                                if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
+
+                                float slotFloat = ((NumberType) args[0]).getValue();
+                                if (Math.round(slotFloat) != slotFloat)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 0);
+
+                                int slot = Math.round(slotFloat) - 1;
+                                if (slot >= roboEntity.getInventory().getSlots() || slot < 0)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_range", 0, roboEntity.getInventory().getSlots()), 0);
+
+                                Item item = roboEntity.getInventory().getStackInSlot(slot).getItem();
+                                float resultSlotFloat = ((NumberType) args[1]).getValue();
+                                if (Math.round(resultSlotFloat) != resultSlotFloat)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 1);
+
+                                int resultSlot = Math.round(resultSlotFloat) - 1;
+                                if (resultSlot >= block.getContainer().getContainerSize() || resultSlot < 0)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_range", 0, block.getContainer().getContainerSize()), 1);
+
+                                ItemStack itemStack = roboEntity.extractItem(slot, item.getDefaultMaxStackSize(), false);
+                                assert block.getBlockEntity() != null;
+                                IItemHandler handler = block.getBlockEntity().getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(RuntimeException::new);
+                                ItemStack resultStack = handler.getStackInSlot(resultSlot);
+                                if (!resultStack.is(itemStack.getItem()) && !resultStack.isEmpty() || resultStack.getCount() >= resultStack.getMaxStackSize()) {
+                                    roboEntity.insertItem(slot, itemStack, false);
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item", item.getName(itemStack)), 0);
+                                }
+
+                                if (!resultStack.is(itemStack.getItem()))
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item_at", item.getName(itemStack), resultSlot), 0);
+
+                                if (resultStack.getMaxStackSize() <= resultStack.getCount())
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.slot_is_full", resultSlot), 0);
+
+                                ItemStack remainder = handler.insertItem(resultSlot, itemStack, false);
+                                if (!remainder.isEmpty()) {
+                                    remainder = roboEntity.insertItem(slot, remainder, false);
+                                    for (int i = 0; i < roboEntity.getInventory().getSlots(); ++i) {
+                                        remainder = roboEntity.insertItem(i, remainder, false);
+                                        if (remainder.isEmpty())
+                                            break;
+                                    }
+                                }
+
+                                return new NothingDataType();
+                            }, Component.translatable("docs.redbyte.description.functions.container_block.try_put.slot")),
+                    new MethodSymbol("try_put", ImmutableList.of(TextType.TYPE, NumberType.TYPE), NothingDataType.TYPE,
+                            (ev, robo, object, args) -> {
+                                RoboEntity roboEntity = robo.getEntity();
+                                ContainerBlockDataType block = (ContainerBlockDataType) object;
+                                if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
+
+                                String idToSearch = ((TextType) args[0]).getValue();
+                                Map.Entry<Integer, @Nullable Item> slotItemPair = Miscellaneous.getSlot(roboEntity.getInventory(), idToSearch);
+                                int slot = slotItemPair.getKey();
+                                Item item = slotItemPair.getValue();
+                                if (item == null)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_does_not_exist", idToSearch), 0);
+
+                                if (slot == -1)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_not_found", idToSearch), 0);
+
+                                float resultSlotFloat = ((NumberType) args[1]).getValue();
+                                if (Math.round(resultSlotFloat) != resultSlotFloat)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 1);
+
+                                int resultSlot = Math.round(resultSlotFloat) - 1;
+                                if (resultSlot >= block.getContainer().getContainerSize() || resultSlot < 0)
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_range", 0, block.getContainer().getContainerSize()), 1);
+
+                                ItemStack itemStack = roboEntity.extractItem(slot, item.getDefaultMaxStackSize(), false);
+                                assert block.getBlockEntity() != null;
+                                IItemHandler handler = block.getBlockEntity().getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(RuntimeException::new);
+                                ItemStack resultStack = handler.getStackInSlot(resultSlot);
+                                if (!resultStack.is(itemStack.getItem()) && !resultStack.isEmpty() || resultStack.getCount() >= resultStack.getMaxStackSize()) {
+                                    roboEntity.insertItem(slot, itemStack, false);
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item", item.getName(itemStack)), 0);
+                                }
+
+                                if (!resultStack.is(itemStack.getItem()))
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item_at", item.getName(itemStack), resultSlot), 0);
+
+                                if (resultStack.getMaxStackSize() <= resultStack.getCount())
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.slot_is_full", resultSlot), 0);
+
+                                ItemStack remainder = handler.insertItem(resultSlot, itemStack, false);
+                                if (!remainder.isEmpty()) {
+                                    remainder = roboEntity.insertItem(slot, remainder, false);
+                                    for (int i = 0; i < roboEntity.getInventory().getSlots(); ++i) {
+                                        remainder = roboEntity.insertItem(i, remainder, false);
+                                        if (remainder.isEmpty())
+                                            break;
+                                    }
+                                }
+
+                                return new NothingDataType();
+                            }, Component.translatable("docs.redbyte.description.functions.container_block.try_put.name")),
+                    new MethodSymbol("can_quick_put", ImmutableList.of(NumberType.TYPE), BooleanType.TYPE,
+                            (ev, robo, object, args) -> {
+                                RoboEntity roboEntity = robo.getEntity();
+                                ContainerBlockDataType block = (ContainerBlockDataType) object;
+                                if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
+                                    return new BooleanType(false);
+
+                                float slotFloat = ((NumberType) args[0]).getValue();
+                                if (Math.round(slotFloat) != slotFloat)
+                                    return new BooleanType(false);
+
+                                int slot = Math.round(slotFloat) - 1;
+                                if (slot >= roboEntity.getInventory().getSlots() || slot < 0)
+                                    return new BooleanType(false);
+
+                                ItemStack itemStack = roboEntity.getInventory().getStackInSlot(slot);
+                                for (int i = 0; i < block.getContainer().getContainerSize(); ++i) {
+                                    ItemStack resultStack = block.getContainer().getItem(i);
+                                    if ((resultStack.is(itemStack.getItem()) || resultStack.isEmpty()) && resultStack.getCount() < resultStack.getMaxStackSize())
+                                        return new BooleanType(true);
+                                }
+
+                                return new BooleanType(false);
+                            }, Component.translatable("docs.redbyte.description.functions.container_block.can_quick_put.slot")),
+                    new MethodSymbol("can_quick_put", ImmutableList.of(TextType.TYPE), BooleanType.TYPE,
+                            (ev, robo, object, args) -> {
+                                RoboEntity roboEntity = robo.getEntity();
+                                ContainerBlockDataType block = (ContainerBlockDataType) object;
+                                if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
+                                    return new BooleanType(false);
+
+                                String idToSearch = ((TextType) args[0]).getValue();
+                                Map.Entry<Integer, @Nullable Item> slotItemPair = Miscellaneous.getSlot(roboEntity.getInventory(), idToSearch);
+                                int slot = slotItemPair.getKey();
+                                Item item = slotItemPair.getValue();
+                                if (item == null || slot == -1)
+                                    return new BooleanType(false);
+
+                                ItemStack itemStack = roboEntity.getInventory().getStackInSlot(slot);
+                                for (int i = 0; i < block.getContainer().getContainerSize(); ++i) {
+                                    ItemStack resultStack = block.getContainer().getItem(i);
+                                    if ((resultStack.is(itemStack.getItem()) || resultStack.isEmpty()) && resultStack.getCount() < resultStack.getMaxStackSize())
+                                        return new BooleanType(true);
+                                }
+
+                                return new BooleanType(false);
+                            }, Component.translatable("docs.redbyte.description.functions.container_block.can_quick_put.name")),
+                    new MethodSymbol("can_put", ImmutableList.of(NumberType.TYPE, NumberType.TYPE), BooleanType.TYPE,
+                            (ev, robo, object, args) -> {
+                                RoboEntity roboEntity = robo.getEntity();
+                                ContainerBlockDataType block = (ContainerBlockDataType) object;
+                                if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
+                                    return new BooleanType(false);
+
+                                float slotFloat = ((NumberType) args[0]).getValue();
+                                if (Math.round(slotFloat) != slotFloat)
+                                    return new BooleanType(false);
+
+                                int slot = Math.round(slotFloat) - 1;
+                                if (slot >= roboEntity.getInventory().getSlots() || slot < 0)
+                                    return new BooleanType(false);
+
+                                float resultSlotFloat = ((NumberType) args[1]).getValue();
+                                if (Math.round(resultSlotFloat) != resultSlotFloat)
+                                    return new BooleanType(false);
+
+                                int resultSlot = Math.round(resultSlotFloat) - 1;
+                                if (resultSlot >= block.getContainer().getContainerSize() || resultSlot < 0)
+                                    return new BooleanType(false);
+
+                                ItemStack itemStack = roboEntity.getInventory().getStackInSlot(slot);
+                                ItemStack resultStack = block.getContainer().getItem(resultSlot);
+                                if (!itemStack.is(resultStack.getItem()) && itemStack.isEmpty() || resultStack.getMaxStackSize() <= resultStack.getCount())
+                                    return new BooleanType(false);
+                                return new BooleanType(true);
+                            }, Component.translatable("docs.redbyte.description.functions.container_block.can_put.slot")),
+                    new MethodSymbol("can_put", ImmutableList.of(TextType.TYPE, NumberType.TYPE), BooleanType.TYPE,
+                            (ev, robo, object, args) -> {
+                                RoboEntity roboEntity = robo.getEntity();
+                                ContainerBlockDataType block = (ContainerBlockDataType) object;
+                                if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
+                                    return new BooleanType(false);
+
+                                String idToSearch = ((TextType) args[0]).getValue();
+                                Map.Entry<Integer, @Nullable Item> slotItemPair = Miscellaneous.getSlot(roboEntity.getInventory(), idToSearch);
+                                int slot = slotItemPair.getKey();
+                                Item item = slotItemPair.getValue();
+                                if (item == null || slot == -1)
+                                    return new BooleanType(false);
+
+                                float resultSlotFloat = ((NumberType) args[1]).getValue();
+                                if (Math.round(resultSlotFloat) != resultSlotFloat)
+                                    return new BooleanType(false);
+
+                                int resultSlot = Math.round(resultSlotFloat) - 1;
+                                if (resultSlot >= block.getContainer().getContainerSize() || resultSlot < 0)
+                                    return new BooleanType(false);
+
+                                ItemStack itemStack = roboEntity.getInventory().getStackInSlot(slot);
+                                ItemStack resultStack = block.getContainer().getItem(resultSlot);
+                                if (!itemStack.is(resultStack.getItem()) && itemStack.isEmpty() || resultStack.getMaxStackSize() <= resultStack.getCount())
+                                    return new BooleanType(false);
+                                return new BooleanType(true);
+                            }, Component.translatable("docs.redbyte.description.functions.container_block.can_put.name"))
+            );
+        });
     }
-
-    public static final List<MethodSymbol> methods = Stream.concat(getMethods(EntityDataType.class).stream(), Stream.of(
-            new MethodSymbol("try_quick_put", ImmutableList.of(NumberType.class), NothingDataType.class,
-                    (ev, robo, object, args) -> {
-                        RoboEntity roboEntity = robo.getEntity();
-                        ContainerBlockDataType block = (ContainerBlockDataType) object;
-                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
-
-                        float slotFloat = ((NumberType) args[0]).getValue();
-                        if (Math.round(slotFloat) != slotFloat)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 0);
-
-                        int slot = Math.round(slotFloat) - 1;
-                        if (slot >= roboEntity.getInventory().getSlots() || slot < 0)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_range", 0, roboEntity.getInventory().getSlots()), 0);
-
-                        Item item = roboEntity.getInventory().getStackInSlot(slot).getItem();
-                        ItemStack itemStack = roboEntity.extractItem(slot, item.getDefaultMaxStackSize(), false);
-
-                        boolean canPlace = false;
-                        for (int i = 0; i < block.getContainer().getContainerSize(); ++i) {
-                            ItemStack resultStack = block.getContainer().getItem(i);
-                            if ((resultStack.is(itemStack.getItem()) || resultStack.isEmpty()) && resultStack.getCount() < resultStack.getMaxStackSize()) {
-                                canPlace = true;
-                                break;
-                            }
-                        }
-
-                        if (!canPlace) {
-                            roboEntity.insertItem(slot, itemStack, false);
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item", item.getName(itemStack)), 0);
-                        }
-
-                        assert block.getBlockEntity() != null;
-                        ItemStack remainder = Miscellaneous.smartInsert(
-                                block.getBlockEntity().getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(RuntimeException::new),
-                                itemStack
-                        );
-                        if (!remainder.isEmpty()) {
-                            remainder = roboEntity.insertItem(slot, remainder, false);
-                            for (int i = 0; i < roboEntity.getInventory().getSlots(); i++) {
-                                remainder = roboEntity.insertItem(i, remainder, false);
-                                if (remainder.isEmpty())
-                                    break;
-                            }
-                        }
-
-                        return new NothingDataType();
-                    }, Component.translatable("docs.redbyte.description.functions.container_block.try_quick_put.slot")),
-            new MethodSymbol("try_quick_put", ImmutableList.of(TextType.class), NothingDataType.class,
-                    (ev, robo, object, args) -> {
-                        RoboEntity roboEntity = robo.getEntity();
-                        ContainerBlockDataType block = (ContainerBlockDataType) object;
-                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
-
-                        String idToSearch = ((TextType) args[0]).getValue();
-                        Map.Entry<Integer, @Nullable Item> slotItemPair = Miscellaneous.getSlot(roboEntity.getInventory(), idToSearch);
-                        int slot = slotItemPair.getKey();
-                        Item item = slotItemPair.getValue();
-                        if (item == null)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_does_not_exist", idToSearch), 0);
-
-                        if (slot == -1)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_not_found", idToSearch), 0);
-
-                        ItemStack itemStack = roboEntity.extractItem(slot, item.getDefaultMaxStackSize(), false);
-                        boolean canPlace = false;
-                        for (int i = 0; i < block.getContainer().getContainerSize(); ++i) {
-                            ItemStack resultStack = block.getContainer().getItem(i);
-                            if ((resultStack.is(itemStack.getItem()) || resultStack.isEmpty()) && resultStack.getCount() < resultStack.getMaxStackSize()) {
-                                canPlace = true;
-                                break;
-                            }
-                        }
-
-                        if (!canPlace) {
-                            roboEntity.insertItem(slot, itemStack, false);
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item", item.getName(itemStack)), 0);
-                        }
-
-                        assert block.getBlockEntity() != null;
-                        ItemStack remainder = Miscellaneous.smartInsert(
-                                block.getBlockEntity().getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(RuntimeException::new),
-                                itemStack
-                        );
-                        if (!remainder.isEmpty()) {
-                            remainder = roboEntity.insertItem(slot, remainder, false);
-                            for (int i = 0; i < roboEntity.getInventory().getSlots(); ++i) {
-                                remainder = roboEntity.insertItem(i, remainder, false);
-                                if (remainder.isEmpty())
-                                    break;
-                            }
-                        }
-
-                        return new NothingDataType();
-                    }, Component.translatable("docs.redbyte.description.functions.container_block.try_quick_put.name")),
-            new MethodSymbol("try_put", ImmutableList.of(NumberType.class, NumberType.class), NothingDataType.class,
-                    (ev, robo, object, args) -> {
-                        RoboEntity roboEntity = robo.getEntity();
-                        ContainerBlockDataType block = (ContainerBlockDataType) object;
-                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
-
-                        float slotFloat = ((NumberType) args[0]).getValue();
-                        if (Math.round(slotFloat) != slotFloat)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 0);
-
-                        int slot = Math.round(slotFloat) - 1;
-                        if (slot >= roboEntity.getInventory().getSlots() || slot < 0)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_range", 0, roboEntity.getInventory().getSlots()), 0);
-
-                        Item item = roboEntity.getInventory().getStackInSlot(slot).getItem();
-                        float resultSlotFloat = ((NumberType) args[1]).getValue();
-                        if (Math.round(resultSlotFloat) != resultSlotFloat)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 1);
-
-                        int resultSlot = Math.round(resultSlotFloat) - 1;
-                        if (resultSlot >= block.getContainer().getContainerSize() || resultSlot < 0)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_range", 0, block.getContainer().getContainerSize()), 1);
-
-                        ItemStack itemStack = roboEntity.extractItem(slot, item.getDefaultMaxStackSize(), false);
-                        assert block.getBlockEntity() != null;
-                        IItemHandler handler = block.getBlockEntity().getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(RuntimeException::new);
-                        ItemStack resultStack = handler.getStackInSlot(resultSlot);
-                        if (!resultStack.is(itemStack.getItem()) && !resultStack.isEmpty() || resultStack.getCount() >= resultStack.getMaxStackSize()) {
-                            roboEntity.insertItem(slot, itemStack, false);
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item", item.getName(itemStack)), 0);
-                        }
-
-                        if (!resultStack.is(itemStack.getItem()))
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item_at", item.getName(itemStack), resultSlot), 0);
-
-                        if (resultStack.getMaxStackSize() <= resultStack.getCount())
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.slot_is_full", resultSlot), 0);
-
-                        ItemStack remainder = handler.insertItem(resultSlot, itemStack, false);
-                        if (!remainder.isEmpty()) {
-                            remainder = roboEntity.insertItem(slot, remainder, false);
-                            for (int i = 0; i < roboEntity.getInventory().getSlots(); ++i) {
-                                remainder = roboEntity.insertItem(i, remainder, false);
-                                if (remainder.isEmpty())
-                                    break;
-                            }
-                        }
-
-                        return new NothingDataType();
-                    }, Component.translatable("docs.redbyte.description.functions.container_block.try_put.slot")),
-            new MethodSymbol("try_put", ImmutableList.of(TextType.class, NumberType.class), NothingDataType.class,
-                    (ev, robo, object, args) -> {
-                        RoboEntity roboEntity = robo.getEntity();
-                        ContainerBlockDataType block = (ContainerBlockDataType) object;
-                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.container_not_in_range"), null);
-
-                        String idToSearch = ((TextType) args[0]).getValue();
-                        Map.Entry<Integer, @Nullable Item> slotItemPair = Miscellaneous.getSlot(roboEntity.getInventory(), idToSearch);
-                        int slot = slotItemPair.getKey();
-                        Item item = slotItemPair.getValue();
-                        if (item == null)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_does_not_exist", idToSearch), 0);
-
-                        if (slot == -1)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.item_not_found", idToSearch), 0);
-
-                        float resultSlotFloat = ((NumberType) args[1]).getValue();
-                        if (Math.round(resultSlotFloat) != resultSlotFloat)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_integer"), 1);
-
-                        int resultSlot = Math.round(resultSlotFloat) - 1;
-                        if (resultSlot >= block.getContainer().getContainerSize() || resultSlot < 0)
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.expected_range", 0, block.getContainer().getContainerSize()), 1);
-
-                        ItemStack itemStack = roboEntity.extractItem(slot, item.getDefaultMaxStackSize(), false);
-                        assert block.getBlockEntity() != null;
-                        IItemHandler handler = block.getBlockEntity().getCapability(ForgeCapabilities.ITEM_HANDLER).orElseThrow(RuntimeException::new);
-                        ItemStack resultStack = handler.getStackInSlot(resultSlot);
-                        if (!resultStack.is(itemStack.getItem()) && !resultStack.isEmpty() || resultStack.getCount() >= resultStack.getMaxStackSize()) {
-                            roboEntity.insertItem(slot, itemStack, false);
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item", item.getName(itemStack)), 0);
-                        }
-
-                        if (!resultStack.is(itemStack.getItem()))
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.cannot_insert_item_at", item.getName(itemStack), resultSlot), 0);
-
-                        if (resultStack.getMaxStackSize() <= resultStack.getCount())
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.slot_is_full", resultSlot), 0);
-
-                        ItemStack remainder = handler.insertItem(resultSlot, itemStack, false);
-                        if (!remainder.isEmpty()) {
-                            remainder = roboEntity.insertItem(slot, remainder, false);
-                            for (int i = 0; i < roboEntity.getInventory().getSlots(); ++i) {
-                                remainder = roboEntity.insertItem(i, remainder, false);
-                                if (remainder.isEmpty())
-                                    break;
-                            }
-                        }
-
-                        return new NothingDataType();
-                    }, Component.translatable("docs.redbyte.description.functions.container_block.try_put.name")),
-            new MethodSymbol("can_quick_put", ImmutableList.of(NumberType.class), BooleanType.class,
-                    (ev, robo, object, args) -> {
-                        RoboEntity roboEntity = robo.getEntity();
-                        ContainerBlockDataType block = (ContainerBlockDataType) object;
-                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
-                            return new BooleanType(false);
-
-                        float slotFloat = ((NumberType) args[0]).getValue();
-                        if (Math.round(slotFloat) != slotFloat)
-                            return new BooleanType(false);
-
-                        int slot = Math.round(slotFloat) - 1;
-                        if (slot >= roboEntity.getInventory().getSlots() || slot < 0)
-                            return new BooleanType(false);
-
-                        ItemStack itemStack = roboEntity.getInventory().getStackInSlot(slot);
-                        for (int i = 0; i < block.getContainer().getContainerSize(); ++i) {
-                            ItemStack resultStack = block.getContainer().getItem(i);
-                            if ((resultStack.is(itemStack.getItem()) || resultStack.isEmpty()) && resultStack.getCount() < resultStack.getMaxStackSize())
-                                return new BooleanType(true);
-                        }
-
-                        return new BooleanType(false);
-                    }, Component.translatable("docs.redbyte.description.functions.container_block.can_quick_put.slot")),
-            new MethodSymbol("can_quick_put", ImmutableList.of(TextType.class), BooleanType.class,
-                    (ev, robo, object, args) -> {
-                        RoboEntity roboEntity = robo.getEntity();
-                        ContainerBlockDataType block = (ContainerBlockDataType) object;
-                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
-                            return new BooleanType(false);
-
-                        String idToSearch = ((TextType) args[0]).getValue();
-                        Map.Entry<Integer, @Nullable Item> slotItemPair = Miscellaneous.getSlot(roboEntity.getInventory(), idToSearch);
-                        int slot = slotItemPair.getKey();
-                        Item item = slotItemPair.getValue();
-                        if (item == null || slot == -1)
-                            return new BooleanType(false);
-
-                        ItemStack itemStack = roboEntity.getInventory().getStackInSlot(slot);
-                        for (int i = 0; i < block.getContainer().getContainerSize(); ++i) {
-                            ItemStack resultStack = block.getContainer().getItem(i);
-                            if ((resultStack.is(itemStack.getItem()) || resultStack.isEmpty()) && resultStack.getCount() < resultStack.getMaxStackSize())
-                                return new BooleanType(true);
-                        }
-
-                        return new BooleanType(false);
-                    }, Component.translatable("docs.redbyte.description.functions.container_block.can_quick_put.name")),
-            new MethodSymbol("can_put", ImmutableList.of(NumberType.class, NumberType.class), BooleanType.class,
-                    (ev, robo, object, args) -> {
-                        RoboEntity roboEntity = robo.getEntity();
-                        ContainerBlockDataType block = (ContainerBlockDataType) object;
-                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
-                            return new BooleanType(false);
-
-                        float slotFloat = ((NumberType) args[0]).getValue();
-                        if (Math.round(slotFloat) != slotFloat)
-                            return new BooleanType(false);
-
-                        int slot = Math.round(slotFloat) - 1;
-                        if (slot >= roboEntity.getInventory().getSlots() || slot < 0)
-                            return new BooleanType(false);
-
-                        float resultSlotFloat = ((NumberType) args[1]).getValue();
-                        if (Math.round(resultSlotFloat) != resultSlotFloat)
-                            return new BooleanType(false);
-
-                        int resultSlot = Math.round(resultSlotFloat) - 1;
-                        if (resultSlot >= block.getContainer().getContainerSize() || resultSlot < 0)
-                            return new BooleanType(false);
-
-                        ItemStack itemStack = roboEntity.getInventory().getStackInSlot(slot);
-                        ItemStack resultStack = block.getContainer().getItem(resultSlot);
-                        if (!itemStack.is(resultStack.getItem()) && itemStack.isEmpty() || resultStack.getMaxStackSize() <= resultStack.getCount())
-                            return new BooleanType(false);
-                        return new BooleanType(true);
-                    }, Component.translatable("docs.redbyte.description.functions.container_block.can_put.slot")),
-            new MethodSymbol("can_put", ImmutableList.of(TextType.class, NumberType.class), BooleanType.class,
-                    (ev, robo, object, args) -> {
-                        RoboEntity roboEntity = robo.getEntity();
-                        ContainerBlockDataType block = (ContainerBlockDataType) object;
-                        if (roboEntity.position().distanceTo(block.getPosition().getCenter()) > RedbyteConfigs.ROBO_RANGE)
-                            return new BooleanType(false);
-
-                        String idToSearch = ((TextType) args[0]).getValue();
-                        Map.Entry<Integer, @Nullable Item> slotItemPair = Miscellaneous.getSlot(roboEntity.getInventory(), idToSearch);
-                        int slot = slotItemPair.getKey();
-                        Item item = slotItemPair.getValue();
-                        if (item == null || slot == -1)
-                            return new BooleanType(false);
-
-                        float resultSlotFloat = ((NumberType) args[1]).getValue();
-                        if (Math.round(resultSlotFloat) != resultSlotFloat)
-                            return new BooleanType(false);
-
-                        int resultSlot = Math.round(resultSlotFloat) - 1;
-                        if (resultSlot >= block.getContainer().getContainerSize() || resultSlot < 0)
-                            return new BooleanType(false);
-
-                        ItemStack itemStack = roboEntity.getInventory().getStackInSlot(slot);
-                        ItemStack resultStack = block.getContainer().getItem(resultSlot);
-                        if (!itemStack.is(resultStack.getItem()) && itemStack.isEmpty() || resultStack.getMaxStackSize() <= resultStack.getCount())
-                            return new BooleanType(false);
-                        return new BooleanType(true);
-                    }, Component.translatable("docs.redbyte.description.functions.container_block.can_put.name"))
-    )).toList();
 }

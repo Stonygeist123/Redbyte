@@ -1,14 +1,13 @@
 package net.stonygeist.redbyte.interpreter.binder.expr;
 
 import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
-import net.stonygeist.redbyte.interpreter.data_types.DataType;
-import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 
-public record BoundIndexAssignExpr(VariableSymbol variable, BoundExpr index, BoundExpr value,
+public record BoundIndexAssignExpr(BoundExpr base, BoundExpr index, BoundExpr value,
                                    TextSpan span) implements BoundExpr {
     @Override
-    public @NotNull Class<? extends DataType> getType() {
+    public @NotNull TypeSymbol getType() {
         return value.getType();
     }
 }

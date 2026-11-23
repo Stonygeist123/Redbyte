@@ -62,7 +62,7 @@ public final class Lowerer {
                 }
             }
             case BoundOnceStmt onceStmt -> {
-                BoundOperator.BoundUnaryOperator conditionOperator = BoundOperator.BoundUnaryOperator.bind(TokenKind.Bang, BooleanType.class);
+                BoundOperator.BoundUnaryOperator conditionOperator = BoundOperator.BoundUnaryOperator.bind(TokenKind.Bang, BooleanType.TYPE);
                 assert conditionOperator != null;
                 BoundUnaryExpr negatedCondition = new BoundUnaryExpr(onceStmt.condition(), conditionOperator, onceStmt.condition().span());
                 BoundWhileStmt whileStmt = new BoundWhileStmt(negatedCondition, new BoundBlockStmt(ImmutableList.of()));
@@ -90,15 +90,15 @@ public final class Lowerer {
                 yield rewriteStmt(new BoundWhileStmt(alwaysTrue, body));
             }
             case BoundLoopStmt loopStmt -> {
-                VariableSymbol variable = new VariableSymbol("$LoopVar_" + ++loopVarCount, NumberType.class, NumberType.TYPE);
+                VariableSymbol variable = new VariableSymbol("$LoopVar_" + ++loopVarCount, NumberType.TYPE);
                 BoundExprStmt varDecl = new BoundExprStmt(new BoundAssignExpr(variable, new BoundLiteralExpr(new NumberType(1f), loopStmt.count().span()), loopStmt.count().span()));
                 BoundNameExpr nameExpr = new BoundNameExpr(variable, loopStmt.count().span());
 
-                BoundOperator.BoundBinaryOperator conditonOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.LessEquals, NumberType.class, NumberType.class);
+                BoundOperator.BoundBinaryOperator conditonOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.LessEquals, NumberType.TYPE, NumberType.TYPE);
                 assert conditonOperator != null;
                 BoundBinaryExpr condition = new BoundBinaryExpr(nameExpr, conditonOperator, loopStmt.count(), loopStmt.count().span());
 
-                BoundOperator.BoundBinaryOperator incrementOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.Plus, NumberType.class, NumberType.class);
+                BoundOperator.BoundBinaryOperator incrementOperator = BoundOperator.BoundBinaryOperator.bind(TokenKind.Plus, NumberType.TYPE, NumberType.TYPE);
                 assert incrementOperator != null;
                 BoundExprStmt increment = new BoundExprStmt(new BoundAssignExpr(variable, new BoundBinaryExpr(nameExpr, incrementOperator, new BoundLiteralExpr(new NumberType(1f), loopStmt.count().span()), loopStmt.count().span()), loopStmt.count().span()));
 

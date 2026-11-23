@@ -5,14 +5,10 @@ import net.stonygeist.redbyte.interpreter.data_types.primitives.BooleanType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.PrimitiveType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
-import net.stonygeist.redbyte.interpreter.symbols.MethodSymbol;
-import net.stonygeist.redbyte.interpreter.symbols.PropertySymbol;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.Field;
-import java.util.*;
-import java.util.function.Function;
+import java.util.List;
 
 public abstract class DataType {
     public static final TypeSymbol TYPE = new TypeSymbol("any", Component.translatable("interpreter.redbyte.types.any"));
@@ -27,72 +23,8 @@ public abstract class DataType {
         return type;
     }
 
-    public static final Map<PropertySymbol, Function<DataType, DataType>> properties = new Hashtable<>();
-    public static final List<MethodSymbol> methods = List.of();
-
-    private static final Map<Class<? extends DataType>, Map<PropertySymbol, Function<DataType, DataType>>> propertiesCache = new Hashtable<>();
-    private static final Map<Class<? extends DataType>, List<MethodSymbol>> methodsCache = new Hashtable<>();
-    private static final Map<Class<? extends DataType>, TypeSymbol> typeSymbolsCache = new Hashtable<>();
-    public static final List<Class<? extends DataType>> dataTypes = List.of(DataType.class, PrimitiveType.class, NumberType.class, TextType.class, BooleanType.class, CreatureDataType.class, EntityDataType.class, MonsterDataType.class, PlayerDataType.class, RoboDataType.class, VectorDataType.class, BlockDataType.class, ContainerBlockDataType.class);
-
-    public static Map<PropertySymbol, Function<DataType, DataType>> getProperties(Class<? extends DataType> type) {
-        Map<PropertySymbol, Function<DataType, DataType>> properties = propertiesCache.get(type);
-
-        if (properties == null) {
-            try {
-                properties = (Map<PropertySymbol, Function<DataType, DataType>>) type.getField("properties").get(null);
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
-            propertiesCache.put(type, properties);
-        }
-
-        return properties;
-    }
-
-    public static Set<PropertySymbol> getPropertySymbols(Class<? extends DataType> type) {
-        try {
-            if (!propertiesCache.containsKey(type)) {
-                Field proprtiesField = type.getField("properties");
-                Map<PropertySymbol, Function<DataType, DataType>> properties = (Map<PropertySymbol, Function<DataType, DataType>>) proprtiesField.get(null);
-                propertiesCache.put(type, properties);
-                return properties.keySet();
-            }
-
-            return propertiesCache.get(type).keySet();
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static List<MethodSymbol> getMethods(Class<? extends DataType> type) {
-        try {
-            if (!methodsCache.containsKey(type)) {
-                Field methodsField = type.getField("methods");
-                List<MethodSymbol> methods = new ArrayList<>((List<MethodSymbol>) methodsField.get(null));
-                methodsCache.put(type, methods);
-                return methods;
-            }
-
-            return methodsCache.get(type);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static TypeSymbol getTypeSymbol(Class<? extends DataType> type) {
-        try {
-            if (!typeSymbolsCache.containsKey(type)) {
-                Field typeSymbolField = type.getField("TYPE");
-                TypeSymbol typeSymbol = (TypeSymbol) typeSymbolField.get(null);
-                typeSymbolsCache.put(type, typeSymbol);
-                return typeSymbol;
-            }
-
-            return typeSymbolsCache.get(type);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+    public static List<TypeSymbol> getTypes() {
+        return List.of(TYPE, PrimitiveType.TYPE, NumberType.TYPE, TextType.TYPE, BooleanType.TYPE, ListType.TYPE, CreatureDataType.TYPE, EntityDataType.TYPE, MonsterDataType.TYPE, PlayerDataType.TYPE, RoboDataType.TYPE, VectorDataType.TYPE, BlockDataType.TYPE, ContainerBlockDataType.TYPE);
     }
 
     @Override

@@ -8,13 +8,13 @@ import net.stonygeist.redbyte.manager.PseudoRobo;
 import org.apache.commons.lang3.function.TriFunction;
 
 public class FunctionSymbol extends Symbol {
-    public final ImmutableList<Class<? extends DataType>> parameters;
-    public final Class<? extends DataType> type;
+    public final ImmutableList<TypeSymbol> parameters;
+    public final TypeSymbol type;
     // args: evaluator, robo, args
     public final TriFunction<Evaluator, PseudoRobo, DataType[], ? extends DataType> callback;
     public final Component description;
 
-    public FunctionSymbol(String name, ImmutableList<Class<? extends DataType>> parameters, Class<? extends DataType> type, TriFunction<Evaluator, PseudoRobo, DataType[], ? extends DataType> callback, Component description) {
+    public FunctionSymbol(String name, ImmutableList<TypeSymbol> parameters, TypeSymbol type, TriFunction<Evaluator, PseudoRobo, DataType[], ? extends DataType> callback, Component description) {
         super(name);
         this.parameters = parameters;
         this.type = type;

@@ -17,11 +17,6 @@ import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
 import static net.stonygeist.redbyte.index.RedbyteConfigs.ROBO_RANGE;
 
 public class BlockDataType extends DataType {
@@ -41,6 +36,50 @@ public class BlockDataType extends DataType {
         this.position = position;
     }
 
+    static {
+        TYPE.declareMembers(self -> {
+            self.addProperty(new PropertySymbol("position", VectorDataType.TYPE, Component.translatable("docs.redbyte.description.properties.block.position")), x -> new VectorDataType(((BlockDataType) x).getPosition().getCenter()));
+            self.addMethods(
+                    new MethodSymbol("try_destroy", ImmutableList.of(), NothingDataType.TYPE,
+                            (ev, robo, object, args) -> {
+                                BlockPos blockPos = ((BlockDataType) object).position;
+                                if (robo.getEntity().level().isEmptyBlock(blockPos))
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.block_is_air"), null);
+
+                                if (blockPos.closerToCenterThan(robo.getEntity().position(), ROBO_RANGE)) {
+                                    robo.addDestroyBlockGoalProp(blockPos);
+                                    return new NothingDataType();
+                                } else
+                                    throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.block_not_in_range"), null);
+                            }, Component.translatable("docs.redbyte.description.functions.block.try_destroy")),
+                    new MethodSymbol("look_at", ImmutableList.of(), NothingDataType.TYPE,
+                            (ev, robo, object, args) -> {
+                                robo.getEntity().lookAt(EntityAnchorArgument.Anchor.EYES, ((BlockDataType) object).position.getCenter());
+                                return new NothingDataType();
+                            },
+                            Component.translatable("docs.redbyte.description.functions.block.look_at")),
+                    new MethodSymbol("asContainer", ImmutableList.of(), ContainerBlockDataType.TYPE,
+                            (ev, robo, object, args) -> {
+                                if (object instanceof ContainerBlockDataType)
+                                    return object;
+                                BlockDataType block = (BlockDataType) object;
+                                if (block.getBlockEntity() instanceof BaseContainerBlockEntity container)
+                                    return new ContainerBlockDataType(block.getBlockState(), container, block.getPosition());
+                                return new NothingDataType();
+                            },
+                            Component.translatable("docs.redbyte.description.functions.block.asContainer")),
+                    new MethodSymbol("get_id", ImmutableList.of(), TextType.TYPE,
+                            (ev, robo, object, args) -> {
+                                BlockDataType block = (BlockDataType) object;
+                                ResourceLocation idResource = ForgeRegistries.BLOCKS.getKey(block.getBlockState().getBlock());
+                                assert idResource != null;
+                                return new TextType(idResource.toString());
+                            },
+                            Component.translatable("docs.redbyte.description.functions.block.get_id"))
+            );
+        });
+    }
+
     public @NotNull BlockState getBlockState() {
         return blockState;
     }
@@ -52,46 +91,4 @@ public class BlockDataType extends DataType {
     public @Nullable BlockEntity getBlockEntity() {
         return blockEntity;
     }
-
-    public static final Map<PropertySymbol, Function<BlockDataType, DataType>> properties = new Hashtable<>(Map.of(
-            new PropertySymbol("position", VectorDataType.class, Component.translatable("docs.redbyte.description.properties.block.position")), x -> new VectorDataType(x.getPosition().getCenter())
-    ));
-    public static final List<MethodSymbol> methods = List.of(
-            new MethodSymbol("try_destroy", ImmutableList.of(), NothingDataType.class,
-                    (ev, robo, object, args) -> {
-                        BlockPos blockPos = ((BlockDataType) object).position;
-                        if (robo.getEntity().level().isEmptyBlock(blockPos))
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.block_is_air"), null);
-
-                        if (blockPos.closerToCenterThan(robo.getEntity().position(), ROBO_RANGE)) {
-                            robo.addDestroyBlockGoalProp(blockPos);
-                            return new NothingDataType();
-                        } else
-                            throw new Evaluator.CallEvaluationError(Component.translatable("runtime.redbyte.error.block_not_in_range"), null);
-                    }, Component.translatable("docs.redbyte.description.functions.block.try_destroy")),
-            new MethodSymbol("look_at", ImmutableList.of(), NothingDataType.class,
-                    (ev, robo, object, args) -> {
-                        robo.getEntity().lookAt(EntityAnchorArgument.Anchor.EYES, ((BlockDataType) object).position.getCenter());
-                        return new NothingDataType();
-                    },
-                    Component.translatable("docs.redbyte.description.functions.block.look_at")),
-            new MethodSymbol("asContainer", ImmutableList.of(), ContainerBlockDataType.class,
-                    (ev, robo, object, args) -> {
-                        if (object instanceof ContainerBlockDataType)
-                            return object;
-                        BlockDataType block = (BlockDataType) object;
-                        if (block.getBlockEntity() instanceof BaseContainerBlockEntity container)
-                            return new ContainerBlockDataType(block.getBlockState(), container, block.getPosition());
-                        return new NothingDataType();
-                    },
-                    Component.translatable("docs.redbyte.description.functions.block.asContainer")),
-            new MethodSymbol("get_id", ImmutableList.of(), TextType.class,
-                    (ev, robo, object, args) -> {
-                        BlockDataType block = (BlockDataType) object;
-                        ResourceLocation idResource = ForgeRegistries.BLOCKS.getKey(block.getBlockState().getBlock());
-                        assert idResource != null;
-                        return new TextType(idResource.toString());
-                    },
-                    Component.translatable("docs.redbyte.description.functions.block.get_id"))
-    );
 }

@@ -11,7 +11,7 @@ public final class MethodSymbol extends FunctionSymbol {
     // args: evaluator, robo, object, args
     public final PropertyDispatch.QuadFunction<Evaluator, PseudoRobo, DataType, DataType[], ? extends DataType> callback;
 
-    public MethodSymbol(String name, ImmutableList<Class<? extends DataType>> parameters, Class<? extends DataType> type, PropertyDispatch.QuadFunction<Evaluator, PseudoRobo, DataType, DataType[], ? extends DataType> callback, Component description) {
+    public MethodSymbol(String name, ImmutableList<TypeSymbol> parameters, TypeSymbol type, PropertyDispatch.QuadFunction<Evaluator, PseudoRobo, DataType, DataType[], ? extends DataType> callback, Component description) {
         super(name, parameters, type, null, description);
         this.callback = callback;
     }

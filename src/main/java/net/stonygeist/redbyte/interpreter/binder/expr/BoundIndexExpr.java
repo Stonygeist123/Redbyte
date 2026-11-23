@@ -1,20 +1,12 @@
 package net.stonygeist.redbyte.interpreter.binder.expr;
 
 import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
-import net.stonygeist.redbyte.interpreter.data_types.DataType;
 import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 
 public record BoundIndexExpr(BoundExpr base, BoundExpr index, TextSpan span) implements BoundExpr {
     @Override
-    public @NotNull TypeSymbol getTypeSymbol() {
-        return base.getTypeSymbol().getBase();
-    }
-
-    @Override
-    public @NotNull Class<? extends DataType> getType() {
-        return DataType.dataTypes.stream()
-                .filter(d -> DataType.getTypeSymbol(d).name.equals(getTypeSymbol().name))
-                .findFirst().orElseThrow();
+    public @NotNull TypeSymbol getType() {
+        return base.getType().getBase();
     }
 }

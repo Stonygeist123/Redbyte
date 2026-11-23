@@ -24,6 +24,7 @@ import net.stonygeist.redbyte.interpreter.data_types.primitives.BooleanType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.NumberType;
 import net.stonygeist.redbyte.interpreter.data_types.primitives.TextType;
 import net.stonygeist.redbyte.interpreter.symbols.FunctionSymbol;
+import net.stonygeist.redbyte.interpreter.symbols.TypeSymbol;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,7 +52,7 @@ public enum Miscellaneous {
 
     // Key: the function, if found
     // Value: True if multiple methods with given name exist. False otherwise
-    public static <T extends FunctionSymbol> Map.Entry<T, Boolean> getFunction(List<T> functions, String name, List<? extends Class<? extends DataType>> args) {
+    public static <T extends FunctionSymbol> Map.Entry<T, Boolean> getFunction(List<T> functions, String name, List<TypeSymbol> args) {
         List<T> result = functions.stream().filter(f -> f.name.toLowerCase().equals(name)).toList();
         if (result.size() == 1)
             return new AbstractMap.SimpleEntry<>(result.getFirst(), false);
@@ -73,60 +74,60 @@ public enum Miscellaneous {
     }
 
     public static final ImmutableList<FunctionSymbol> functions = new ImmutableList.Builder<FunctionSymbol>()
-            .add(new FunctionSymbol("print", ImmutableList.of(TextType.class), NothingDataType.class,
+            .add(new FunctionSymbol("print", ImmutableList.of(TextType.TYPE), NothingDataType.TYPE,
                     (ev, robo, args) -> {
                         robo.getEntity().addPrintOutput(((TextType) args[0]).getValue());
                         return new NothingDataType();
                     }, Component.translatable("docs.redbyte.description.functions.print")))
-            .add(new FunctionSymbol("print", ImmutableList.of(NumberType.class), NothingDataType.class,
+            .add(new FunctionSymbol("print", ImmutableList.of(NumberType.TYPE), NothingDataType.TYPE,
                     (ev, robo, args) -> {
                         robo.getEntity().addPrintOutput(((NumberType) args[0]).getValue());
                         return new NothingDataType();
                     }, Component.translatable("docs.redbyte.description.functions.print")))
-            .add(new FunctionSymbol("print", ImmutableList.of(BooleanType.class), NothingDataType.class,
+            .add(new FunctionSymbol("print", ImmutableList.of(BooleanType.TYPE), NothingDataType.TYPE,
                     (ev, robo, args) -> {
                         robo.getEntity().addPrintOutput(((BooleanType) args[0]).getValue());
                         return new NothingDataType();
                     }, Component.translatable("docs.redbyte.description.functions.print")))
-            .add(new FunctionSymbol("is_nothing", ImmutableList.of(DataType.class), BooleanType.class,
+            .add(new FunctionSymbol("is_nothing", ImmutableList.of(DataType.TYPE), BooleanType.TYPE,
                     (ev, robo, args) -> new BooleanType(args[0] instanceof NothingDataType), Component.translatable("docs.redbyte.description.functions.is_nothing")))
-            .add(new FunctionSymbol("walk", ImmutableList.of(NumberType.class), NothingDataType.class, (ev, robo, args) -> {
+            .add(new FunctionSymbol("walk", ImmutableList.of(NumberType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
                 robo.addWalkGoalProp(((NumberType) args[0]).getValue());
                 return new NothingDataType();
             }, Component.translatable("docs.redbyte.description.functions.walk")))
-            .add(new FunctionSymbol("walk_to", ImmutableList.of(NumberType.class, NumberType.class, NumberType.class), NothingDataType.class, (ev, robo, args) -> {
+            .add(new FunctionSymbol("walk_to", ImmutableList.of(NumberType.TYPE, NumberType.TYPE, NumberType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
                 robo.addWalkToGoalProp(new Vec3(((NumberType) args[0]).getValue(), ((NumberType) args[1]).getValue(), ((NumberType) args[2]).getValue()));
                 return new NothingDataType();
             }, Component.translatable("docs.redbyte.description.functions.walk_to")))
-            .add(new FunctionSymbol("walk_to", ImmutableList.of(VectorDataType.class), NothingDataType.class, (ev, robo, args) -> {
+            .add(new FunctionSymbol("walk_to", ImmutableList.of(VectorDataType.TYPE), NothingDataType.TYPE, (ev, robo, args) -> {
                 robo.addWalkToGoalProp(((VectorDataType) args[0]).getVector());
                 return new NothingDataType();
             }, Component.translatable("docs.redbyte.description.functions.walk_to")))
-            .add(new FunctionSymbol("jump", ImmutableList.of(), NothingDataType.class, (ev, robo, args) -> {
+            .add(new FunctionSymbol("jump", ImmutableList.of(), NothingDataType.TYPE, (ev, robo, args) -> {
                 robo.getEntity().jumpFromGround();
                 return new NothingDataType();
             }, Component.translatable("docs.redbyte.description.functions.jump")))
-            .add(new FunctionSymbol("vector", ImmutableList.of(NumberType.class, NumberType.class, NumberType.class), VectorDataType.class,
+            .add(new FunctionSymbol("vector", ImmutableList.of(NumberType.TYPE, NumberType.TYPE, NumberType.TYPE), VectorDataType.TYPE,
                     (ev, robo, args) -> new VectorDataType(((NumberType) args[0]).getValue(), ((NumberType) args[1]).getValue(), ((NumberType) args[2]).getValue()), Component.translatable("docs.redbyte.description.functions.vector")))
-            .add(new FunctionSymbol("rotate", ImmutableList.of(NumberType.class), NothingDataType.class,
+            .add(new FunctionSymbol("rotate", ImmutableList.of(NumberType.TYPE), NothingDataType.TYPE,
                     (ev, robo, args) -> {
                         robo.getEntity().rotateBy(((NumberType) args[0]).getValue());
                         return new NothingDataType();
                     },
                     Component.translatable("docs.redbyte.description.functions.rotate")))
-            .add(new FunctionSymbol("get_player", ImmutableList.of(TextType.class), PlayerDataType.class,
+            .add(new FunctionSymbol("get_player", ImmutableList.of(TextType.TYPE), PlayerDataType.TYPE,
                     (ev, robo, args) -> {
                         List<ServerPlayer> players = robo.getServerLevel().getPlayers(p -> p.getName().getString().equals(((TextType) args[0]).getValue()));
                         return players.isEmpty() ? new NothingDataType() : new PlayerDataType(players.getFirst());
                     }, Component.translatable("docs.redbyte.description.functions.get_player"))
             )
-            .add(new FunctionSymbol("get_nearest_player", ImmutableList.of(NumberType.class), PlayerDataType.class,
+            .add(new FunctionSymbol("get_nearest_player", ImmutableList.of(NumberType.TYPE), PlayerDataType.TYPE,
                     (ev, robo, args) -> {
                         Player player = robo.getServerLevel().getNearestPlayer(robo.getEntity(), ((NumberType) args[0]).getValue());
                         return player == null ? new NothingDataType() : new PlayerDataType(player);
                     },
                     Component.translatable("docs.redbyte.description.functions.get_nearest_player")))
-            .add(new FunctionSymbol("get_nearest_monster", ImmutableList.of(NumberType.class), MonsterDataType.class,
+            .add(new FunctionSymbol("get_nearest_monster", ImmutableList.of(NumberType.TYPE), MonsterDataType.TYPE,
                     (ev, robo, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
                         double radius = ((NumberType) args[0]).getValue();
@@ -140,7 +141,7 @@ public enum Miscellaneous {
 
                         return nearest == null ? new NothingDataType() : new MonsterDataType(nearest);
                     }, Component.translatable("docs.redbyte.description.functions.get_nearest_monster")))
-            .add(new FunctionSymbol("get_block", ImmutableList.of(VectorDataType.class), BlockDataType.class,
+            .add(new FunctionSymbol("get_block", ImmutableList.of(VectorDataType.TYPE), BlockDataType.TYPE,
                     (ev, robo, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
                         Vec3 vec = ((VectorDataType) args[0]).getVector();
@@ -148,7 +149,7 @@ public enum Miscellaneous {
                         Level level = roboEntity.level();
                         return level.isEmptyBlock(blockPos) ? new NothingDataType() : new BlockDataType(level.getBlockState(blockPos), level.getBlockEntity(blockPos), blockPos);
                     }, Component.translatable("docs.redbyte.description.functions.get_block")))
-            .add(new FunctionSymbol("try_place", ImmutableList.of(NumberType.class, VectorDataType.class), NothingDataType.class,
+            .add(new FunctionSymbol("try_place", ImmutableList.of(NumberType.TYPE, VectorDataType.TYPE), NothingDataType.TYPE,
                     (ev, robo, args) -> {
                         RoboEntity roboEntity = robo.getEntity();
                         float slotFloat = ((NumberType) args[0]).getValue();
