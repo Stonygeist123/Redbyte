@@ -20,8 +20,6 @@ public abstract class EntityDataType<T extends Entity> extends DataType {
     }
 
     static {
-        TYPE.declareMembers(self -> {
-            self.addProperty(new PropertySymbol("position", VectorDataType.TYPE, Component.translatable("docs.redbyte.description.properties.entity.position")), x -> new VectorDataType(((EntityDataType<?>) x).getEntity().position()));
-        });
+        TYPE.declareMembers(self -> self.addProperty(new PropertySymbol("position", VectorDataType.TYPE, Component.translatable("docs.redbyte.description.properties.entity.position")), x -> new VectorDataType(((EntityDataType<?>) x).getEntity().position())));
     }
 }

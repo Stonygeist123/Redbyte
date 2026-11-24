@@ -10,7 +10,9 @@ import net.stonygeist.redbyte.entity.robo.RoboModel;
 import net.stonygeist.redbyte.index.RedbyteEntities;
 
 @Mod.EventBusSubscriber(modid = Redbyte.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
-public class RedbyteEventBusEvents {
+public enum RedbyteEventBusEvents {
+    ;
+
     @SubscribeEvent
     public static void registerLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
         event.registerLayerDefinition(RoboModel.LAYER_LOCATION, RoboModel::createBodyLayer);

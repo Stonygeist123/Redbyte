@@ -19,17 +19,15 @@ public final class NumberType extends PrimitiveType {
     }
 
     static {
-        TYPE.declareMembers(self -> {
-            self.addMethods(new MethodSymbol(
-                    "floor", ImmutableList.of(), TYPE,
-                    (ev, robo, object, args) -> new NumberType((float) Math.floor(((NumberType) object).getValue())),
-                    Component.translatable("docs.redbyte.description.functions.number.floor")), new MethodSymbol(
-                    "ceil", ImmutableList.of(), TYPE,
-                    (ev, robo, object, args) -> new NumberType((float) Math.ceil(((NumberType) object).getValue())),
-                    Component.translatable("docs.redbyte.description.functions.number.ceil")), new MethodSymbol(
-                    "round", ImmutableList.of(), TYPE,
-                    (ev, robo, object, args) -> new NumberType(Math.round(((NumberType) object).getValue())),
-                    Component.translatable("docs.redbyte.description.functions.number.round")));
-        });
+        TYPE.declareMembers(self -> self.addMethods(new MethodSymbol(
+                "floor", ImmutableList.of(), TYPE,
+                (ev, robo, object, args) -> new NumberType((float) Math.floor(((NumberType) object).getValue())),
+                Component.translatable("docs.redbyte.description.functions.number.floor")), new MethodSymbol(
+                "ceil", ImmutableList.of(), TYPE,
+                (ev, robo, object, args) -> new NumberType((float) Math.ceil(((NumberType) object).getValue())),
+                Component.translatable("docs.redbyte.description.functions.number.ceil")), new MethodSymbol(
+                "round", ImmutableList.of(), TYPE,
+                (ev, robo, object, args) -> new NumberType(Math.round(((NumberType) object).getValue())),
+                Component.translatable("docs.redbyte.description.functions.number.round"))));
     }
 }

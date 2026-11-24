@@ -209,28 +209,15 @@ public final class Evaluator {
                 yield value;
             }
             case BoundIndexAssignExpr indexAssignExpr -> {
-                /*  NumberType index = (NumberType) evaluateExpr(indexAssignExpr.index(), robo);
-                ListType oldList = (ListType) variables.get(indexAssignExpr.variable());
-                if (index.getValue() < 0)
-                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.index_out_of_bounds"), indexAssignExpr.index().span());
-                if (Math.floor(index.getValue()) != index.getValue())
-                    throw new EvaluationError(Component.translatable("runtime.redbyte.error.index_must_be_int"), indexAssignExpr.index().span());
-                */
                 DataType base = evaluateExpr(indexAssignExpr.base(), robo);
                 DataType index = evaluateExpr(indexAssignExpr.index(), robo);
                 DataType value = evaluateExpr(indexAssignExpr.value(), robo);
                 if (base instanceof ListType l && index instanceof NumberType i) {
-                    // TODO: Test
                     l.getValue().set(checkedIndex(l, i, indexAssignExpr.index().span()), value);
                     yield value;
                 }
 
                 throw new RuntimeException("Base is not a list or index is not a number.");
-                /*List<DataType> items = new ArrayList<>(oldList.getValue());
-                items.set((int) index.getValue(), value);
-                ListType newList = new ListType(items);
-                variables.put(indexAssignExpr.variable(), newList);
-                yield value;*/
             }
             case BoundRoboExpr ignored -> new RoboDataType(getRoboEntity());
             case BoundListExpr listExpr ->

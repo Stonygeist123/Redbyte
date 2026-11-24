@@ -96,7 +96,7 @@ public class TypeSymbol extends Symbol {
     public List<MethodSymbol> getMethods() {
         if (isList())
             return ListType.TYPE.getMethods();
-        
+
         List<MethodSymbol> result = new ArrayList<>();
         if (superType != null)
             result.addAll(superType.getMethods());
@@ -129,7 +129,7 @@ public class TypeSymbol extends Symbol {
     }
 
     public TypeSymbol getBase() {
-        return new TypeSymbol(name, superType, docsName, null, members);
+        return new TypeSymbol(elementType == null ? name : elementType.name, superType, docsName, null, members);
     }
 
     @Override
