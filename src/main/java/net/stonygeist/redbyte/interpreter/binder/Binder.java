@@ -150,7 +150,7 @@ public final class Binder {
             case GroupExpr groupExpr -> new BoundGroupExpr(bindExpr(groupExpr.expr), groupExpr.span());
             case NameExpr nameExpr -> {
                 String name = nameExpr.name.lexeme.toLowerCase();
-                VariableSymbol variable = _scope.getSymbolTable().get(name);
+                VariableSymbol variable = _scope.lookup(name);
                 if (variable == null) {
                     diagnostics.add(new Diagnostic(Component.translatable("interpreter.redbyte.diagnostics.variable_not_found", name), nameExpr.name.span()));
                     yield new BoundErrorExpr(nameExpr.span());
@@ -161,7 +161,7 @@ public final class Binder {
             case AssignExpr assignExpr -> {
                 BoundExpr value = bindExpr(assignExpr.value);
                 String name = assignExpr.name.lexeme.toLowerCase();
-                VariableSymbol variable = _scope.getSymbolTable().get(name);
+                VariableSymbol variable = _scope.lookup(name);
                 if (variable == null) {
                     variable = new VariableSymbol(name, value.getType());
                     tryDeclareVar(variable);
@@ -298,10 +298,7 @@ public final class Binder {
 
 
     public void tryDeclareVar(VariableSymbol variable) {
-        if (_scope.getSymbolTable().containsKey(variable.name))
-            return;
-
-        _scope.getSymbolTable().put(variable.name, variable);
+        _scope.declare(variable);
     }
 
     private void checkIndexType(BoundExpr index) {

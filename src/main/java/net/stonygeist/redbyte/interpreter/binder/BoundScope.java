@@ -3,11 +3,11 @@ package net.stonygeist.redbyte.interpreter.binder;
 import net.stonygeist.redbyte.interpreter.symbols.VariableSymbol;
 
 import javax.annotation.Nullable;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
-// TODO: Make variables only be saved in the specific scope so changes get applied from child to parent.
 public final class BoundScope {
-    private final Hashtable<String, VariableSymbol> _symbolTable = new Hashtable<>();
+    private final Map<String, VariableSymbol> _symbols = new HashMap<>();
     private final @Nullable BoundScope _parent;
 
     public BoundScope() {
@@ -16,15 +16,23 @@ public final class BoundScope {
 
     public BoundScope(@Nullable BoundScope parent) {
         _parent = parent;
-        if (parent != null)
-            _symbolTable.putAll(_parent.getSymbolTable());
     }
 
     public @Nullable BoundScope getParent() {
         return _parent;
     }
 
-    public Hashtable<String, VariableSymbol> getSymbolTable() {
-        return _symbolTable;
+    public @Nullable VariableSymbol lookup(String name) {
+        for (BoundScope scope = this; scope != null; scope = scope._parent) {
+            VariableSymbol variable = scope._symbols.get(name);
+            if (variable != null)
+                return variable;
+        }
+
+        return null;
+    }
+
+    public void declare(VariableSymbol variable) {
+        _symbols.putIfAbsent(variable.name, variable);
     }
 }
