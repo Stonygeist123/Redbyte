@@ -19,7 +19,7 @@ public class Parser {
     private final DiagnosticBag diagnostics = new DiagnosticBag();
 
     public Parser(Token[] tokens, List<Diagnostic> diagnostics) {
-        this.tokens = Arrays.stream(tokens).filter(t -> t.kind != TokenKind.Whitespace).toArray(Token[]::new);
+        this.tokens = Arrays.stream(tokens).filter(t -> t.kind != TokenKind.Whitespace && t.kind != TokenKind.Comment).toArray(Token[]::new);
         this.diagnostics.addAll(diagnostics);
     }
 

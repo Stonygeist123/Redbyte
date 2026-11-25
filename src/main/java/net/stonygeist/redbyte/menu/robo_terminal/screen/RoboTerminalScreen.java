@@ -5,7 +5,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.font.TextFieldHelper;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.util.FormattedCharSequence;
@@ -16,6 +15,7 @@ import net.stonygeist.redbyte.interpreter.analysis.TextSpan;
 import net.stonygeist.redbyte.interpreter.diagnostics.Diagnostic;
 import net.stonygeist.redbyte.interpreter.diagnostics.DiagnosticBag;
 import net.stonygeist.redbyte.menu.robo_terminal.RoboTerminal;
+import net.stonygeist.redbyte.menu.robo_terminal.SyntaxHighlighter;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
@@ -58,7 +58,8 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     private int selectionEndChar;
     private boolean hasSelection;
 
-    private ListTag lastDiagnosticsTag = new ListTag();
+    // The build count of the robo that this screen has already reacted to. -1: nothing seen yet.
+    private int lastBuildCount = -1;
     private TextFieldHelper textFieldHelper;
     private boolean followCursorOnRender = true;
 
@@ -126,13 +127,12 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             guiGraphics.drawString(font, Component.translatable("menu.redbyte.robo_terminal.loading"), width / 2, height / 2, 0xffffffff);
         } else {
             if (getMenu().getRoboEntity() != null) {
-                ListTag currentDiagnosticsTag = getMenu().getRoboEntity().getDiagnosticsTag();
-                if (!lastDiagnosticsTag.equals(currentDiagnosticsTag)) {
+                int buildCount = getMenu().getRoboEntity().getBuildCount();
+                if (buildCount != lastBuildCount) {
+                    lastBuildCount = buildCount;
                     getMenu().setRunDisabledUntilBuild(false);
                     getMenu().setErrorHighlightingDisabled(false);
-                    lastDiagnosticsTag = currentDiagnosticsTag;
-                } else if (lastDiagnosticsTag.isEmpty())
-                    getMenu().setRunDisabledUntilBuild(false);
+                }
             }
 
             clampEditorState();
@@ -150,6 +150,7 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
 
             for (int i = firstVisibleLine; i <= lastVisibleLine && i < lines.length; ++i) {
                 String line = lines[i];
+                int[] syntaxColors = SyntaxHighlighter.colorLine(line);
                 boolean isCurLine = i == curLine;
                 boolean showCursor = (tickCounter / 10) % 2 == 0;
 
@@ -218,18 +219,18 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
                     }
 
                     // Draw the lineStart with selection highlighting
-                    drawClippedRange(guiGraphics, line, 0, lineSelStart, visibleStart, visibleEnd, textX, lineY, 0xffffff);
+                    drawHighlightedRange(guiGraphics, line, syntaxColors, 0, lineSelStart, visibleStart, visibleEnd, textX, lineY);
                     drawClippedRange(guiGraphics, line, lineSelStart, lineSelEnd, visibleStart, visibleEnd, textX, lineY, 0x0000ff);
-                    drawClippedRange(guiGraphics, line, lineSelEnd, line.length(), visibleStart, visibleEnd + 1, textX, lineY, 0xffffff);
+                    drawHighlightedRange(guiGraphics, line, syntaxColors, lineSelEnd, line.length(), visibleStart, visibleEnd + 1, textX, lineY);
                 } else if (textFieldHelper.isSelecting() && isCurLine) {
                     // Fall back to TextFieldHelper selection for current lineStart
                     int selStart = Math.min(safeSelectionPos, safeCursorPos);
                     int selEnd = Math.max(safeSelectionPos, safeCursorPos);
-                    drawClippedRange(guiGraphics, line, 0, selStart, visibleStart, visibleEnd, textX, lineY, 0xffffff);
+                    drawHighlightedRange(guiGraphics, line, syntaxColors, 0, selStart, visibleStart, visibleEnd, textX, lineY);
                     drawClippedRange(guiGraphics, line, selStart, selEnd, visibleStart, visibleEnd, textX, lineY, 0x0000ff);
-                    drawClippedRange(guiGraphics, line, selEnd, line.length(), visibleStart, visibleEnd + 1, textX, lineY, 0xffffff);
+                    drawHighlightedRange(guiGraphics, line, syntaxColors, selEnd, line.length(), visibleStart, visibleEnd + 1, textX, lineY);
                 } else
-                    drawClippedRange(guiGraphics, line, 0, line.length(), visibleStart, visibleEnd + 1, textX, lineY, 0xffffff);
+                    drawHighlightedRange(guiGraphics, line, syntaxColors, 0, line.length(), visibleStart, visibleEnd + 1, textX, lineY);
 
                 guiGraphics.drawString(font, (i + 1) + ": ", x + 2, lineY, 0xa9a9a9);
                 if (isCurLine && showCursor) {
@@ -588,6 +589,20 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             int x1 = textX + font.width(line.substring(clipStart, drawStart));
             int x2 = textX + font.width(line.substring(clipStart, drawEnd));
             guiGraphics.fill(x1, lineY - 1, x2, lineY - 1 + font.lineHeight, DIAGNOSTIC_HIGHLIGHT_COLOR);
+        }
+    }
+
+    // Like drawClippedRange, but every character gets its syntax color. Runs of the same color are drawn in one go.
+    private void drawHighlightedRange(GuiGraphics guiGraphics, String line, int[] colors, int rangeStart, int rangeEnd,
+                                      int clipStart, int clipEnd, int x, int y) {
+        int drawStart = Math.max(rangeStart, clipStart);
+        int drawEnd = Math.min(Math.min(rangeEnd, clipEnd), Math.min(line.length(), colors.length));
+        int runStart = drawStart;
+        for (int i = drawStart + 1; i <= drawEnd; ++i) {
+            if (i == drawEnd || colors[i] != colors[runStart]) {
+                drawClippedRange(guiGraphics, line, runStart, i, clipStart, clipEnd, x, y, colors[runStart]);
+                runStart = i;
+            }
         }
     }
 

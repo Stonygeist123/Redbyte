@@ -54,6 +54,8 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
             SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<CompoundTag> diagnostics =
             SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.COMPOUND_TAG);
+    private static final EntityDataAccessor<Integer> buildCount =
+            SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<CompoundTag> runtimeError
             = SynchedEntityData.defineId(RoboEntity.class, EntityDataSerializers.COMPOUND_TAG);
     private static final EntityDataAccessor<CompoundTag> printOutput
@@ -144,6 +146,7 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
         builder.define(redbyteID, Optional.empty());
         builder.define(buildDone, false);
         builder.define(diagnostics, new DiagnosticBag().serializeNBT());
+        builder.define(buildCount, 0);
         builder.define(runtimeError, new CompoundTag());
         builder.define(printOutput, new CompoundTag());
         builder.define(isRuntime, false);
@@ -314,6 +317,14 @@ public class RoboEntity extends PathfinderMob implements MenuProvider {
 
     public void setDiagnostics(DiagnosticBag diagnostics) {
         entityData.set(RoboEntity.diagnostics, diagnostics.serializeNBT());
+    }
+
+    public int getBuildCount() {
+        return entityData.get(buildCount);
+    }
+
+    public void incrementBuildCount() {
+        entityData.set(buildCount, getBuildCount() + 1);
     }
 
     public boolean getBuildDone() {
