@@ -176,6 +176,7 @@ public final class PseudoRobo {
     public void build() {
         stopEvaluation();
         diagnostics = new DiagnosticBag();
+        buildResult = ImmutableList.of();
         Lexer lexer = new Lexer(code);
         List<Token> tokens = lexer.lex();
 
@@ -190,6 +191,7 @@ public final class PseudoRobo {
 
         buildDone = true;
         getEntity().setDiagnostics(diagnostics);
+        getEntity().incrementBuildCount();
         if (diagnostics.isEmpty())
             Redbyte.CHANNEL.send(new C2SBuildResultPacket(redbyteID, true, DiagnosticBag.EMPTY), PacketDistributor.SERVER.noArg());
         else

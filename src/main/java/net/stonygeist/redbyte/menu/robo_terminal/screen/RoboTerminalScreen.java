@@ -5,7 +5,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.font.TextFieldHelper;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.util.FormattedCharSequence;
@@ -59,7 +58,8 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
     private int selectionEndChar;
     private boolean hasSelection;
 
-    private ListTag lastDiagnosticsTag = new ListTag();
+    // The build count of the robo that this screen has already reacted to. -1: nothing seen yet.
+    private int lastBuildCount = -1;
     private TextFieldHelper textFieldHelper;
     private boolean followCursorOnRender = true;
 
@@ -127,13 +127,12 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
             guiGraphics.drawString(font, Component.translatable("menu.redbyte.robo_terminal.loading"), width / 2, height / 2, 0xffffffff);
         } else {
             if (getMenu().getRoboEntity() != null) {
-                ListTag currentDiagnosticsTag = getMenu().getRoboEntity().getDiagnosticsTag();
-                if (!lastDiagnosticsTag.equals(currentDiagnosticsTag)) {
+                int buildCount = getMenu().getRoboEntity().getBuildCount();
+                if (buildCount != lastBuildCount) {
+                    lastBuildCount = buildCount;
                     getMenu().setRunDisabledUntilBuild(false);
                     getMenu().setErrorHighlightingDisabled(false);
-                    lastDiagnosticsTag = currentDiagnosticsTag;
-                } else if (lastDiagnosticsTag.isEmpty())
-                    getMenu().setRunDisabledUntilBuild(false);
+                }
             }
 
             clampEditorState();
@@ -593,16 +592,18 @@ public final class RoboTerminalScreen extends AbstractContainerScreen<RoboTermin
         }
     }
 
+    // Like drawClippedRange, but every character gets its syntax color. Runs of the same color are drawn in one go.
     private void drawHighlightedRange(GuiGraphics guiGraphics, String line, int[] colors, int rangeStart, int rangeEnd,
                                       int clipStart, int clipEnd, int x, int y) {
         int drawStart = Math.max(rangeStart, clipStart);
         int drawEnd = Math.min(Math.min(rangeEnd, clipEnd), Math.min(line.length(), colors.length));
         int runStart = drawStart;
-        for (int i = drawStart + 1; i <= drawEnd; ++i)
+        for (int i = drawStart + 1; i <= drawEnd; ++i) {
             if (i == drawEnd || colors[i] != colors[runStart]) {
                 drawClippedRange(guiGraphics, line, runStart, i, clipStart, clipEnd, x, y, colors[runStart]);
                 runStart = i;
             }
+        }
     }
 
     private void drawClippedRange(GuiGraphics guiGraphics, String line, int rangeStart, int rangeEnd,
