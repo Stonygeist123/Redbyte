@@ -55,10 +55,12 @@ public class Lexer {
                 break;
             case '/':
                 if (peek() == '/') {
-                    while (peek() != '\n' && peek() != '\r' && !isAtEnd())
+                    while (peek() != '\n' && peek() != '\r' && !isAtEnd()) {
                         lexeme.append(peek());
-                    ++current;
-                    ++column;
+                        ++current;
+                        ++column;
+                    }
+                    
                     kind = TokenKind.Comment;
                 } else
                     kind = TokenKind.Slash;
